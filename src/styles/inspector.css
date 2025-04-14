@@ -11,6 +11,43 @@
   box-shadow: -2px 0 5px rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+  transition: transform 0.3s ease;
+  transform: translateX(0);
+  resize: horizontal; /* 允许水平调整大小 */
+  min-width: 200px; /* 最小宽度 */
+  max-width: 600px; /* 最大宽度 */
+}
+
+/* 添加折叠/展开功能 */
+.cocos-inspector.collapsed {
+  transform: translateX(290px);
+}
+
+/* 添加折叠按钮 */
+.collapse-btn {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 10px;
+  height: 40px;
+  background: #1e1e1e;
+  border-radius: 4px 0 0 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.collapse-btn::after {
+  content: "›";
+  font-size: 14px;
+  color: #aaa;
+}
+
+.cocos-inspector.collapsed .collapse-btn::after {
+  content: "‹";
 }
 
 /* 重置样式，避免被页面样式影响 */
@@ -80,14 +117,39 @@
 
 .cocos-inspector-content {
   flex: 1;
-  overflow: auto;
+  overflow-y: auto; /* 垂直滚动 */
+  overflow-x: auto; /* 水平滚动 */
   padding: 10px;
+}
+
+/* 自定义滚动条样式 */
+.cocos-inspector-content::-webkit-scrollbar {
+  width: 8px;
+  height: 8px; /* 水平滚动条高度 */
+}
+
+.cocos-inspector-content::-webkit-scrollbar-track {
+  background: #1e1e1e;
+}
+
+.cocos-inspector-content::-webkit-scrollbar-thumb {
+  background: #555;
+  border-radius: 4px;
+}
+
+.cocos-inspector-content::-webkit-scrollbar-thumb:hover {
+  background: #777;
+}
+
+.cocos-inspector-content::-webkit-scrollbar-corner {
+  background: #1e1e1e;
 }
 
 /* 树形结构样式 */
 .node-tree {
   list-style: none;
   padding-left: 0;
+  min-width: max-content; /* 确保内容能完整显示 */
 }
 
 .node-tree li {
@@ -100,6 +162,7 @@
   padding: 3px 0;
   cursor: pointer;
   user-select: none;
+  white-space: nowrap; /* 防止节点名称换行 */
 }
 
 .node-tree-item:hover {
@@ -114,6 +177,7 @@
   width: 20px;
   text-align: center;
   cursor: pointer;
+  flex-shrink: 0; /* 防止缩小 */
 }
 
 .node-name {

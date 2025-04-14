@@ -12,6 +12,8 @@ class CocosInspector {
     private syncMode: SyncMode = SyncMode.AUTO;
     private updateIntervalId: number | null = null;
     private updateInterval: number = 100; // 默认100ms刷新率，与Cocos Creator接近
+    private isCollapsed: boolean = false; // 是否折叠
+    private lastWidth: number = 300; // 记住最后的宽度
 
     constructor() {
         this.init();
@@ -32,6 +34,12 @@ class CocosInspector {
     private createUI(): void {
         this.container = document.createElement('div');
         this.container.className = 'cocos-inspector';
+
+        // 添加折叠按钮
+        const collapseBtn = document.createElement('div');
+        collapseBtn.className = 'collapse-btn';
+        collapseBtn.addEventListener('click', () => this.toggleCollapse());
+        this.container.appendChild(collapseBtn);
 
         // 创建头部
         const header = document.createElement('div');
@@ -86,6 +94,54 @@ class CocosInspector {
         this.container.appendChild(header);
         this.container.appendChild(content);
         document.body.appendChild(this.container);
+
+        // 添加快捷键支持
+        document.addEventListener('keydown', (e) => {
+            // 按 Alt+I 切换Inspector的显示/隐藏
+            if (e.altKey && e.key === 'i') {
+                this.toggleCollapse();
+            }
+        });
+
+        // 监听宽度变化
+        this.setupResizeObserver();
+    }
+
+    private setupResizeObserver(): void {
+        if (this.container && typeof ResizeObserver !== 'undefined') {
+            // 记住调整前的宽度
+            this.container.addEventListener('mousedown', (e) => {
+                const container = this.container;
+                if (container && e.offsetX > container.offsetWidth - 10) {
+                    this.lastWidth = container.offsetWidth;
+                }
+            });
+
+            // 使用ResizeObserver监听大小变化
+            const resizeObserver = new ResizeObserver((entries) => {
+                for (const entry of entries) {
+                    const width = entry.contentRect.width;
+                    // 保存新宽度
+                    if (width > 0 && !this.isCollapsed) {
+                        this.lastWidth = width;
+                    }
+                }
+            });
+
+            resizeObserver.observe(this.container);
+        }
+    }
+
+    private toggleCollapse(): void {
+        this.isCollapsed = !this.isCollapsed;
+        if (this.container) {
+            this.container.classList.toggle('collapsed', this.isCollapsed);
+
+            // 如果展开，恢复之前的宽度
+            if (!this.isCollapsed && this.lastWidth) {
+                this.container.style.width = `${this.lastWidth}px`;
+            }
+        }
     }
 
     private setSyncMode(mode: SyncMode): void {
