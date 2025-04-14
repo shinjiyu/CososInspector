@@ -22,9 +22,47 @@ export class TransformRenderer implements ComponentRenderer {
                     <div class="component-toggle">▼</div>
                 </div>
                 <div class="component-content">
-                    ${this.renderPositionProperty(node)}
-                    ${this.renderRotationProperty(node)}
-                    ${this.renderScaleProperty(node)}
+                    ${this.hasActiveProperty(node) ? this.renderActiveProperty(node) : ''}
+                    ${this.hasPositionProperty(node) ? this.renderPositionProperty(node) : ''}
+                    ${this.hasRotationProperty(node) ? this.renderRotationProperty(node) : ''}
+                    ${this.hasScaleProperty(node) ? this.renderScaleProperty(node) : ''}
+                </div>
+            </div>
+        `;
+    }
+
+    private renderActiveProperty(node: cc.Node): string {
+        // 检查节点是否有active属性
+        const hasActiveProperty = 'active' in node;
+        const nodeName = node.name || '未命名';
+
+        return `
+            <div class="property-group">
+                <div class="property-group-header">Node</div>
+                ${hasActiveProperty ? `
+                <div class="property-row">
+                    <div class="property-name">Active</div>
+                    <div class="property-value">
+                        <input type="checkbox" class="property-checkbox" 
+                            ${node.active ? 'checked' : ''} 
+                            data-property="active">
+                    </div>
+                </div>` : ''}
+                <div class="property-row">
+                    <div class="property-name">Name</div>
+                    <div class="property-value">
+                        <input type="text" class="property-input" 
+                            value="${nodeName}" 
+                            data-property="name">
+                    </div>
+                </div>
+                <div class="property-row">
+                    <div class="property-name">UUID</div>
+                    <div class="property-value">
+                        <input type="text" class="property-input" 
+                            value="${node.uuid || ''}" 
+                            readonly>
+                    </div>
                 </div>
             </div>
         `;
@@ -147,5 +185,29 @@ export class TransformRenderer implements ComponentRenderer {
                 </div>
             </div>
         `;
+    }
+
+    private hasActiveProperty(node: cc.Node): boolean {
+        return 'active' in node;
+    }
+    // 检查节点是否有位置相关属性
+    private hasPositionProperty(node: cc.Node): boolean {
+        return node.position !== undefined ||
+            node.x !== undefined ||
+            node.y !== undefined;
+    }
+
+    // 检查节点是否有旋转相关属性
+    private hasRotationProperty(node: cc.Node): boolean {
+        return node.rotation !== undefined ||
+            node.angle !== undefined ||
+            node.eulerAngles !== undefined;
+    }
+
+    // 检查节点是否有缩放相关属性
+    private hasScaleProperty(node: cc.Node): boolean {
+        return node.scale !== undefined ||
+            node.scaleX !== undefined ||
+            node.scaleY !== undefined;
     }
 } 

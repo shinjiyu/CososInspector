@@ -348,11 +348,44 @@ class CocosInspector {
 
             if (!property) return;
 
+            console.log(`属性变更: ${property}, 节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
+
+            // 首先检查节点是否有此属性
+            const hasProperty = property.includes('.')
+                ? this.checkNestedProperty(this.selectedNode, property)
+                : property in this.selectedNode;
+
+            if (!hasProperty) {
+                console.warn(`节点不包含属性: ${property}`);
+                return;
+            }
+
             // 根据输入类型处理
             if (inputElement.type === 'checkbox') {
                 // 布尔值
                 const value = inputElement.checked;
                 this.updateNodeProperty(this.selectedNode, property, value);
+
+                // 如果更改的是active属性，则可能影响场景结构，强制刷新树
+                if (property === 'active') {
+                    // 确保节点的active状态立即生效
+                    this.selectedNode.active = value;
+
+                    // 通知场景节点状态发生变化
+                    if (window.cc && window.cc.director && window.cc.director.getScene) {
+                        // 强制更新场景，确保active状态变化立即显示
+                        const scene = window.cc.director.getScene();
+                        if (scene) {
+                            // 触发场景更新
+                            this.refreshSceneView();
+                        }
+                    }
+
+                    // 先刷新当前节点的详情
+                    this.updateDetails();
+                    // 短暂延迟后刷新整个树，让用户能看到即时效果
+                    setTimeout(() => this.forceRefreshTree(), 300);
+                }
             } else {
                 // 数字或文本
                 let value: any = inputElement.value;
@@ -363,9 +396,44 @@ class CocosInspector {
                     if (isNaN(value)) return;
                 }
 
+                console.log(`更新属性值: ${property} = ${value}`);
                 this.updateNodeProperty(this.selectedNode, property, value);
+
+                // 如果修改的是节点名称，需要更新树视图
+                if (property === 'name') {
+                    // 短暂延迟后刷新整个树
+                    setTimeout(() => this.forceRefreshTree(), 300);
+                }
+            }
+
+            // 如果在自动更新模式下，马上更新面板
+            if (this.syncMode === SyncMode.AUTO) {
+                this.updateDetails();
+            }
+
+            // 检查是否修改了变换属性（position、eulerAngles或scale），需要刷新场景视图
+            if (property.startsWith('position') || property.startsWith('eulerAngles') || property.startsWith('scale')) {
+                this.refreshSceneView();
             }
         }
+    }
+
+    // 检查嵌套属性是否存在
+    private checkNestedProperty(obj: any, path: string): boolean {
+        const parts = path.split('.');
+        let current = obj;
+
+        for (let i = 0; i < parts.length; i++) {
+            if (current === undefined || current === null) {
+                return false;
+            }
+            if (!(parts[i] in current)) {
+                return false;
+            }
+            current = current[parts[i]];
+        }
+
+        return true;
     }
 
     private updateNodeProperty(node: cc.Node, property: string, value: any): void {
@@ -376,11 +444,30 @@ class CocosInspector {
                 const mainProp = parts[0];
                 const subProp = parts[1];
 
-                if (node[mainProp as keyof cc.Node] && typeof node[mainProp as keyof cc.Node] === 'object') {
-                    (node[mainProp as keyof cc.Node] as any)[subProp] = value;
+                if (node[mainProp as keyof cc.Node] !== undefined &&
+                    typeof node[mainProp as keyof cc.Node] === 'object') {
+                    const obj = node[mainProp as keyof cc.Node] as any;
+
+                    // 检查子属性是否存在
+                    if (obj && subProp in obj) {
+                        const oldValue = obj[subProp];
+                        obj[subProp] = value;
+                        console.log(`更新嵌套属性: ${property}, 旧值: ${oldValue}, 新值: ${value}`);
+                    } else {
+                        console.warn(`对象 ${mainProp} 不包含子属性: ${subProp}`);
+                    }
+                } else {
+                    console.warn(`节点不包含有效对象属性: ${mainProp}`);
                 }
             } else {
-                (node as any)[property] = value;
+                // 确保属性存在
+                if (property in node) {
+                    const oldValue = (node as any)[property];
+                    (node as any)[property] = value;
+                    console.log(`更新属性: ${property}, 旧值: ${oldValue}, 新值: ${value}`);
+                } else {
+                    console.warn(`节点不包含属性: ${property}`);
+                }
             }
 
             // 如果在自动更新模式下，马上更新面板
@@ -587,6 +674,44 @@ class CocosInspector {
                 if (node) {
                     this.selectNode(selectedUUID);
                 }
+            }
+        }
+    }
+
+    private refreshSceneView(): void {
+        // 实现刷新场景视图的逻辑
+        console.log('Refreshing scene view...');
+
+        // 尝试通过修改节点的位置后再恢复，来触发节点的刷新
+        if (this.selectedNode) {
+            const node = this.selectedNode;
+
+            try {
+                // 记录原始位置
+                const originalPosition = {
+                    x: node.position?.x || 0,
+                    y: node.position?.y || 0,
+                    z: node.position?.z || 0
+                };
+
+                // 临时修改并恢复位置，触发引擎更新渲染
+                // 使用简单的方法：直接设置position属性的x值然后恢复
+                if (node.position) {
+                    // 缓存原始值
+                    const originalX = node.position.x;
+
+                    // 稍微改变然后恢复，以触发引擎更新
+                    node.position.x = originalX + 0.0001;
+                    // 立即恢复原值
+                    node.position.x = originalX;
+
+                    console.log('触发场景刷新成功');
+                }
+
+                // 额外记录日志，确认场景刷新尝试
+                console.log(`刷新节点: ${node.name}, 使用位置属性触发更新`);
+            } catch (error) {
+                console.error('刷新场景视图失败:', error);
             }
         }
     }

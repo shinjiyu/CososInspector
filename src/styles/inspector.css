@@ -352,6 +352,9 @@
   margin: 0;
   height: 16px;
   width: 16px;
+  cursor: pointer;
+  vertical-align: middle;
+  accent-color: #4c7ecf;
 }
 
 .property-select {
@@ -361,4 +364,23 @@
   padding: 2px 4px;
   border-radius: 2px;
   width: 100%;
+}
+
+/* 属性组标题样式 */
+.property-group-header {
+  font-weight: bold;
+  color: #aaa;
+  margin-bottom: 6px;
+  font-size: 12px;
+  text-transform: uppercase;
+  padding-bottom: 4px;
+  border-bottom: 1px dotted #555;
+}
+
+/* Name属性样式 */
+.property-input[data-property="name"] {
+  font-weight: bold;
+  color: #dddddd;
+  background-color: #333;
+  border-color: #666;
 }
