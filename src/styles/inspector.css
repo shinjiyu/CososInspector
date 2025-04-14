@@ -2,7 +2,7 @@
   position: fixed;
   right: 0;
   top: 0;
-  width: 300px;
+  width: 600px;
   height: 100vh;
   background: #2d2d2d;
   color: #fff;
@@ -15,13 +15,13 @@
   transition: transform 0.3s ease;
   transform: translateX(0);
   resize: horizontal; /* 允许水平调整大小 */
-  min-width: 200px; /* 最小宽度 */
-  max-width: 600px; /* 最大宽度 */
+  min-width: 400px; /* 最小宽度 */
+  max-width: 1000px; /* 最大宽度 */
 }
 
 /* 添加折叠/展开功能 */
 .cocos-inspector.collapsed {
-  transform: translateX(290px);
+  transform: translateX(590px);
 }
 
 /* 添加折叠按钮 */
@@ -115,33 +115,65 @@
   background: #3a6d9a;
 }
 
+/* 内容区域布局 */
 .cocos-inspector-content {
   flex: 1;
+  display: flex;
+  overflow: hidden;
+}
+
+/* 树形结构区域 */
+.node-tree-container {
+  width: 50%;
+  height: 100%;
   overflow-y: auto; /* 垂直滚动 */
   overflow-x: auto; /* 水平滚动 */
   padding: 10px;
+  border-right: 1px solid #444;
+}
+
+/* 节点详情区域 */
+.node-details-container {
+  width: 50%;
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: auto;
+  padding: 10px;
+}
+
+/* 无选择状态 */
+.no-selection {
+  color: #888;
+  font-style: italic;
+  text-align: center;
+  margin-top: 20px;
 }
 
 /* 自定义滚动条样式 */
-.cocos-inspector-content::-webkit-scrollbar {
+.node-tree-container::-webkit-scrollbar,
+.node-details-container::-webkit-scrollbar {
   width: 8px;
   height: 8px; /* 水平滚动条高度 */
 }
 
-.cocos-inspector-content::-webkit-scrollbar-track {
+.node-tree-container::-webkit-scrollbar-track,
+.node-details-container::-webkit-scrollbar-track {
   background: #1e1e1e;
 }
 
-.cocos-inspector-content::-webkit-scrollbar-thumb {
+.node-tree-container::-webkit-scrollbar-thumb,
+.node-details-container::-webkit-scrollbar-thumb {
   background: #555;
   border-radius: 4px;
 }
 
-.cocos-inspector-content::-webkit-scrollbar-thumb:hover {
+.node-tree-container::-webkit-scrollbar-thumb:hover,
+.node-details-container::-webkit-scrollbar-thumb:hover {
   background: #777;
 }
 
-.cocos-inspector-content::-webkit-scrollbar-corner {
+.node-tree-container::-webkit-scrollbar-corner,
+.node-details-container::-webkit-scrollbar-corner {
   background: #1e1e1e;
 }
 
@@ -189,4 +221,133 @@
 
 .node-children {
   padding-left: 20px;
+}
+
+/* 组件详情样式 */
+.component-list {
+  margin-bottom: 10px;
+}
+
+.component-item {
+  background: #333;
+  border-radius: 3px;
+  margin-bottom: 8px;
+}
+
+.component-header {
+  padding: 5px 10px;
+  background: #444;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-radius: 3px 3px 0 0;
+}
+
+.component-header:hover {
+  background: #555;
+}
+
+.component-name {
+  font-weight: bold;
+}
+
+.component-toggle {
+  transform: rotate(0deg);
+  transition: transform 0.2s;
+}
+
+.component-toggle.collapsed {
+  transform: rotate(-90deg);
+}
+
+.component-content {
+  padding: 8px;
+  border-top: 1px solid #444;
+}
+
+.component-content.collapsed {
+  display: none;
+}
+
+/* 属性样式 */
+.property-group {
+  margin-bottom: 8px;
+}
+
+.property-group-title {
+  font-weight: bold;
+  color: #aaa;
+  margin-bottom: 4px;
+  font-size: 12px;
+  text-transform: uppercase;
+}
+
+.property-row {
+  display: flex;
+  margin-bottom: 4px;
+}
+
+.property-name {
+  width: 140px;
+  color: #bbb;
+  font-size: 13px;
+  display: flex;
+  align-items: center;
+}
+
+.property-value {
+  flex: 1;
+}
+
+/* 输入控件样式 */
+.property-input {
+  background: #2a2a2a;
+  border: 1px solid #555;
+  color: #fff;
+  padding: 2px 4px;
+  width: 100%;
+  border-radius: 2px;
+}
+
+.property-input:focus {
+  outline: none;
+  border-color: #6b9fff;
+}
+
+.property-number {
+  width: 70px;
+  text-align: right;
+}
+
+.vector-inputs {
+  display: flex;
+  gap: 4px;
+}
+
+.vector-input {
+  flex: 1;
+}
+
+.vector-input-label {
+  display: inline-block;
+  width: 10px;
+  text-align: center;
+  color: #888;
+  margin-right: 2px;
+}
+
+.property-checkbox {
+  margin: 0;
+  height: 16px;
+  width: 16px;
+}
+
+.property-select {
+  background: #2a2a2a;
+  border: 1px solid #555;
+  color: #fff;
+  padding: 2px 4px;
+  border-radius: 2px;
+  width: 100%;
 }

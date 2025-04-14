@@ -1,6 +1,6 @@
 {
   "name": "cocosinspector",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Cocos Inspector Chrome Extension",
   "main": "dist/content.js",
   "scripts": {
@@ -8,6 +8,7 @@
     "watch": "webpack --watch --config webpack.config.js",
     "dev": "webpack --config webpack.config.js --mode development",
     "prod": "webpack --config webpack.config.js --mode production",
+    "postbuild": "copy src\\styles\\inspector.css dist\\",
     "clean": "rimraf dist",
     "prebuild": "npm run clean",
     "package": "npm run prod && cd dist && zip -r ../cocos-inspector.zip *"
