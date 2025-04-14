@@ -83,7 +83,8 @@
 }
 
 .sync-btn,
-.refresh-btn {
+.refresh-btn,
+.force-refresh-btn {
   padding: 4px 8px;
   margin-right: 5px;
   background: #333;
@@ -95,7 +96,8 @@
 }
 
 .sync-btn:hover,
-.refresh-btn:hover {
+.refresh-btn:hover,
+.force-refresh-btn:hover {
   background: #444;
 }
 
@@ -113,6 +115,15 @@
 
 .refresh-btn:hover {
   background: #3a6d9a;
+}
+
+.force-refresh-btn {
+  background: #5d2a2a;
+  border-color: #6d3a3a;
+}
+
+.force-refresh-btn:hover {
+  background: #6d3a3a;
 }
 
 /* 内容区域布局 */

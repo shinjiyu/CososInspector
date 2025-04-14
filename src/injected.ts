@@ -19,6 +19,10 @@ class CocosInspector {
     private rendererManager: RendererManager; // 组件渲染器管理器
     private treeContainer: HTMLElement | null = null; // 树形结构容器
     private detailsContainer: HTMLElement | null = null; // 详细信息容器
+    private expandedNodes: Set<string> = new Set(); // 存储已展开节点的UUID
+    private expandedComponents: Set<string> = new Set(); // 存储已展开组件的UUID
+    private treeSnapshot: string = ''; // 存储树结构的快照
+    private sceneStructureHash: string = ''; // 存储场景结构的哈希值
 
     constructor() {
         this.rendererManager = new RendererManager();
@@ -82,15 +86,23 @@ class CocosInspector {
         refreshBtn.className = 'refresh-btn';
         refreshBtn.style.display = 'none';
 
+        // 强制刷新按钮 (始终显示)
+        const forceRefreshBtn = document.createElement('button');
+        forceRefreshBtn.textContent = '强制刷新';
+        forceRefreshBtn.className = 'force-refresh-btn';
+        forceRefreshBtn.title = '强制重建整个树结构';
+
         // 添加按钮点击事件
         autoBtn.addEventListener('click', () => this.setSyncMode(SyncMode.AUTO));
         manualBtn.addEventListener('click', () => this.setSyncMode(SyncMode.MANUAL));
         refreshBtn.addEventListener('click', () => this.updateTree());
+        forceRefreshBtn.addEventListener('click', () => this.forceRefreshTree());
 
         syncControls.appendChild(autoBtn);
         syncControls.appendChild(manualBtn);
         controls.appendChild(syncControls);
         controls.appendChild(refreshBtn);
+        controls.appendChild(forceRefreshBtn);
         header.appendChild(controls);
 
         // 创建内容区
@@ -223,8 +235,10 @@ class CocosInspector {
 
     private generateNodeItem(node: cc.Node): string {
         const hasChildren = node.children && node.children.length > 0;
+        const isExpanded = this.expandedNodes.has(node.uuid);
         const toggleClass = hasChildren ? 'node-toggle' : 'node-toggle-empty';
-        const toggleText = hasChildren ? '▶' : '';
+        const toggleText = hasChildren ? (isExpanded ? '▼' : '▶') : '';
+        const childrenStyle = isExpanded ? '' : 'display: none;';
 
         let html = `
             <li data-uuid="${node.uuid}">
@@ -235,7 +249,7 @@ class CocosInspector {
         `;
 
         if (hasChildren) {
-            html += '<ul class="node-children">';
+            html += `<ul class="node-children" style="${childrenStyle}">`;
             node.children.forEach(child => {
                 html += this.generateNodeItem(child);
             });
@@ -256,10 +270,23 @@ class CocosInspector {
 
             if (toggle) {
                 const li = toggle.closest('li');
-                const children = li?.querySelector('.node-children') as HTMLElement;
+                if (!li) return;
+
+                const uuid = li.dataset.uuid;
+                if (!uuid) return;
+
+                const children = li.querySelector('.node-children') as HTMLElement;
                 if (children) {
-                    toggle.textContent = toggle.textContent === '▶' ? '▼' : '▶';
-                    children.style.display = children.style.display === 'none' ? '' : 'none';
+                    const isExpanded = toggle.textContent === '▼';
+                    toggle.textContent = isExpanded ? '▶' : '▼';
+                    children.style.display = isExpanded ? 'none' : '';
+
+                    // 记录或移除展开状态
+                    if (isExpanded) {
+                        this.expandedNodes.delete(uuid);
+                    } else {
+                        this.expandedNodes.add(uuid);
+                    }
                 }
             }
 
@@ -272,13 +299,28 @@ class CocosInspector {
 
             // 组件折叠/展开
             if (componentHeader) {
-                const toggle = componentHeader.querySelector('.component-toggle');
                 const componentItem = componentHeader.closest('.component-item');
-                const content = componentItem?.querySelector('.component-content');
+                if (!componentItem) return;
+
+                // 将 componentItem 强制转换为 HTMLElement 以使用 dataset 属性
+                const componentElement = componentItem as HTMLElement;
+                const componentId = componentElement.dataset.componentId;
+                if (!componentId) return;
+
+                const toggle = componentHeader.querySelector('.component-toggle');
+                const content = componentItem.querySelector('.component-content');
 
                 if (toggle && content) {
+                    const isCollapsed = toggle.classList.contains('collapsed');
                     toggle.classList.toggle('collapsed');
                     content.classList.toggle('collapsed');
+
+                    // 记录组件展开状态
+                    if (isCollapsed) {
+                        this.expandedComponents.add(componentId);
+                    } else {
+                        this.expandedComponents.delete(componentId);
+                    }
                 }
             }
         });
@@ -385,8 +427,36 @@ class CocosInspector {
 
         const allComponents = [transformComponent, ...components];
 
+        // 记住当前滚动位置
+        const scrollTop = this.detailsContainer.scrollTop;
+
         // 使用渲染器管理器渲染组件
         this.detailsContainer.innerHTML = this.rendererManager.renderComponents(allComponents);
+
+        // 应用保存的组件展开状态
+        this.applyComponentExpandState();
+
+        // 恢复滚动位置
+        this.detailsContainer.scrollTop = scrollTop;
+    }
+
+    private applyComponentExpandState(): void {
+        if (!this.detailsContainer) return;
+
+        const componentItems = this.detailsContainer.querySelectorAll('.component-item');
+        componentItems.forEach(item => {
+            if (item instanceof HTMLElement) {
+                const componentId = item.dataset.componentId;
+                if (componentId && this.expandedComponents.has(componentId)) {
+                    const toggle = item.querySelector('.component-toggle');
+                    const content = item.querySelector('.component-content');
+                    if (toggle && content) {
+                        toggle.classList.remove('collapsed');
+                        content.classList.remove('collapsed');
+                    }
+                }
+            }
+        });
     }
 
     private findNodeByUUID(node: cc.Node, uuid: string): cc.Node | null {
@@ -400,40 +470,123 @@ class CocosInspector {
         return null;
     }
 
+    private generateNodeHash(node: cc.Node): string {
+        // 为节点生成包含更多信息的哈希值
+        let hash = `${node.uuid}:${node.name}`;
+
+        // 添加节点基本属性
+        hash += `:${node.active ? 1 : 0}`; // 活动状态
+
+        // 添加位置信息
+        const pos = node.position || { x: node.x || 0, y: node.y || 0, z: node.z || 0 };
+        hash += `:p${Math.round(pos.x || 0)},${Math.round(pos.y || 0)},${Math.round(pos.z || 0)}`;
+
+        // 添加组件信息
+        if (node._components && node._components.length > 0) {
+            const componentsHash = node._components
+                .map(comp => comp.constructor?.name || 'unknown')
+                .sort() // 排序以确保相同组件集合产生相同哈希
+                .join(',');
+            hash += `:c[${componentsHash}]`;
+        }
+
+        // 添加子节点信息 (数量和名称)
+        hash += `:children[${node.children.length}]`;
+
+        // 递归添加子节点结构信息
+        if (node.children && node.children.length > 0) {
+            // 对每个子节点递归生成哈希
+            const childrenHash = node.children
+                .map(child => this.generateNodeHash(child))
+                .join('|');
+            hash += `:${childrenHash}`;
+        }
+
+        return hash;
+    }
+
+    private hasSceneStructureChanged(scene: cc.Node): boolean {
+        // 生成场景结构的新哈希值
+        const newHash = this.generateNodeHash(scene);
+
+        // 检查是否与上次哈希值不同
+        if (newHash !== this.sceneStructureHash) {
+            this.sceneStructureHash = newHash;
+            return true;
+        }
+
+        return false;
+    }
+
     private updateTree(): void {
         const scene = cc.director.getScene();
         if (!scene) return;
 
-        // 只在场景变化时更新树结构
-        if (this.treeContainer) {
-            const newTree = this.generateNodeTree(scene);
-            if (this.treeContainer.innerHTML !== newTree) {
-                this.treeContainer.innerHTML = newTree;
+        // 检查场景结构是否发生变化
+        const sceneChanged = this.hasSceneStructureChanged(scene);
 
-                // 如果有选中的节点，恢复选中状态
-                if (this.selectedNode) {
-                    const item = this.container?.querySelector(`[data-uuid="${this.selectedNode.uuid}"] .node-tree-item`);
-                    if (item) {
-                        item.classList.add('selected');
-                    } else {
-                        // 如果节点不存在了，清除选择
-                        this.selectedNode = null;
-                        this.updateDetails();
-                    }
+        // 只在场景结构发生变化时更新树
+        if (sceneChanged && this.treeContainer) {
+            console.log('Scene structure changed, updating tree...');
+
+            // 生成新的树HTML
+            const newTree = this.generateNodeTree(scene);
+
+            // 保存当前滚动位置
+            const scrollTop = this.treeContainer.scrollTop;
+
+            // 更新树内容
+            this.treeContainer.innerHTML = newTree;
+
+            // 恢复滚动位置
+            this.treeContainer.scrollTop = scrollTop;
+
+            // 如果有选中的节点，恢复选中状态
+            if (this.selectedNode) {
+                const item = this.container?.querySelector(`[data-uuid="${this.selectedNode.uuid}"] .node-tree-item`);
+                if (item) {
+                    item.classList.add('selected');
+                } else {
+                    // 如果节点不存在了，清除选择
+                    this.selectedNode = null;
+                    this.updateDetails();
                 }
             }
         }
 
-        // 更新选中节点的详细信息
+        // 即使场景结构没有变化，也要检查选中节点是否存在，并更新详情
         if (this.selectedNode) {
-            // 检查节点是否还存在
             const nodeExists = this.findNodeByUUID(scene, this.selectedNode.uuid);
             if (nodeExists) {
+                // 只更新详情面板，不重建树结构
                 this.updateDetails();
             } else {
                 // 节点已被删除，清除选择
                 this.selectedNode = null;
                 this.updateDetails();
+            }
+        }
+    }
+
+    // 强制刷新树结构的方法
+    private forceRefreshTree(): void {
+        // 重置哈希值，确保下次更新时会重建树
+        this.sceneStructureHash = '';
+
+        // 保存当前选中的节点UUID
+        const selectedUUID = this.selectedNode?.uuid;
+
+        // 立即更新树结构
+        this.updateTree();
+
+        // 如果之前有选中的节点但现在没有，尝试重新选择
+        if (selectedUUID && !this.selectedNode) {
+            const scene = cc.director.getScene();
+            if (scene) {
+                const node = this.findNodeByUUID(scene, selectedUUID);
+                if (node) {
+                    this.selectNode(selectedUUID);
+                }
             }
         }
     }
