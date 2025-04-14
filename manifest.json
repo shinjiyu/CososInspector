@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Cocos Inspector",
+  "version": "1.0",
+  "description": "Cocos场景树查看器",
+  "permissions": [
+    "activeTab"
+  ],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["dist/content.js"]
+    }
+  ],
+  "web_accessible_resources": [{
+    "resources": ["dist/injected.js", "inspector.css"],
+    "matches": ["<all_urls>"]
+  }]
+} 

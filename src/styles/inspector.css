@@ -1,0 +1,128 @@
+.cocos-inspector {
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 300px;
+  height: 100vh;
+  background: #2d2d2d;
+  color: #fff;
+  font-family: Arial, sans-serif;
+  z-index: 9999;
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+}
+
+/* 重置样式，避免被页面样式影响 */
+.cocos-inspector * {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.cocos-inspector-header {
+  padding: 10px;
+  border-bottom: 1px solid #444;
+  background: #1e1e1e;
+}
+
+.cocos-inspector-header h3 {
+  margin: 0 0 10px 0;
+  font-size: 16px;
+}
+
+/* 控制栏样式 */
+.inspector-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 8px;
+}
+
+.sync-controls {
+  display: flex;
+}
+
+.sync-btn,
+.refresh-btn {
+  padding: 4px 8px;
+  margin-right: 5px;
+  background: #333;
+  border: 1px solid #555;
+  color: #ccc;
+  border-radius: 3px;
+  cursor: pointer;
+  outline: none;
+}
+
+.sync-btn:hover,
+.refresh-btn:hover {
+  background: #444;
+}
+
+.sync-btn.active {
+  background: #4d4d4d;
+  color: #fff;
+  border-color: #666;
+}
+
+.refresh-btn {
+  margin-left: auto;
+  background: #2a5d8a;
+  border-color: #3a6d9a;
+}
+
+.refresh-btn:hover {
+  background: #3a6d9a;
+}
+
+.cocos-inspector-content {
+  flex: 1;
+  overflow: auto;
+  padding: 10px;
+}
+
+/* 树形结构样式 */
+.node-tree {
+  list-style: none;
+  padding-left: 0;
+}
+
+.node-tree li {
+  margin: 2px 0;
+}
+
+.node-tree-item {
+  display: flex;
+  align-items: center;
+  padding: 3px 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.node-tree-item:hover {
+  background: #3d3d3d;
+}
+
+.node-tree-item.selected {
+  background: #4d4d4d;
+}
+
+.node-toggle {
+  width: 20px;
+  text-align: center;
+  cursor: pointer;
+}
+
+.node-name {
+  flex: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.node-children {
+  padding-left: 20px;
+}
