@@ -347,7 +347,7 @@ class CocosInspector {
         const scene = cc.director.getScene();
         if (!scene) return;
 
-        console.log(`[初始化树] 场景: ${scene.name}(${scene.uuid}), 子节点数: ${scene.children?.length || 0}`);
+        // console.log(`[初始化树] 场景: ${scene.name}(${scene.uuid}), 子节点数: ${scene.children?.length || 0}`);
         if (this.treeContainer) {
             this.treeContainer.innerHTML = this.generateNodeTree(scene);
         }
@@ -357,7 +357,7 @@ class CocosInspector {
         // 如果场景为空，返回空字符串
         if (!scene) return '<div class="empty-scene">Scene is empty</div>';
 
-        console.log(`[生成树结构] 开始生成场景: ${scene.name}(${scene.uuid}), 子节点数: ${scene.children?.length || 0}`);
+        // console.log(`[生成树结构] 开始生成场景: ${scene.name}(${scene.uuid}), 子节点数: ${scene.children?.length || 0}`);
 
         // 创建根节点列表
         let html = '<ul class="node-tree">';
@@ -369,7 +369,7 @@ class CocosInspector {
         html += this.generateNodeItem(scene, true); // 场景根节点总是处于active状态
 
         html += '</ul>';
-        console.log(`[生成树结构] 完成生成场景树 ${scene.name}(${scene.uuid})`);
+        // console.log(`[生成树结构] 完成生成场景树 ${scene.name}(${scene.uuid})`);
         return html;
     }
 
@@ -395,7 +395,7 @@ class CocosInspector {
         const activeClass = active ? '' : 'node-inactive';
 
         const childrenCount = node.children?.length || 0;
-        console.log(`[生成节点项] ${isScene ? '场景' : '节点'}: ${node.name}(${node.uuid}), 激活: ${active}, 子节点: ${childrenCount}`);
+        // console.log(`[生成节点项] ${isScene ? '场景' : '节点'}: ${node.name}(${node.uuid}), 激活: ${active}, 子节点: ${childrenCount}`);
 
         let html = `
             <li data-uuid="${node.uuid}" class="${activeClass}">
@@ -407,11 +407,11 @@ class CocosInspector {
         `;
 
         if (hasChildren) {
-            console.log(`[生成节点项] 处理 ${node.name}(${node.uuid}) 的 ${childrenCount} 个子节点`);
+            // console.log(`[生成节点项] 处理 ${node.name}(${node.uuid}) 的 ${childrenCount} 个子节点`);
             html += `<ul class="node-children" style="${childrenStyle}">`;
             node.children.forEach((child, index) => {
                 if (child) {
-                    console.log(`[生成节点项] 处理 ${node.name}(${node.uuid}) 的第 ${index + 1}/${childrenCount} 个子节点: ${child.name}(${child.uuid})`);
+                    // console.log(`[生成节点项] 处理 ${node.name}(${node.uuid}) 的第 ${index + 1}/${childrenCount} 个子节点: ${child.name}(${child.uuid})`);
                     html += this.generateNodeItem(child);
                 } else {
                     console.warn(`[生成节点项] ${node.name}(${node.uuid}) 的第 ${index + 1}/${childrenCount} 个子节点为空`);
@@ -707,19 +707,19 @@ class CocosInspector {
             // 清空详情面板
             if (this.detailsContainer) {
                 this.detailsContainer.innerHTML = '<div class="no-selection">请在左侧选择一个节点</div>';
-                console.log(`[详情面板] 清空详情面板，无选中节点`);
+                // console.log(`[详情面板] 清空详情面板，无选中节点`);
             }
             return;
         }
 
-        console.log(`[详情面板] 开始更新详情面板, 节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
+        // console.log(`[详情面板] 开始更新详情面板, 节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
 
         // 记住当前滚动位置
         const scrollTop = this.detailsContainer.scrollTop;
 
         // 获取节点的所有组件
         const components = this.selectedNode._components || [];
-        console.log(`[详情面板] 节点 ${this.selectedNode.name}(${this.selectedNode.uuid}) 有 ${components.length} 个组件`);
+        // console.log(`[详情面板] 节点 ${this.selectedNode.name}(${this.selectedNode.uuid}) 有 ${components.length} 个组件`);
 
         // 添加一个伪组件用于显示Transform信息
         const transformComponent = {
@@ -736,7 +736,7 @@ class CocosInspector {
 
         // 恢复滚动位置
         this.detailsContainer.scrollTop = scrollTop;
-        console.log(`[详情面板] 详情面板更新完成, 节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
+        // console.log(`[详情面板] 详情面板更新完成, 节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
     }
 
     // 增量更新详情面板
@@ -750,7 +750,7 @@ class CocosInspector {
 
         // 如果是新节点，重建整个面板
         if (currentNodeId !== detailsNodeId) {
-            console.log(`[详情面板] 节点已更改，重建详情面板: ${this.selectedNode.name}(${currentNodeId})`);
+            // console.log(`[详情面板] 节点已更改，重建详情面板: ${this.selectedNode.name}(${currentNodeId})`);
 
             this.detailsContainer.innerHTML = this.rendererManager.renderComponents(components);
             this.detailsContainer.dataset.nodeId = currentNodeId || '';
@@ -760,7 +760,7 @@ class CocosInspector {
             return;
         }
 
-        console.log(`[详情面板] 对同一节点执行增量更新: ${this.selectedNode.name}(${currentNodeId})`);
+        // console.log(`[详情面板] 对同一节点执行增量更新: ${this.selectedNode.name}(${currentNodeId})`);
 
         // 对于同一节点的更新，执行增量更新
 
@@ -771,7 +771,7 @@ class CocosInspector {
                 visibleComponents.set(item.dataset.componentId, item);
             }
         });
-        console.log(`[详情面板] 当前面板中有 ${visibleComponents.size} 个组件元素`);
+        // console.log(`[详情面板] 当前面板中有 ${visibleComponents.size} 个组件元素`);
 
         // 2. 跟踪需要移除的组件
         const componentIdsToKeep = new Set<string>();
@@ -790,7 +790,7 @@ class CocosInspector {
 
             // 组件不存在，添加新组件
             if (!existingComponent) {
-                console.log(`[详情面板] 添加新组件: ${componentName}, ID: ${componentId}, 节点: ${this.selectedNode?.name}(${this.selectedNode?.uuid})`);
+                // console.log(`[详情面板] 添加新组件: ${componentName}, ID: ${componentId}, 节点: ${this.selectedNode?.name}(${this.selectedNode?.uuid})`);
                 const componentHtml = this.rendererManager.renderComponent(component);
 
                 // 创建临时容器并添加组件HTML
@@ -814,7 +814,7 @@ class CocosInspector {
                 // 添加到详情面板
                 if (this.detailsContainer && newComponent) {
                     this.detailsContainer.appendChild(newComponent);
-                    console.log(`[详情面板] 新组件 ${componentName}(${componentId}) 已添加到面板`);
+                    // console.log(`[详情面板] 新组件 ${componentName}(${componentId}) 已添加到面板`);
                 }
             }
             // 组件存在但可能需要更新
@@ -823,8 +823,8 @@ class CocosInspector {
 
                 // 如果哈希值不同，更新组件内容
                 if (existingHash !== componentHash) {
-                    console.log(`[详情面板] 更新组件内容: ${componentName}(${componentId}), 节点: ${this.selectedNode?.name}(${this.selectedNode?.uuid})`);
-                    console.log(`[详情面板] 组件哈希变化 - 旧: ${existingHash}, 新: ${componentHash}`);
+                    // console.log(`[详情面板] 更新组件内容: ${componentName}(${componentId}), 节点: ${this.selectedNode?.name}(${this.selectedNode?.uuid})`);
+                    // console.log(`[详情面板] 组件哈希变化 - 旧: ${existingHash}, 新: ${componentHash}`);
 
                     // 保留组件展开状态
                     const isExpanded = !existingComponent.querySelector('.component-content')?.classList.contains('collapsed');
@@ -846,10 +846,10 @@ class CocosInspector {
 
                         // 更新哈希值
                         existingComponent.dataset.hash = componentHash;
-                        console.log(`[详情面板] 组件 ${componentName}(${componentId}) 内容已更新`);
+                        // console.log(`[详情面板] 组件 ${componentName}(${componentId}) 内容已更新`);
                     }
                 } else {
-                    console.log(`[详情面板] 组件 ${componentName}(${componentId}) 无变化，跳过更新`);
+                    // console.log(`[详情面板] 组件 ${componentName}(${componentId}) 无变化，跳过更新`);
                 }
             }
         });
@@ -858,7 +858,7 @@ class CocosInspector {
         visibleComponents.forEach((element, id) => {
             if (!componentIdsToKeep.has(id)) {
                 const componentName = element.querySelector('.component-name')?.textContent || 'Unknown';
-                console.log(`[详情面板] 移除组件: ${componentName}(${id}), 节点: ${this.selectedNode?.name}(${this.selectedNode?.uuid})`);
+                // console.log(`[详情面板] 移除组件: ${componentName}(${id}), 节点: ${this.selectedNode?.name}(${this.selectedNode?.uuid})`);
                 element.remove();
             }
         });
@@ -893,9 +893,9 @@ class CocosInspector {
                 }
             }
 
-            console.log(`[组件哈希] 生成Transform组件哈希: ${hash}, 节点: ${nodeInfo}`);
+            // console.log(`[组件哈希] 生成Transform组件哈希: ${hash}, 节点: ${nodeInfo}`);
         } else {
-            console.log(`[组件哈希] 生成组件哈希: ${hash}, 组件类型: ${componentName}, 节点: ${nodeInfo}`);
+            // console.log(`[组件哈希] 生成组件哈希: ${hash}, 组件类型: ${componentName}, 节点: ${nodeInfo}`);
         }
 
         return hash;
@@ -983,27 +983,27 @@ class CocosInspector {
     private updateTree(): void {
         const scene = cc.director.getScene();
         if (!scene) {
-            console.warn(`[更新树] 场景不存在，跳过更新`);
+            //console.warn(`[更新树] 场景不存在，跳过更新`);
             return;
         }
 
-        console.log(`[更新树] 开始更新场景: ${scene.name}(${scene.uuid}), 子节点数: ${scene.children?.length || 0}`);
+        // console.log(`[更新树] 开始更新场景: ${scene.name}(${scene.uuid}), 子节点数: ${scene.children?.length || 0}`);
 
         // 检查是否有正在进行的更新
         if (this.pendingUpdate) {
             const now = Date.now();
             // 如果自上次更新以来时间过短，跳过本次更新
             if (now - this.lastUpdateTime < this.performanceConfig.updateThrottleMs / 2) {
-                console.log(`[更新树] 节流控制：跳过更新 (${now - this.lastUpdateTime}ms < ${this.performanceConfig.updateThrottleMs / 2}ms)`);
+                // console.log(`[更新树] 节流控制：跳过更新 (${now - this.lastUpdateTime}ms < ${this.performanceConfig.updateThrottleMs / 2}ms)`);
                 return;
             } else {
-                console.log(`[更新树] 有待处理的更新，但间隔足够，继续更新`);
+                // console.log(`[更新树] 有待处理的更新，但间隔足够，继续更新`);
             }
         }
 
         // 初始化时创建树结构
         if (!this.treeContainer?.querySelector('.node-tree')) {
-            console.log('[更新树] 首次创建树结构');
+            // console.log('[更新树] 首次创建树结构');
             if (this.treeContainer) {
                 this.treeContainer.innerHTML = this.generateNodeTree(scene);
             }
@@ -1015,14 +1015,14 @@ class CocosInspector {
 
         // 检查哪些节点发生了变化，执行增量更新
         try {
-            console.log(`[更新树] 开始增量更新`);
+            // console.log(`[更新树] 开始增量更新`);
             this.updateNodeTreeIncremental(scene);
             // 成功完成完整更新后，清除待更新标记
             if (!this.pendingUpdate) {
-                console.log(`[更新树] 增量更新完成，更新场景哈希`);
+                // console.log(`[更新树] 增量更新完成，更新场景哈希`);
                 this.sceneStructureHash = this.generateNodeHash(scene);
             } else {
-                console.log(`[更新树] 增量更新未完成所有节点，待更新标记保持为true`);
+                // console.log(`[更新树] 增量更新未完成所有节点，待更新标记保持为true`);
             }
         } catch (error) {
             console.error('[更新树] 更新树结构失败:', error);
@@ -1031,18 +1031,18 @@ class CocosInspector {
 
         // 即使在出错情况下，也记录本次更新时间，避免短时间内重复尝试
         this.lastUpdateTime = Date.now();
-        console.log(`[更新树] 更新完成，时间戳更新为: ${this.lastUpdateTime}`);
+        // console.log(`[更新树] 更新完成，时间戳更新为: ${this.lastUpdateTime}`);
 
         // 即使场景结构没有变化，也要检查选中节点是否存在，并更新详情
         if (this.selectedNode) {
             const nodeExists = this.findNodeByUUID(scene, this.selectedNode.uuid);
             if (nodeExists) {
                 // 只更新详情面板，不重建树结构
-                console.log(`[更新树] 选中节点存在，更新详情面板: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
+                // console.log(`[更新树] 选中节点存在，更新详情面板: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
                 this.updateDetails();
             } else {
                 // 节点已被删除，清除选择
-                console.log(`[更新树] 选中节点已不存在，清除选择: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
+                // console.log(`[更新树] 选中节点已不存在，清除选择: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
                 this.selectedNode = null;
                 this.updateDetails();
             }
@@ -1053,13 +1053,13 @@ class CocosInspector {
     private updateNodeTreeIncremental(scene: cc.Node): void {
         // 记录开始时间，用于性能分析
         const updateStartTime = performance.now();
-        console.log(`[增量更新] 开始处理场景: ${scene?.name || 'undefined'}(${scene?.uuid || 'undefined'}), 子节点数: ${scene?.children?.length || 0}`);
+        // console.log(`[增量更新] 开始处理场景: ${scene?.name || 'undefined'}(${scene?.uuid || 'undefined'}), 子节点数: ${scene?.children?.length || 0}`);
 
         // 首先检查是否是场景节点，场景节点需要特殊处理
         if (!scene || scene === cc.director.getScene()) {
             // 检查是否正在循环更新
             if (this.pendingUpdate) {
-                console.log('[增量更新] 检测到可能的循环更新，跳过本次更新');
+                // console.log('[增量更新] 检测到可能的循环更新，跳过本次更新');
                 // 允许下一次更新尝试继续
                 this.pendingUpdate = false;
                 return;
@@ -1068,7 +1068,7 @@ class CocosInspector {
 
         // 如果未启用增量更新，使用全量更新
         if (!this.performanceConfig.enableIncrementalUpdates) {
-            console.log('[增量更新] 增量更新已禁用，使用全量更新');
+            // console.log('[增量更新] 增量更新已禁用，使用全量更新');
 
             if (this.treeContainer) {
                 // 保存当前滚动位置
@@ -1088,9 +1088,9 @@ class CocosInspector {
                     const item = this.container?.querySelector(`[data-uuid="${this.selectedNode.uuid}"] .node-tree-item`);
                     if (item) {
                         item.classList.add('selected');
-                        console.log(`[增量更新] 恢复选中节点的选中状态: ${this.selectedNode.name}`);
+                        // console.log(`[增量更新] 恢复选中节点的选中状态: ${this.selectedNode.name}`);
                     } else {
-                        console.log(`[增量更新] 找不到选中节点的DOM元素: ${this.selectedNode.name}`);
+                        // console.log(`[增量更新] 找不到选中节点的DOM元素: ${this.selectedNode.name}`);
                     }
                 }
             }
@@ -1103,23 +1103,23 @@ class CocosInspector {
         // 收集当前DOM中的所有节点
         const treeItems = this.treeContainer?.querySelectorAll('li[data-uuid]');
         const itemCount = treeItems?.length || 0;
-        console.log(`[增量更新] 当前DOM中有 ${itemCount} 个节点元素`);
+        // console.log(`[增量更新] 当前DOM中有 ${itemCount} 个节点元素`);
 
         treeItems?.forEach(item => {
             if (item instanceof HTMLElement && item.dataset.uuid) {
                 visibleNodes.set(item.dataset.uuid, item);
             }
         });
-        console.log(`[增量更新] 成功映射 ${visibleNodes.size} 个节点`);
+        // console.log(`[增量更新] 成功映射 ${visibleNodes.size} 个节点`);
 
         // 节点计数器和限制
         let updatedNodeCount = 0;
         const maxNodes = this.performanceConfig.maxNodesPerUpdate;
-        console.log(`[增量更新] 每次更新最大节点数限制: ${maxNodes}`);
+        // console.log(`[增量更新] 每次更新最大节点数限制: ${maxNodes}`);
 
         // 设置更新超时（防止无限循环）
         const timeoutLimit = Date.now() + 1000; // 1秒超时
-        console.log(`[增量更新] 设置更新超时: ${new Date(timeoutLimit).toISOString()}`);
+        // console.log(`[增量更新] 设置更新超时: ${new Date(timeoutLimit).toISOString()}`);
 
         // 递归更新节点，返回有变化的节点UUID
         const updateNode = (node: cc.Node, parentElement: HTMLElement): string[] => {
@@ -1132,7 +1132,7 @@ class CocosInspector {
             // 如果已达到本次更新的节点数限制，返回空数组
             if (updatedNodeCount >= maxNodes) {
                 this.pendingUpdate = true; // 标记有待更新的内容
-                console.log(`[增量更新:节点] 已达到节点数限制 (${maxNodes})，标记待更新并中止`);
+                // console.log(`[增量更新:节点] 已达到节点数限制 (${maxNodes})，标记待更新并中止`);
                 return [];
             }
 
@@ -1148,7 +1148,7 @@ class CocosInspector {
             const isScene = node === cc.director.getScene();
             const nodeName = node.name || '未命名节点';
 
-            console.log(`[增量更新:节点] 处理${isScene ? '场景' : '节点'}: ${nodeName}(${nodeUUID}), 已有DOM元素: ${!!nodeElement}`);
+            // console.log(`[增量更新:节点] 处理${isScene ? '场景' : '节点'}: ${nodeName}(${nodeUUID}), 已有DOM元素: ${!!nodeElement}`);
 
             // 获取节点激活状态，场景节点特殊处理
             const isNodeActive = node === cc.director.getScene() ? true : (node.active !== undefined ? node.active : true);
@@ -1159,17 +1159,17 @@ class CocosInspector {
                 const nodeHash = this.generateSimpleNodeHash(node, isNodeActive);
                 const oldHash = nodeElement?.dataset.hash;
 
-                console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 新哈希: ${nodeHash}, 旧哈希: ${oldHash || '无'}`);
+                // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 新哈希: ${nodeHash}, 旧哈希: ${oldHash || '无'}`);
 
                 // 节点不存在或发生变化时更新
                 if (!nodeElement || nodeHash !== oldHash) {
                     changedNodes.push(nodeUUID);
                     updatedNodeCount++; // 增加已更新节点计数
-                    console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 需要更新, 当前已更新 ${updatedNodeCount}/${maxNodes} 个节点`);
+                    // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 需要更新, 当前已更新 ${updatedNodeCount}/${maxNodes} 个节点`);
 
                     // 如果节点不存在，创建新节点
                     if (!nodeElement) {
-                        console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 创建新节点元素`);
+                        // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 创建新节点元素`);
                         const newNodeHtml = this.generateNodeItem(node, isNodeActive);
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = newNodeHtml;
@@ -1177,7 +1177,7 @@ class CocosInspector {
 
                         // 如果有子节点，确保展开状态正确
                         if (this.expandedNodes.has(nodeUUID) && newNode) {
-                            console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 设置为展开状态`);
+                            // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 设置为展开状态`);
                             const toggle = newNode.querySelector('.node-toggle');
                             const children = newNode.querySelector('.node-children');
                             if (toggle) toggle.textContent = '▼';
@@ -1187,7 +1187,7 @@ class CocosInspector {
                         // 添加到父元素
                         const childrenContainer = parentElement.querySelector('ul.node-children');
                         if (childrenContainer) {
-                            console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 添加到父容器`);
+                            // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 添加到父容器`);
                             childrenContainer.appendChild(newNode);
 
                             // 设置哈希值
@@ -1200,7 +1200,7 @@ class CocosInspector {
                     }
                     // 节点存在但发生变化，更新节点
                     else {
-                        console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 更新现有节点`);
+                        // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 更新现有节点`);
                         // 更新节点名称
                         const nameElement = nodeElement.querySelector('.node-name');
                         if (nameElement) {
@@ -1225,7 +1225,7 @@ class CocosInspector {
                         nodeElement.dataset.hash = nodeHash;
                     }
                 } else {
-                    console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 无变化，跳过更新`);
+                    // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 无变化，跳过更新`);
                 }
             } catch (error) {
                 console.error(`[增量更新:节点] 处理节点 ${nodeName}(${nodeUUID}) 时出错:`, error);
@@ -1234,18 +1234,18 @@ class CocosInspector {
             // 如果已达到本次更新的节点数限制，不继续递归子节点
             if (updatedNodeCount >= maxNodes) {
                 this.pendingUpdate = true; // 标记有待更新的内容
-                console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 已达到节点限制，不处理子节点`);
+                // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 已达到节点限制，不处理子节点`);
                 return changedNodes;
             }
 
             // 递归处理子节点
             try {
                 if (!node.children || node.children.length === 0) {
-                    console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 没有子节点`);
+                    // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 没有子节点`);
                     return changedNodes;
                 }
 
-                console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 开始处理 ${node.children.length} 个子节点`);
+                // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 开始处理 ${node.children.length} 个子节点`);
 
                 const childrenContainer = nodeElement ?
                     nodeElement.querySelector('.node-children') :
@@ -1256,16 +1256,16 @@ class CocosInspector {
                     const existingChildren = new Set<string>();
                     // 修改查询选择器，只选择直接子节点，而不是所有后代节点
                     const existingChildElements = childrenContainer.children;
-                    console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - DOM中有 ${existingChildElements.length} 个直接子节点元素`);
+                    // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - DOM中有 ${existingChildElements.length} 个直接子节点元素`);
 
                     // 只收集直接子节点的UUID
                     Array.from(existingChildElements).forEach(child => {
                         if (child instanceof HTMLElement && child.dataset.uuid) {
                             existingChildren.add(child.dataset.uuid);
-                            console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 收集直接子节点: ${child.querySelector('.node-name')?.textContent || '未知'}(${child.dataset.uuid})`);
+                            // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 收集直接子节点: ${child.querySelector('.node-name')?.textContent || '未知'}(${child.dataset.uuid})`);
                         }
                     });
-                    console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 收集到 ${existingChildren.size} 个现有直接子节点UUID`);
+                    // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 收集到 ${existingChildren.size} 个现有直接子节点UUID`);
 
                     // 递归更新每个子节点
                     for (let i = 0; i < node.children.length; i++) {
@@ -1277,18 +1277,18 @@ class CocosInspector {
                             continue;
                         }
 
-                        console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 处理子节点 ${i + 1}/${node.children.length}: ${childNode.name}(${childNode.uuid})`);
+                        // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 处理子节点 ${i + 1}/${node.children.length}: ${childNode.name}(${childNode.uuid})`);
 
                         // 如果已达到节点更新限制，标记待更新并退出
                         if (updatedNodeCount >= maxNodes) {
                             this.pendingUpdate = true;
-                            console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 处理子节点时达到节点限制，中断处理`);
+                            // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 处理子节点时达到节点限制，中断处理`);
                             break;
                         }
 
                         const childChanges = updateNode(childNode, nodeElement || parentElement);
                         if (childChanges.length > 0) {
-                            console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 子节点 ${childNode.name}(${childNode.uuid}) 及其子节点中有 ${childChanges.length} 个发生变化`);
+                            // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 子节点 ${childNode.name}(${childNode.uuid}) 及其子节点中有 ${childChanges.length} 个发生变化`);
                             changedNodes.push(...childChanges);
                         }
 
@@ -1298,21 +1298,21 @@ class CocosInspector {
 
                     // 移除不再存在的子节点（如果未达到节点更新限制）
                     if (updatedNodeCount < maxNodes && existingChildren.size > 0) {
-                        console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 有 ${existingChildren.size} 个子节点需要移除`);
+                        // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 有 ${existingChildren.size} 个子节点需要移除`);
 
                         let removedCount = 0;
                         existingChildren.forEach(uuid => {
                             const childToRemove = childrenContainer.querySelector(`li[data-uuid="${uuid}"]`);
                             if (childToRemove) {
                                 const childName = (childToRemove.querySelector('.node-name')?.textContent || '未知节点');
-                                console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 移除子节点: ${childName}(${uuid})`);
+                                // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 移除子节点: ${childName}(${uuid})`);
                                 childToRemove.remove();
                                 changedNodes.push(uuid);
                                 updatedNodeCount++;
                                 removedCount++;
                             }
                         });
-                        console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 成功移除 ${removedCount} 个子节点`);
+                        // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 成功移除 ${removedCount} 个子节点`);
                     }
                 } else {
                     console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 有子节点但找不到子节点容器`);
@@ -1329,17 +1329,17 @@ class CocosInspector {
             const rootList = this.treeContainer.querySelector('.node-tree') as HTMLElement;
             if (rootList) {
                 try {
-                    console.log(`[增量更新] 找到树根元素，开始递归更新`);
+                    // console.log(`[增量更新] 找到树根元素，开始递归更新`);
                     const startTime = performance.now();
                     const changedNodes = updateNode(scene, rootList.parentElement || this.treeContainer);
                     const endTime = performance.now();
 
                     if (changedNodes.length > 0) {
-                        console.log(`[增量更新] 增量更新了 ${changedNodes.length} 个节点，耗时: ${(endTime - startTime).toFixed(2)}ms`);
+                        // console.log(`[增量更新] 增量更新了 ${changedNodes.length} 个节点，耗时: ${(endTime - startTime).toFixed(2)}ms`);
 
                         // 如果有待更新内容，记录日志
                         if (this.pendingUpdate) {
-                            console.log(`[增量更新] 达到最大节点限制 (${maxNodes})，剩余节点将在下次更新`);
+                            // console.log(`[增量更新] 达到最大节点限制 (${maxNodes})，剩余节点将在下次更新`);
                         }
 
                         // 如果有选中的节点，确保其选中状态保持
@@ -1347,18 +1347,18 @@ class CocosInspector {
                             const item = this.container?.querySelector(`[data-uuid="${this.selectedNode.uuid}"] .node-tree-item`);
                             if (item) {
                                 item.classList.add('selected');
-                                console.log(`[增量更新] 恢复选中节点的选中状态: ${this.selectedNode.name}`);
+                                // console.log(`[增量更新] 恢复选中节点的选中状态: ${this.selectedNode.name}`);
                             } else {
-                                console.log(`[增量更新] 找不到选中节点的DOM元素: ${this.selectedNode.name}`);
+                                // console.log(`[增量更新] 找不到选中节点的DOM元素: ${this.selectedNode.name}`);
                             }
                         }
                     } else {
-                        console.log(`[增量更新] 没有节点需要更新`);
+                        // console.log(`[增量更新] 没有节点需要更新`);
                     }
 
                     // 打印总耗时
                     const totalTime = performance.now() - updateStartTime;
-                    console.log(`[增量更新] 整个增量更新过程耗时: ${totalTime.toFixed(2)}ms`);
+                    // console.log(`[增量更新] 整个增量更新过程耗时: ${totalTime.toFixed(2)}ms`);
                 } catch (error) {
                     console.error('[增量更新] 增量更新失败，错误:', error);
 
@@ -1384,13 +1384,13 @@ class CocosInspector {
 
         // 简化的哈希只包含名称、激活状态和子节点数量
         const hash = `${node.name}:${active ? 1 : 0}:${node.children?.length || 0}`;
-        console.log(`[生成哈希] ${isScene ? '场景' : '节点'}: ${node.name}(${node.uuid}), 哈希: ${hash}`);
+        // console.log(`[生成哈希] ${isScene ? '场景' : '节点'}: ${node.name}(${node.uuid}), 哈希: ${hash}`);
         return hash;
     }
 
     // 强制刷新树结构的方法
     private forceRefreshTree(): void {
-        console.log('强制刷新树结构...');
+        // console.log('强制刷新树结构...');
 
         // 保存当前选中的节点UUID
         const selectedUUID = this.selectedNode?.uuid;
@@ -1437,7 +1437,7 @@ class CocosInspector {
 
     private refreshSceneView(): void {
         // 实现刷新场景视图的逻辑
-        console.log('[场景更新] 开始刷新场景视图...');
+        // console.log('[场景更新] 开始刷新场景视图...');
 
         // 尝试通过修改节点的位置后再恢复，来触发节点的刷新
         if (this.selectedNode) {
@@ -1463,12 +1463,12 @@ class CocosInspector {
                         // 立即恢复原值
                         node.position.x = originalX;
 
-                        console.log(`[场景更新] 通过position属性触发场景刷新, 节点: ${node.name}(${node.uuid})`);
+                        // console.log(`[场景更新] 通过position属性触发场景刷新, 节点: ${node.name}(${node.uuid})`);
                     }
                 }
                 // 对于已禁用的节点，我们尝试通过父节点触发更新
                 else if (node.parent && node.parent.active) {
-                    console.log(`[场景更新] 节点已禁用，尝试通过父节点触发更新: ${node.name}(${node.uuid}), 父节点: ${node.parent.name}(${node.parent.uuid})`);
+                    // console.log(`[场景更新] 节点已禁用，尝试通过父节点触发更新: ${node.name}(${node.uuid}), 父节点: ${node.parent.name}(${node.parent.uuid})`);
 
                     // 记录父节点原始位置
                     const parentNode = node.parent;
@@ -1479,12 +1479,12 @@ class CocosInspector {
                         parentNode.position.x = originalParentX + 0.0001;
                         parentNode.position.x = originalParentX;
 
-                        console.log(`[场景更新] 通过父节点position属性触发场景刷新: ${parentNode.name}(${parentNode.uuid})`);
+                        // console.log(`[场景更新] 通过父节点position属性触发场景刷新: ${parentNode.name}(${parentNode.uuid})`);
                     }
                 }
                 // 如果节点和父节点都被禁用，尝试通过触发场景事件刷新
                 else {
-                    console.log(`[场景更新] 节点及其父节点均已禁用，尝试触发场景事件: ${node.name}(${node.uuid})`);
+                    // console.log(`[场景更新] 节点及其父节点均已禁用，尝试触发场景事件: ${node.name}(${node.uuid})`);
 
                     // 获取场景根节点
                     const scene = cc.director.getScene();
@@ -1493,9 +1493,9 @@ class CocosInspector {
                         try {
                             // 尝试触发场景中某个活跃节点的位置变化
                             if (this.triggerSceneUpdate(scene)) {
-                                console.log(`[场景更新] 成功通过活跃节点触发场景更新, 目标节点: ${node.name}(${node.uuid})`);
+                                // console.log(`[场景更新] 成功通过活跃节点触发场景更新, 目标节点: ${node.name}(${node.uuid})`);
                             } else {
-                                console.log(`[场景更新] 未找到可用的活跃节点来触发更新, 目标节点: ${node.name}(${node.uuid})`);
+                                // console.log(`[场景更新] 未找到可用的活跃节点来触发更新, 目标节点: ${node.name}(${node.uuid})`);
                             }
                         } catch (e) {
                             console.error(`[场景更新] 触发场景更新失败, 目标节点: ${node.name}(${node.uuid})`, e);
@@ -1504,12 +1504,12 @@ class CocosInspector {
                 }
 
                 // 额外记录日志，确认场景刷新尝试
-                console.log(`[场景更新] 尝试刷新节点完成: ${node.name}(${node.uuid}), active: ${node.active}`);
+                // console.log(`[场景更新] 尝试刷新节点完成: ${node.name}(${node.uuid}), active: ${node.active}`);
             } catch (error) {
                 console.error(`[场景更新] 刷新场景视图失败, 节点: ${node.name}(${node.uuid})`, error);
             }
         } else {
-            console.log(`[场景更新] 无选中节点，跳过场景刷新`);
+            // console.log(`[场景更新] 无选中节点，跳过场景刷新`);
         }
     }
 
@@ -1520,7 +1520,7 @@ class CocosInspector {
             const origX = node.position.x;
             node.position.x = origX + 0.0001;
             node.position.x = origX;
-            console.log(`[场景更新] 通过激活节点触发场景更新: ${node.name}(${node.uuid})`);
+            // console.log(`[场景更新] 通过激活节点触发场景更新: ${node.name}(${node.uuid})`);
             return true;
         }
 
