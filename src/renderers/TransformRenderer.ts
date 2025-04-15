@@ -1,3 +1,4 @@
+import { HookUIRenderer } from '../hooks/HookUIRenderer';
 import { ComponentRenderer } from '../types/components';
 
 /**
@@ -39,7 +40,10 @@ export class TransformRenderer implements ComponentRenderer {
 
         return `
             <div class="property-group">
-                <div class="property-group-header">Node</div>
+                <div class="property-group-header">
+                    <span>Node</span>
+                    ${HookUIRenderer.renderHookButtons('active', node)}
+                </div>
                 ${hasActiveProperty ? `
                 <div class="property-row">
                     <div class="property-name">Active</div>
@@ -75,13 +79,17 @@ export class TransformRenderer implements ComponentRenderer {
     public renderPositionProperty(node: cc.Node): string {
         return `
             <div class="property-group">
-                <div class="property-group-header">Position</div>
+                <div class="property-group-header">
+                    <span>Position</span>
+                    ${HookUIRenderer.renderHookButtons('position', node)}
+                </div>
                 <div class="property-row">
                     <div class="property-name">X</div>
                     <div class="property-value">
                         <input type="number" class="property-input property-number" 
                             value="${node.position?.x || 0}" 
                             data-property="position.x">
+                        ${HookUIRenderer.renderHookButtons('position.x', node)}
                     </div>
                 </div>
                 <div class="property-row">
@@ -90,6 +98,7 @@ export class TransformRenderer implements ComponentRenderer {
                         <input type="number" class="property-input property-number" 
                             value="${node.position?.y || 0}" 
                             data-property="position.y">
+                        ${HookUIRenderer.renderHookButtons('position.y', node)}
                     </div>
                 </div>
                 <div class="property-row">
@@ -98,6 +107,7 @@ export class TransformRenderer implements ComponentRenderer {
                         <input type="number" class="property-input property-number" 
                             value="${node.position?.z || 0}" 
                             data-property="position.z">
+                        ${HookUIRenderer.renderHookButtons('position.z', node)}
                     </div>
                 </div>
             </div>
@@ -110,13 +120,17 @@ export class TransformRenderer implements ComponentRenderer {
 
         return `
             <div class="property-group">
-                <div class="property-group-header">Rotation (Euler Angles)</div>
+                <div class="property-group-header">
+                    <span>Rotation (Euler Angles)</span>
+                    ${HookUIRenderer.renderHookButtons('rotation', node)}
+                </div>
                 <div class="property-row">
                     <div class="property-name">X</div>
                     <div class="property-value">
                         <input type="number" class="property-input property-number" 
                             value="${eulerAngles.x || 0}" 
                             data-property="eulerAngles.x">
+                        ${HookUIRenderer.renderHookButtons('rotation.x', node)}
                     </div>
                 </div>
                 <div class="property-row">
@@ -125,6 +139,7 @@ export class TransformRenderer implements ComponentRenderer {
                         <input type="number" class="property-input property-number" 
                             value="${eulerAngles.y || 0}" 
                             data-property="eulerAngles.y">
+                        ${HookUIRenderer.renderHookButtons('rotation.y', node)}
                     </div>
                 </div>
                 <div class="property-row">
@@ -133,6 +148,7 @@ export class TransformRenderer implements ComponentRenderer {
                         <input type="number" class="property-input property-number" 
                             value="${eulerAngles.z || 0}" 
                             data-property="eulerAngles.z">
+                        ${HookUIRenderer.renderHookButtons('rotation.z', node)}
                     </div>
                 </div>
             </div>
@@ -146,29 +162,28 @@ export class TransformRenderer implements ComponentRenderer {
         let scaleZ = 1;
 
         if (typeof node.scale === 'number') {
-            // 如果 scale 是数字，则 X/Y/Z 都使用相同的值
+            // 如果是数值，则所有轴使用相同缩放值
             scaleX = scaleY = scaleZ = node.scale;
         } else if (node.scale) {
-            // 如果 scale 是 Vector3 对象
+            // 如果是Vector3对象，分别获取x,y,z值
             scaleX = node.scale.x || 1;
             scaleY = node.scale.y || 1;
             scaleZ = node.scale.z || 1;
-        } else {
-            // 如果 scale 未定义，尝试使用单独的 scaleX/Y/Z 属性
-            scaleX = node.scaleX ?? 1;
-            scaleY = node.scaleY ?? 1;
-            scaleZ = node.scaleZ ?? 1;
         }
 
         return `
             <div class="property-group">
-                <div class="property-group-header">Scale</div>
+                <div class="property-group-header">
+                    <span>Scale</span>
+                    ${HookUIRenderer.renderHookButtons('scale', node)}
+                </div>
                 <div class="property-row">
                     <div class="property-name">X</div>
                     <div class="property-value">
                         <input type="number" class="property-input property-number" 
                             value="${scaleX}" 
                             data-property="scale.x">
+                        ${HookUIRenderer.renderHookButtons('scale.x', node)}
                     </div>
                 </div>
                 <div class="property-row">
@@ -177,6 +192,7 @@ export class TransformRenderer implements ComponentRenderer {
                         <input type="number" class="property-input property-number" 
                             value="${scaleY}" 
                             data-property="scale.y">
+                        ${HookUIRenderer.renderHookButtons('scale.y', node)}
                     </div>
                 </div>
                 <div class="property-row">
@@ -185,6 +201,7 @@ export class TransformRenderer implements ComponentRenderer {
                         <input type="number" class="property-input property-number" 
                             value="${scaleZ}" 
                             data-property="scale.z">
+                        ${HookUIRenderer.renderHookButtons('scale.z', node)}
                     </div>
                 </div>
             </div>

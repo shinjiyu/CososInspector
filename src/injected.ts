@@ -1,5 +1,6 @@
 /// <reference path="./types/cocos.d.ts" />
 
+import { HookUIRenderer } from './hooks/HookUIRenderer';
 import { RendererManager } from './renderers/RendererManager';
 
 // 同步模式枚举
@@ -46,15 +47,19 @@ class CocosInspector {
     }
 
     private init(): void {
-        // 等待cc对象加载
-        if (typeof cc === 'undefined' || !cc.director || !cc.director.getScene) {
-            setTimeout(() => this.init(), 500);
-            return;
-        }
-
+        // 创建UI
         this.createUI();
-        this.initTree();
+
+        // 设置事件监听和更新逻辑
         this.startUpdate();
+
+        // 初始化树结构
+        this.initTree();
+
+        // 初始化钩子按钮事件监听
+        if (this.container) {
+            HookUIRenderer.initHookButtonListeners(this.container, () => this.selectedNode);
+        }
     }
 
     private createUI(): void {

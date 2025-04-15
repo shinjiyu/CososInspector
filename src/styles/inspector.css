@@ -309,6 +309,12 @@
 
 .property-value {
   flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.property-value .hook-buttons {
+  margin-left: 8px;
 }
 
 /* 输入控件样式 */
@@ -375,6 +381,126 @@
   text-transform: uppercase;
   padding-bottom: 4px;
   border-bottom: 1px dotted #555;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+/* 钩子按钮容器 */
+.hook-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+/* 钩子按钮样式 */
+.hook-btn {
+  font-size: 10px;
+  padding: 1px 4px;
+  background: #444;
+  border: 1px solid #555;
+  color: #aaa;
+  border-radius: 2px;
+  cursor: pointer;
+  margin-left: 2px;
+}
+
+.hook-btn:hover {
+  background: #555;
+  color: #fff;
+}
+
+.hook-get-btn.active {
+  background: #c0392b;
+  color: white;
+  border-color: #e74c3c;
+}
+
+.hook-set-btn.active {
+  background: #2980b9;
+  color: white;
+  border-color: #3498db;
+}
+
+/* 读钩子确认对话框 */
+.hook-confirmation-dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: #2a2a2a;
+  border: 1px solid #555;
+  border-radius: 4px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  width: 400px;
+  max-width: 90vw;
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background-color: #333;
+  border-bottom: 1px solid #555;
+}
+
+.dialog-header h3 {
+  margin: 0;
+  font-size: 16px;
+  color: #e74c3c;
+}
+
+.dialog-close-btn {
+  background: none;
+  border: none;
+  color: #aaa;
+  font-size: 20px;
+  cursor: pointer;
+}
+
+.dialog-close-btn:hover {
+  color: #fff;
+}
+
+.dialog-content {
+  padding: 12px;
+}
+
+.warning-text {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  padding: 8px 12px;
+  background-color: #333;
+  border-top: 1px solid #555;
+}
+
+.dialog-btn {
+  padding: 6px 12px;
+  margin-left: 8px;
+  border-radius: 4px;
+  border: 1px solid #555;
+  background-color: #444;
+  color: #fff;
+  cursor: pointer;
+}
+
+.dialog-btn:hover {
+  background-color: #555;
+}
+
+.dialog-confirm-btn {
+  background-color: #e74c3c;
+  border-color: #c0392b;
+}
+
+.dialog-confirm-btn:hover {
+  background-color: #c0392b;
 }
 
 /* Name属性样式 */
@@ -383,4 +509,11 @@
   color: #dddddd;
   background-color: #333;
   border-color: #666;
+}
+
+/* 轴属性的钩子按钮样式 */
+.property-value .hook-btn {
+  font-size: 9px;
+  padding: 0px 3px;
+  min-width: 16px;
 }
