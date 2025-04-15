@@ -1254,6 +1254,52 @@ class CocosInspector {
                             nodeElement.classList.add('node-inactive');
                         }
 
+                        // 检查子节点数量变化
+                        const hasChildren = node.children && node.children.length > 0;
+                        const toggleElement = nodeElement.querySelector('.node-toggle') as HTMLElement | null;
+
+                        // 处理展开/折叠按钮
+                        if (hasChildren && !toggleElement) {
+                            // 添加展开/折叠按钮
+                            console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 添加展开/折叠按钮`);
+                            const treeItem = nodeElement.querySelector('.node-tree-item');
+                            if (treeItem) {
+                                const newToggle = document.createElement('span');
+                                newToggle.className = 'node-toggle';
+                                newToggle.textContent = this.expandedNodes.has(nodeUUID) ? '▼' : '▶';
+
+                                // 在节点名称前插入
+                                const firstChild = treeItem.firstChild;
+                                if (firstChild) {
+                                    treeItem.insertBefore(newToggle, firstChild);
+                                } else {
+                                    treeItem.appendChild(newToggle);
+                                }
+                            }
+
+                            // 确保有子节点容器
+                            let childrenContainer = nodeElement.querySelector('.node-children') as HTMLElement | null;
+                            if (!childrenContainer) {
+                                childrenContainer = document.createElement('ul');
+                                childrenContainer.className = 'node-children';
+                                childrenContainer.style.display = this.expandedNodes.has(nodeUUID) ? '' : 'none';
+                                nodeElement.appendChild(childrenContainer);
+                            }
+                        } else if (!hasChildren && toggleElement) {
+                            // 移除展开/折叠按钮
+                            console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 移除展开/折叠按钮`);
+                            toggleElement.remove();
+
+                            // 移除可能存在的空子节点容器
+                            const childrenContainer = nodeElement.querySelector('.node-children');
+                            if (childrenContainer && childrenContainer.children.length === 0) {
+                                childrenContainer.remove();
+                            }
+                        } else if (hasChildren && toggleElement) {
+                            // 按钮已存在，确保文本正确
+                            toggleElement.textContent = this.expandedNodes.has(nodeUUID) ? '▼' : '▶';
+                        }
+
                         // 更新哈希值
                         nodeElement.dataset.hash = nodeHash;
                     }
@@ -1280,9 +1326,43 @@ class CocosInspector {
 
                 // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 开始处理 ${node.children.length} 个子节点`);
 
-                const childrenContainer = nodeElement ?
-                    nodeElement.querySelector('.node-children') :
-                    parentElement.querySelector(`li[data-uuid="${nodeUUID}"] .node-children`);
+                // 如果nodeElement不存在，先创建它
+                let currentNodeElement = nodeElement;
+                if (!currentNodeElement) {
+                    console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 节点元素不存在，创建节点元素后再处理子节点`);
+
+                    // 创建新节点
+                    const newNodeHtml = this.generateNodeItem(node, isNodeActive);
+                    const tempDiv = document.createElement('div');
+                    tempDiv.innerHTML = newNodeHtml;
+                    const newNode = tempDiv.firstElementChild as HTMLElement;
+
+                    if (!newNode) {
+                        console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 无法创建节点元素，跳过子节点处理`);
+                        return changedNodes;
+                    }
+
+                    // 获取父级的子节点容器
+                    const parentChildrenContainer = parentElement.querySelector('ul.node-children');
+                    if (!parentChildrenContainer) {
+                        console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 父元素没有子容器，跳过子节点处理`);
+                        return changedNodes;
+                    }
+
+                    // 添加新节点到DOM
+                    parentChildrenContainer.appendChild(newNode);
+
+                    // 设置哈希值
+                    const newNodeHash = this.generateSimpleNodeHash(node, isNodeActive);
+                    newNode.dataset.hash = newNodeHash;
+
+                    // 现在使用新创建的节点元素作为父元素
+                    currentNodeElement = newNode;
+                    updatedNodeCount++; // 计数新创建的节点
+                    changedNodes.push(nodeUUID);
+                }
+
+                const childrenContainer = currentNodeElement.querySelector('.node-children');
 
                 if (childrenContainer && node.children && node.children.length > 0) {
                     // 记录当前子节点
@@ -1319,7 +1399,7 @@ class CocosInspector {
                             break;
                         }
 
-                        const childChanges = updateNode(childNode, nodeElement || parentElement);
+                        const childChanges = updateNode(childNode, currentNodeElement);
                         if (childChanges.length > 0) {
                             // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 子节点 ${childNode.name}(${childNode.uuid}) 及其子节点中有 ${childChanges.length} 个发生变化`);
                             changedNodes.push(...childChanges);
