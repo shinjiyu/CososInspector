@@ -31,10 +31,11 @@ export class TransformRenderer implements ComponentRenderer {
         `;
     }
 
-    private renderActiveProperty(node: cc.Node): string {
+    public renderActiveProperty(node: cc.Node): string {
         // 检查节点是否有active属性
         const hasActiveProperty = 'active' in node;
         const nodeName = node.name || '未命名';
+        const isActive = node === cc.director.getScene() ? true : node.active || false;
 
         return `
             <div class="property-group">
@@ -44,8 +45,11 @@ export class TransformRenderer implements ComponentRenderer {
                     <div class="property-name">Active</div>
                     <div class="property-value">
                         <input type="checkbox" class="property-checkbox" 
-                            ${node.active ? 'checked' : ''} 
+                            ${isActive ? 'checked' : ''} 
                             data-property="active">
+                        <span class="active-indicator ${isActive ? 'active' : 'inactive'}">
+                            ${isActive ? '已激活' : '已禁用'}
+                        </span>
                     </div>
                 </div>` : ''}
                 <div class="property-row">
@@ -68,7 +72,7 @@ export class TransformRenderer implements ComponentRenderer {
         `;
     }
 
-    private renderPositionProperty(node: cc.Node): string {
+    public renderPositionProperty(node: cc.Node): string {
         return `
             <div class="property-group">
                 <div class="property-group-header">Position</div>
@@ -100,7 +104,7 @@ export class TransformRenderer implements ComponentRenderer {
         `;
     }
 
-    private renderRotationProperty(node: cc.Node): string {
+    public renderRotationProperty(node: cc.Node): string {
         // Use eulerAngles for rotation display
         const eulerAngles = node.eulerAngles || { x: 0, y: 0, z: 0 };
 
@@ -135,7 +139,7 @@ export class TransformRenderer implements ComponentRenderer {
         `;
     }
 
-    private renderScaleProperty(node: cc.Node): string {
+    public renderScaleProperty(node: cc.Node): string {
         // 处理 scale 属性可能是 number 或 Vector3 类型的情况
         let scaleX = 1;
         let scaleY = 1;

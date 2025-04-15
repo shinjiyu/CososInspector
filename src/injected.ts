@@ -8,12 +8,19 @@ enum SyncMode {
     MANUAL = 'manual'
 }
 
+// 性能优化配置
+interface PerformanceConfig {
+    updateThrottleMs: number; // 更新节流时间（毫秒）
+    maxNodesPerUpdate: number; // 每次更新最大节点数
+    enableIncrementalUpdates: boolean; // 是否启用增量更新
+}
+
 class CocosInspector {
     private container: HTMLElement | null = null;
     private selectedNode: cc.Node | null = null;
     private syncMode: SyncMode = SyncMode.AUTO;
     private updateIntervalId: number | null = null;
-    private updateInterval: number = 100; // 默认100ms刷新率，与Cocos Creator接近
+    private updateInterval: number = 1000; // 更改为较低的默认刷新率，减轻性能压力
     private isCollapsed: boolean = false; // 是否折叠
     private lastWidth: number = 600; // 记住最后的宽度，从300px增加到600px
     private rendererManager: RendererManager; // 组件渲染器管理器
@@ -23,6 +30,15 @@ class CocosInspector {
     private expandedComponents: Set<string> = new Set(); // 存储已展开组件的UUID
     private treeSnapshot: string = ''; // 存储树结构的快照
     private sceneStructureHash: string = ''; // 存储场景结构的哈希值
+    private lastUpdateTime: number = 0; // 上次更新时间
+    private pendingUpdate: boolean = false; // 是否有待处理的更新
+
+    // 性能配置
+    private performanceConfig: PerformanceConfig = {
+        updateThrottleMs: 100, // 最小更新间隔
+        maxNodesPerUpdate: 50, // 每次更新的最大节点数
+        enableIncrementalUpdates: true // 默认启用增量更新
+    };
 
     constructor() {
         this.rendererManager = new RendererManager();
@@ -44,6 +60,75 @@ class CocosInspector {
     private createUI(): void {
         this.container = document.createElement('div');
         this.container.className = 'cocos-inspector';
+
+        // 添加CSS样式
+        const style = document.createElement('style');
+        style.textContent = `
+            /* 节点状态样式 */
+            .node-inactive {
+                opacity: 0.7;
+            }
+            .inactive-node {
+                text-decoration: line-through;
+                color: #999;
+            }
+            .node-inactive-indicator {
+                font-size: 10px;
+                background-color: #ff5252;
+                color: white;
+                padding: 1px 4px;
+                border-radius: 3px;
+                margin-left: 5px;
+            }
+            
+            /* Active状态指示器 */
+            .active-indicator {
+                margin-left: 5px;
+                font-size: 11px;
+                padding: 1px 4px;
+                border-radius: 3px;
+            }
+            .active-indicator.active {
+                background-color: #4caf50;
+                color: white;
+            }
+            .active-indicator.inactive {
+                background-color: #ff5252;
+                color: white;
+            }
+            
+            /* 更新状态指示器 */
+            @keyframes pulse {
+                0% { opacity: 0.6; }
+                50% { opacity: 1; }
+                100% { opacity: 0.6; }
+            }
+            .updating-indicator {
+                position: absolute;
+                top: 5px;
+                right: 5px;
+                background-color: #2196F3;
+                color: white;
+                font-size: 10px;
+                padding: 2px 6px;
+                border-radius: 3px;
+                animation: pulse 1.5s infinite;
+                pointer-events: none;
+            }
+            
+            /* 错误指示器 */
+            .error-indicator {
+                position: absolute;
+                top: 5px;
+                right: 5px;
+                background-color: #f44336;
+                color: white;
+                font-size: 10px;
+                padding: 2px 6px;
+                border-radius: 3px;
+            }
+        `;
+        document.head.appendChild(style);
 
         // 添加折叠按钮
         const collapseBtn = document.createElement('div');
@@ -103,6 +188,15 @@ class CocosInspector {
         controls.appendChild(syncControls);
         controls.appendChild(refreshBtn);
         controls.appendChild(forceRefreshBtn);
+
+        // 添加性能设置按钮
+        const performanceBtn = document.createElement('button');
+        performanceBtn.textContent = '性能设置';
+        performanceBtn.className = 'performance-btn';
+        performanceBtn.title = '调整刷新率和性能设置';
+        performanceBtn.addEventListener('click', () => this.showPerformanceSettings());
+        controls.appendChild(performanceBtn);
+
         header.appendChild(controls);
 
         // 创建内容区
@@ -203,11 +297,43 @@ class CocosInspector {
         // 清除可能存在的旧定时器
         this.stopAutoUpdate();
 
+        // 显示更新指示器
+        this.showUpdatingIndicator();
+
         // 立即更新一次
         this.updateTree();
+        this.lastUpdateTime = Date.now();
 
-        // 创建新的定时器
-        this.updateIntervalId = window.setInterval(() => this.updateTree(), this.updateInterval) as unknown as number;
+        // 创建新的定时器，使用更新间隔
+        this.updateIntervalId = window.setInterval(() => {
+            // 显示更新指示器
+            this.showUpdatingIndicator();
+
+            // 检查是否应该跳过此次更新（节流）
+            const now = Date.now();
+            const timeSinceLastUpdate = now - this.lastUpdateTime;
+
+            // 如果上次更新时间过短且不是强制更新，跳过此次更新
+            if (timeSinceLastUpdate < this.performanceConfig.updateThrottleMs && this.pendingUpdate) {
+                console.log(`节流控制：跳过更新 (${timeSinceLastUpdate}ms < ${this.performanceConfig.updateThrottleMs}ms)`);
+                return;
+            }
+
+            // 执行更新
+            try {
+                this.updateTree();
+                this.lastUpdateTime = now;
+                this.pendingUpdate = false;
+
+                // 隐藏错误指示器
+                this.hideErrorIndicator();
+            } catch (error) {
+                console.error('自动更新失败:', error);
+                this.showErrorIndicator('更新失败，请刷新');
+            }
+        }, this.updateInterval) as unknown as number;
+
+        console.log(`自动更新已启动，间隔: ${this.updateInterval}ms，节流: ${this.performanceConfig.updateThrottleMs}ms`);
     }
 
     private stopAutoUpdate(): void {
@@ -221,37 +347,75 @@ class CocosInspector {
         const scene = cc.director.getScene();
         if (!scene) return;
 
+        console.log(`[初始化树] 场景: ${scene.name}(${scene.uuid}), 子节点数: ${scene.children?.length || 0}`);
         if (this.treeContainer) {
             this.treeContainer.innerHTML = this.generateNodeTree(scene);
         }
     }
 
-    private generateNodeTree(node: cc.Node): string {
+    private generateNodeTree(scene: cc.Node): string {
+        // 如果场景为空，返回空字符串
+        if (!scene) return '<div class="empty-scene">Scene is empty</div>';
+
+        console.log(`[生成树结构] 开始生成场景: ${scene.name}(${scene.uuid}), 子节点数: ${scene.children?.length || 0}`);
+
+        // 创建根节点列表
         let html = '<ul class="node-tree">';
-        html += this.generateNodeItem(node);
+
+        // 检查是否是场景节点
+        const isScene = scene === cc.director.getScene();
+
+        // 渲染根节点
+        html += this.generateNodeItem(scene, true); // 场景根节点总是处于active状态
+
         html += '</ul>';
+        console.log(`[生成树结构] 完成生成场景树 ${scene.name}(${scene.uuid})`);
         return html;
     }
 
-    private generateNodeItem(node: cc.Node): string {
+    private generateNodeItem(node: cc.Node, isActive?: boolean): string {
+        if (!node || !node.uuid) {
+            console.warn(`[生成节点项] 节点无效或UUID缺失`);
+            return '';
+        }
+
         const hasChildren = node.children && node.children.length > 0;
         const isExpanded = this.expandedNodes.has(node.uuid);
         const toggleClass = hasChildren ? 'node-toggle' : 'node-toggle-empty';
         const toggleText = hasChildren ? (isExpanded ? '▼' : '▶') : '';
         const childrenStyle = isExpanded ? '' : 'display: none;';
 
+        // 检查是否是场景节点
+        const isScene = node === cc.director.getScene();
+
+        // 对于场景节点，active总是true
+        const active = isActive !== undefined ? isActive :
+            (isScene ? true : (node.active !== undefined ? node.active : true));
+
+        const activeClass = active ? '' : 'node-inactive';
+
+        const childrenCount = node.children?.length || 0;
+        console.log(`[生成节点项] ${isScene ? '场景' : '节点'}: ${node.name}(${node.uuid}), 激活: ${active}, 子节点: ${childrenCount}`);
+
         let html = `
-            <li data-uuid="${node.uuid}">
+            <li data-uuid="${node.uuid}" class="${activeClass}">
                 <div class="node-tree-item">
                     <span class="${toggleClass}">${toggleText}</span>
-                    <span class="node-name">${node.name}</span>
+                    <span class="node-name ${active ? '' : 'inactive-node'}">${node.name}</span>
+                    ${!active ? '<span class="node-inactive-indicator">禁用</span>' : ''}
                 </div>
         `;
 
         if (hasChildren) {
+            console.log(`[生成节点项] 处理 ${node.name}(${node.uuid}) 的 ${childrenCount} 个子节点`);
             html += `<ul class="node-children" style="${childrenStyle}">`;
-            node.children.forEach(child => {
-                html += this.generateNodeItem(child);
+            node.children.forEach((child, index) => {
+                if (child) {
+                    console.log(`[生成节点项] 处理 ${node.name}(${node.uuid}) 的第 ${index + 1}/${childrenCount} 个子节点: ${child.name}(${child.uuid})`);
+                    html += this.generateNodeItem(child);
+                } else {
+                    console.warn(`[生成节点项] ${node.name}(${node.uuid}) 的第 ${index + 1}/${childrenCount} 个子节点为空`);
+                }
             });
             html += '</ul>';
         }
@@ -348,7 +512,7 @@ class CocosInspector {
 
             if (!property) return;
 
-            console.log(`属性变更: ${property}, 节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
+            console.log(`[属性变更] ${property}, 节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
 
             // 首先检查节点是否有此属性
             const hasProperty = property.includes('.')
@@ -356,7 +520,7 @@ class CocosInspector {
                 : property in this.selectedNode;
 
             if (!hasProperty) {
-                console.warn(`节点不包含属性: ${property}`);
+                console.warn(`[属性校验] 节点不包含属性: ${property}, 节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
                 return;
             }
 
@@ -370,6 +534,7 @@ class CocosInspector {
                 if (property === 'active') {
                     // 确保节点的active状态立即生效
                     this.selectedNode.active = value;
+                    console.log(`[属性变更] 更新节点激活状态: ${this.selectedNode.name}(${this.selectedNode.uuid}), active: ${value}`);
 
                     // 通知场景节点状态发生变化
                     if (window.cc && window.cc.director && window.cc.director.getScene) {
@@ -377,14 +542,47 @@ class CocosInspector {
                         const scene = window.cc.director.getScene();
                         if (scene) {
                             // 触发场景更新
+                            console.log(`[场景更新] 准备刷新场景视图，节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
                             this.refreshSceneView();
+
+                            // 先保存当前选中节点的引用，以便在刷新后仍能找到它
+                            const currentUUID = this.selectedNode.uuid;
+
+                            // 先刷新当前节点的详情
+                            this.updateDetails();
+
+                            // 马上刷新树视图，不使用延迟
+                            console.log(`[场景更新] 准备强制刷新树结构，节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
+                            this.forceRefreshTree();
+
+                            // 确保节点在UI中的状态保持正确，即使被禁用
+                            const nodeElement = this.container?.querySelector(`li[data-uuid="${currentUUID}"]`);
+                            if (nodeElement) {
+                                // 添加禁用样式类，使节点在树视图中显示为禁用状态
+                                if (!value) {
+                                    nodeElement.classList.add('node-inactive');
+                                    console.log(`[UI更新] 添加禁用样式到节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
+                                } else {
+                                    nodeElement.classList.remove('node-inactive');
+                                    console.log(`[UI更新] 移除禁用样式从节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
+                                }
+
+                                // 确保节点在树中可见
+                                setTimeout(() => {
+                                    if (nodeElement && !value) {
+                                        // 对于禁用的节点，添加特殊样式
+                                        const nameElement = nodeElement.querySelector('.node-name');
+                                        if (nameElement) {
+                                            nameElement.classList.add('inactive-node');
+                                            console.log(`[UI更新] 为节点名称添加禁用样式: ${this.selectedNode?.name}(${currentUUID})`);
+                                        }
+                                    }
+                                }, 50);
+                            } else {
+                                console.warn(`[UI更新] 未找到要更新样式的节点元素: ${currentUUID}`);
+                            }
                         }
                     }
-
-                    // 先刷新当前节点的详情
-                    this.updateDetails();
-                    // 短暂延迟后刷新整个树，让用户能看到即时效果
-                    setTimeout(() => this.forceRefreshTree(), 300);
                 }
             } else {
                 // 数字或文本
@@ -396,12 +594,13 @@ class CocosInspector {
                     if (isNaN(value)) return;
                 }
 
-                console.log(`更新属性值: ${property} = ${value}`);
+                console.log(`[属性变更] 更新属性值: ${property} = ${value}, 节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
                 this.updateNodeProperty(this.selectedNode, property, value);
 
                 // 如果修改的是节点名称，需要更新树视图
                 if (property === 'name') {
                     // 短暂延迟后刷新整个树
+                    console.log(`[属性变更] 节点名称已修改，准备刷新树: ${value}(${this.selectedNode.uuid})`);
                     setTimeout(() => this.forceRefreshTree(), 300);
                 }
             }
@@ -413,6 +612,7 @@ class CocosInspector {
 
             // 检查是否修改了变换属性（position、eulerAngles或scale），需要刷新场景视图
             if (property.startsWith('position') || property.startsWith('eulerAngles') || property.startsWith('scale')) {
+                console.log(`[属性变更] 变换属性已修改，刷新场景视图: ${property}, 节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
                 this.refreshSceneView();
             }
         }
@@ -452,21 +652,21 @@ class CocosInspector {
                     if (obj && subProp in obj) {
                         const oldValue = obj[subProp];
                         obj[subProp] = value;
-                        console.log(`更新嵌套属性: ${property}, 旧值: ${oldValue}, 新值: ${value}`);
+                        console.log(`更新嵌套属性: ${property}, 旧值: ${oldValue}, 新值: ${value}, 节点: ${node.name}(${node.uuid})`);
                     } else {
-                        console.warn(`对象 ${mainProp} 不包含子属性: ${subProp}`);
+                        console.warn(`对象 ${mainProp} 不包含子属性: ${subProp}, 节点: ${node.name}(${node.uuid})`);
                     }
                 } else {
-                    console.warn(`节点不包含有效对象属性: ${mainProp}`);
+                    console.warn(`节点不包含有效对象属性: ${mainProp}, 节点: ${node.name}(${node.uuid})`);
                 }
             } else {
                 // 确保属性存在
                 if (property in node) {
                     const oldValue = (node as any)[property];
                     (node as any)[property] = value;
-                    console.log(`更新属性: ${property}, 旧值: ${oldValue}, 新值: ${value}`);
+                    console.log(`更新属性: ${property}, 旧值: ${oldValue}, 新值: ${value}, 节点: ${node.name}(${node.uuid})`);
                 } else {
-                    console.warn(`节点不包含属性: ${property}`);
+                    console.warn(`节点不包含属性: ${property}, 节点: ${node.name}(${node.uuid})`);
                 }
             }
 
@@ -475,7 +675,7 @@ class CocosInspector {
                 this.updateDetails();
             }
         } catch (error) {
-            console.error('更新属性失败:', error);
+            console.error('更新属性失败:', error, `节点: ${node.name}(${node.uuid})`);
         }
     }
 
@@ -495,14 +695,31 @@ class CocosInspector {
         // 更新详细信息面板
         this.updateDetails();
 
-        console.log('Selected node:', this.selectedNode);
+        if (this.selectedNode) {
+            console.log(`选中节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
+        } else {
+            console.log(`未能找到UUID为 ${uuid} 的节点`);
+        }
     }
 
     private updateDetails(): void {
-        if (!this.detailsContainer || !this.selectedNode) return;
+        if (!this.detailsContainer || !this.selectedNode) {
+            // 清空详情面板
+            if (this.detailsContainer) {
+                this.detailsContainer.innerHTML = '<div class="no-selection">请在左侧选择一个节点</div>';
+                console.log(`[详情面板] 清空详情面板，无选中节点`);
+            }
+            return;
+        }
+
+        console.log(`[详情面板] 开始更新详情面板, 节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
+
+        // 记住当前滚动位置
+        const scrollTop = this.detailsContainer.scrollTop;
 
         // 获取节点的所有组件
         const components = this.selectedNode._components || [];
+        console.log(`[详情面板] 节点 ${this.selectedNode.name}(${this.selectedNode.uuid}) 有 ${components.length} 个组件`);
 
         // 添加一个伪组件用于显示Transform信息
         const transformComponent = {
@@ -514,17 +731,174 @@ class CocosInspector {
 
         const allComponents = [transformComponent, ...components];
 
-        // 记住当前滚动位置
-        const scrollTop = this.detailsContainer.scrollTop;
-
-        // 使用渲染器管理器渲染组件
-        this.detailsContainer.innerHTML = this.rendererManager.renderComponents(allComponents);
-
-        // 应用保存的组件展开状态
-        this.applyComponentExpandState();
+        // 增量更新详情面板
+        this.updateDetailsIncremental(allComponents);
 
         // 恢复滚动位置
         this.detailsContainer.scrollTop = scrollTop;
+        console.log(`[详情面板] 详情面板更新完成, 节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
+    }
+
+    // 增量更新详情面板
+    private updateDetailsIncremental(components: cc.Component[]): void {
+        if (!this.detailsContainer) return;
+        if (!this.selectedNode) return;
+
+        // 检查是否是新选择的节点
+        const currentNodeId = this.selectedNode?.uuid;
+        const detailsNodeId = this.detailsContainer.dataset.nodeId;
+
+        // 如果是新节点，重建整个面板
+        if (currentNodeId !== detailsNodeId) {
+            console.log(`[详情面板] 节点已更改，重建详情面板: ${this.selectedNode.name}(${currentNodeId})`);
+
+            this.detailsContainer.innerHTML = this.rendererManager.renderComponents(components);
+            this.detailsContainer.dataset.nodeId = currentNodeId || '';
+
+            // 应用保存的组件展开状态
+            this.applyComponentExpandState();
+            return;
+        }
+
+        console.log(`[详情面板] 对同一节点执行增量更新: ${this.selectedNode.name}(${currentNodeId})`);
+
+        // 对于同一节点的更新，执行增量更新
+
+        // 1. 收集当前显示的组件
+        const visibleComponents = new Map<string, HTMLElement>();
+        this.detailsContainer.querySelectorAll('.component-item').forEach(item => {
+            if (item instanceof HTMLElement && item.dataset.componentId) {
+                visibleComponents.set(item.dataset.componentId, item);
+            }
+        });
+        console.log(`[详情面板] 当前面板中有 ${visibleComponents.size} 个组件元素`);
+
+        // 2. 跟踪需要移除的组件
+        const componentIdsToKeep = new Set<string>();
+
+        // 3. 更新或添加组件
+        components.forEach((component, index) => {
+            const componentId = component.uuid;
+            componentIdsToKeep.add(componentId);
+            const componentName = component.constructor?.name || 'Unknown';
+
+            // 生成组件内容的哈希值
+            const componentHash = this.generateComponentHash(component);
+
+            // 检查组件是否存在
+            const existingComponent = visibleComponents.get(componentId);
+
+            // 组件不存在，添加新组件
+            if (!existingComponent) {
+                console.log(`[详情面板] 添加新组件: ${componentName}, ID: ${componentId}, 节点: ${this.selectedNode?.name}(${this.selectedNode?.uuid})`);
+                const componentHtml = this.rendererManager.renderComponent(component);
+
+                // 创建临时容器并添加组件HTML
+                const tempDiv = document.createElement('div');
+                tempDiv.innerHTML = componentHtml;
+                const newComponent = tempDiv.firstElementChild as HTMLElement;
+
+                // 如果组件应该展开，设置展开状态
+                if (this.expandedComponents.has(componentId) && newComponent) {
+                    const toggle = newComponent.querySelector('.component-toggle');
+                    const content = newComponent.querySelector('.component-content');
+                    if (toggle) toggle.classList.remove('collapsed');
+                    if (content) content.classList.remove('collapsed');
+                }
+
+                // 设置哈希值
+                if (newComponent) {
+                    newComponent.dataset.hash = componentHash;
+                }
+
+                // 添加到详情面板
+                if (this.detailsContainer && newComponent) {
+                    this.detailsContainer.appendChild(newComponent);
+                    console.log(`[详情面板] 新组件 ${componentName}(${componentId}) 已添加到面板`);
+                }
+            }
+            // 组件存在但可能需要更新
+            else {
+                const existingHash = existingComponent.dataset.hash;
+
+                // 如果哈希值不同，更新组件内容
+                if (existingHash !== componentHash) {
+                    console.log(`[详情面板] 更新组件内容: ${componentName}(${componentId}), 节点: ${this.selectedNode?.name}(${this.selectedNode?.uuid})`);
+                    console.log(`[详情面板] 组件哈希变化 - 旧: ${existingHash}, 新: ${componentHash}`);
+
+                    // 保留组件展开状态
+                    const isExpanded = !existingComponent.querySelector('.component-content')?.classList.contains('collapsed');
+
+                    // 重新渲染组件内容
+                    const contentContainer = existingComponent.querySelector('.component-content');
+                    if (contentContainer) {
+                        // 获取组件属性HTML
+                        const propertyHtml = this.rendererManager.renderComponentProperties(component);
+
+                        // 更新内容区域
+                        contentContainer.innerHTML = propertyHtml;
+
+                        // 更新组件标题
+                        const titleElement = existingComponent.querySelector('.component-name');
+                        if (titleElement) {
+                            titleElement.textContent = componentName;
+                        }
+
+                        // 更新哈希值
+                        existingComponent.dataset.hash = componentHash;
+                        console.log(`[详情面板] 组件 ${componentName}(${componentId}) 内容已更新`);
+                    }
+                } else {
+                    console.log(`[详情面板] 组件 ${componentName}(${componentId}) 无变化，跳过更新`);
+                }
+            }
+        });
+
+        // 4. 移除不再存在的组件
+        visibleComponents.forEach((element, id) => {
+            if (!componentIdsToKeep.has(id)) {
+                const componentName = element.querySelector('.component-name')?.textContent || 'Unknown';
+                console.log(`[详情面板] 移除组件: ${componentName}(${id}), 节点: ${this.selectedNode?.name}(${this.selectedNode?.uuid})`);
+                element.remove();
+            }
+        });
+    }
+
+    // 为组件生成哈希值
+    private generateComponentHash(component: cc.Component): string {
+        const componentName = component.constructor?.name || 'Unknown';
+        let hash = `${componentName}:${component.enabled ? 1 : 0}`;
+        const nodeInfo = component.node ? `${component.node.name}(${component.node.uuid})` : 'no-node';
+
+        // 对于Transform组件，添加变换属性的哈希
+        if (componentName === 'Transform' && component.node) {
+            const node = component.node;
+
+            // 添加位置信息
+            if (node.position) {
+                hash += `:pos[${node.position.x.toFixed(2)},${node.position.y.toFixed(2)},${node.position.z.toFixed(2)}]`;
+            }
+
+            // 添加旋转信息
+            if (node.eulerAngles) {
+                hash += `:rot[${node.eulerAngles.x.toFixed(2)},${node.eulerAngles.y.toFixed(2)},${node.eulerAngles.z.toFixed(2)}]`;
+            }
+
+            // 添加缩放信息 - 处理scale可能是number或Vector3的情况
+            if (node.scale) {
+                if (typeof node.scale === 'number') {
+                    hash += `:scale[${node.scale.toFixed(2)},${node.scale.toFixed(2)},${node.scale.toFixed(2)}]`;
+                } else {
+                    hash += `:scale[${node.scale.x.toFixed(2)},${node.scale.y.toFixed(2)},${node.scale.z.toFixed(2)}]`;
+                }
+            }
+
+            console.log(`[组件哈希] 生成Transform组件哈希: ${hash}, 节点: ${nodeInfo}`);
+        } else {
+            console.log(`[组件哈希] 生成组件哈希: ${hash}, 组件类型: ${componentName}, 节点: ${nodeInfo}`);
+        }
+
+        return hash;
     }
 
     private applyComponentExpandState(): void {
@@ -561,8 +935,9 @@ class CocosInspector {
         // 为节点生成包含更多信息的哈希值
         let hash = `${node.uuid}:${node.name}`;
 
+        let isScene = node === cc.director.getScene();
         // 添加节点基本属性
-        hash += `:${node.active ? 1 : 0}`; // 活动状态
+        hash += `:${isScene ? 1 : node.active ? 1 : 0}`; // 活动状态
 
         // 添加位置信息
         const pos = node.position || { x: node.x || 0, y: node.y || 0, z: node.z || 0 };
@@ -607,64 +982,441 @@ class CocosInspector {
 
     private updateTree(): void {
         const scene = cc.director.getScene();
-        if (!scene) return;
+        if (!scene) {
+            console.warn(`[更新树] 场景不存在，跳过更新`);
+            return;
+        }
 
-        // 检查场景结构是否发生变化
-        const sceneChanged = this.hasSceneStructureChanged(scene);
+        console.log(`[更新树] 开始更新场景: ${scene.name}(${scene.uuid}), 子节点数: ${scene.children?.length || 0}`);
 
-        // 只在场景结构发生变化时更新树
-        if (sceneChanged && this.treeContainer) {
-            console.log('Scene structure changed, updating tree...');
-
-            // 生成新的树HTML
-            const newTree = this.generateNodeTree(scene);
-
-            // 保存当前滚动位置
-            const scrollTop = this.treeContainer.scrollTop;
-
-            // 更新树内容
-            this.treeContainer.innerHTML = newTree;
-
-            // 恢复滚动位置
-            this.treeContainer.scrollTop = scrollTop;
-
-            // 如果有选中的节点，恢复选中状态
-            if (this.selectedNode) {
-                const item = this.container?.querySelector(`[data-uuid="${this.selectedNode.uuid}"] .node-tree-item`);
-                if (item) {
-                    item.classList.add('selected');
-                } else {
-                    // 如果节点不存在了，清除选择
-                    this.selectedNode = null;
-                    this.updateDetails();
-                }
+        // 检查是否有正在进行的更新
+        if (this.pendingUpdate) {
+            const now = Date.now();
+            // 如果自上次更新以来时间过短，跳过本次更新
+            if (now - this.lastUpdateTime < this.performanceConfig.updateThrottleMs / 2) {
+                console.log(`[更新树] 节流控制：跳过更新 (${now - this.lastUpdateTime}ms < ${this.performanceConfig.updateThrottleMs / 2}ms)`);
+                return;
+            } else {
+                console.log(`[更新树] 有待处理的更新，但间隔足够，继续更新`);
             }
         }
+
+        // 初始化时创建树结构
+        if (!this.treeContainer?.querySelector('.node-tree')) {
+            console.log('[更新树] 首次创建树结构');
+            if (this.treeContainer) {
+                this.treeContainer.innerHTML = this.generateNodeTree(scene);
+            }
+            this.sceneStructureHash = this.generateNodeHash(scene);
+            this.lastUpdateTime = Date.now();
+            this.pendingUpdate = false;
+            return;
+        }
+
+        // 检查哪些节点发生了变化，执行增量更新
+        try {
+            console.log(`[更新树] 开始增量更新`);
+            this.updateNodeTreeIncremental(scene);
+            // 成功完成完整更新后，清除待更新标记
+            if (!this.pendingUpdate) {
+                console.log(`[更新树] 增量更新完成，更新场景哈希`);
+                this.sceneStructureHash = this.generateNodeHash(scene);
+            } else {
+                console.log(`[更新树] 增量更新未完成所有节点，待更新标记保持为true`);
+            }
+        } catch (error) {
+            console.error('[更新树] 更新树结构失败:', error);
+            this.pendingUpdate = false;
+        }
+
+        // 即使在出错情况下，也记录本次更新时间，避免短时间内重复尝试
+        this.lastUpdateTime = Date.now();
+        console.log(`[更新树] 更新完成，时间戳更新为: ${this.lastUpdateTime}`);
 
         // 即使场景结构没有变化，也要检查选中节点是否存在，并更新详情
         if (this.selectedNode) {
             const nodeExists = this.findNodeByUUID(scene, this.selectedNode.uuid);
             if (nodeExists) {
                 // 只更新详情面板，不重建树结构
+                console.log(`[更新树] 选中节点存在，更新详情面板: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
                 this.updateDetails();
             } else {
                 // 节点已被删除，清除选择
+                console.log(`[更新树] 选中节点已不存在，清除选择: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
                 this.selectedNode = null;
                 this.updateDetails();
             }
         }
     }
 
+    // 增量更新树结构
+    private updateNodeTreeIncremental(scene: cc.Node): void {
+        // 记录开始时间，用于性能分析
+        const updateStartTime = performance.now();
+        console.log(`[增量更新] 开始处理场景: ${scene?.name || 'undefined'}(${scene?.uuid || 'undefined'}), 子节点数: ${scene?.children?.length || 0}`);
+
+        // 首先检查是否是场景节点，场景节点需要特殊处理
+        if (!scene || scene === cc.director.getScene()) {
+            // 检查是否正在循环更新
+            if (this.pendingUpdate) {
+                console.log('[增量更新] 检测到可能的循环更新，跳过本次更新');
+                // 允许下一次更新尝试继续
+                this.pendingUpdate = false;
+                return;
+            }
+        }
+
+        // 如果未启用增量更新，使用全量更新
+        if (!this.performanceConfig.enableIncrementalUpdates) {
+            console.log('[增量更新] 增量更新已禁用，使用全量更新');
+
+            if (this.treeContainer) {
+                // 保存当前滚动位置
+                const scrollTop = this.treeContainer.scrollTop;
+
+                // 生成新的树HTML
+                const newTree = this.generateNodeTree(scene);
+
+                // 更新树内容
+                this.treeContainer.innerHTML = newTree;
+
+                // 恢复滚动位置
+                this.treeContainer.scrollTop = scrollTop;
+
+                // 如果有选中的节点，恢复选中状态
+                if (this.selectedNode) {
+                    const item = this.container?.querySelector(`[data-uuid="${this.selectedNode.uuid}"] .node-tree-item`);
+                    if (item) {
+                        item.classList.add('selected');
+                        console.log(`[增量更新] 恢复选中节点的选中状态: ${this.selectedNode.name}`);
+                    } else {
+                        console.log(`[增量更新] 找不到选中节点的DOM元素: ${this.selectedNode.name}`);
+                    }
+                }
+            }
+            return;
+        }
+
+        // 当前可见的树节点映射
+        const visibleNodes = new Map<string, HTMLElement>();
+
+        // 收集当前DOM中的所有节点
+        const treeItems = this.treeContainer?.querySelectorAll('li[data-uuid]');
+        const itemCount = treeItems?.length || 0;
+        console.log(`[增量更新] 当前DOM中有 ${itemCount} 个节点元素`);
+
+        treeItems?.forEach(item => {
+            if (item instanceof HTMLElement && item.dataset.uuid) {
+                visibleNodes.set(item.dataset.uuid, item);
+            }
+        });
+        console.log(`[增量更新] 成功映射 ${visibleNodes.size} 个节点`);
+
+        // 节点计数器和限制
+        let updatedNodeCount = 0;
+        const maxNodes = this.performanceConfig.maxNodesPerUpdate;
+        console.log(`[增量更新] 每次更新最大节点数限制: ${maxNodes}`);
+
+        // 设置更新超时（防止无限循环）
+        const timeoutLimit = Date.now() + 1000; // 1秒超时
+        console.log(`[增量更新] 设置更新超时: ${new Date(timeoutLimit).toISOString()}`);
+
+        // 递归更新节点，返回有变化的节点UUID
+        const updateNode = (node: cc.Node, parentElement: HTMLElement): string[] => {
+            // 检查是否超时
+            if (Date.now() > timeoutLimit) {
+                console.warn(`[增量更新:节点] 节点更新超时，中止本次更新`);
+                return [];
+            }
+
+            // 如果已达到本次更新的节点数限制，返回空数组
+            if (updatedNodeCount >= maxNodes) {
+                this.pendingUpdate = true; // 标记有待更新的内容
+                console.log(`[增量更新:节点] 已达到节点数限制 (${maxNodes})，标记待更新并中止`);
+                return [];
+            }
+
+            // 安全检查：确保节点有效
+            if (!node || !node.uuid) {
+                console.warn(`[增量更新:节点] 节点无效或UUID缺失`);
+                return [];
+            }
+
+            const nodeUUID = node.uuid;
+            const nodeElement = visibleNodes.get(nodeUUID);
+            const changedNodes: string[] = [];
+            const isScene = node === cc.director.getScene();
+            const nodeName = node.name || '未命名节点';
+
+            console.log(`[增量更新:节点] 处理${isScene ? '场景' : '节点'}: ${nodeName}(${nodeUUID}), 已有DOM元素: ${!!nodeElement}`);
+
+            // 获取节点激活状态，场景节点特殊处理
+            const isNodeActive = node === cc.director.getScene() ? true : (node.active !== undefined ? node.active : true);
+
+            // 检查节点是否发生变化
+            try {
+                // 生成节点哈希，场景节点特殊处理
+                const nodeHash = this.generateSimpleNodeHash(node, isNodeActive);
+                const oldHash = nodeElement?.dataset.hash;
+
+                console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 新哈希: ${nodeHash}, 旧哈希: ${oldHash || '无'}`);
+
+                // 节点不存在或发生变化时更新
+                if (!nodeElement || nodeHash !== oldHash) {
+                    changedNodes.push(nodeUUID);
+                    updatedNodeCount++; // 增加已更新节点计数
+                    console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 需要更新, 当前已更新 ${updatedNodeCount}/${maxNodes} 个节点`);
+
+                    // 如果节点不存在，创建新节点
+                    if (!nodeElement) {
+                        console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 创建新节点元素`);
+                        const newNodeHtml = this.generateNodeItem(node, isNodeActive);
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = newNodeHtml;
+                        const newNode = tempDiv.firstElementChild as HTMLElement;
+
+                        // 如果有子节点，确保展开状态正确
+                        if (this.expandedNodes.has(nodeUUID) && newNode) {
+                            console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 设置为展开状态`);
+                            const toggle = newNode.querySelector('.node-toggle');
+                            const children = newNode.querySelector('.node-children');
+                            if (toggle) toggle.textContent = '▼';
+                            if (children) (children as HTMLElement).style.display = '';
+                        }
+
+                        // 添加到父元素
+                        const childrenContainer = parentElement.querySelector('ul.node-children');
+                        if (childrenContainer) {
+                            console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 添加到父容器`);
+                            childrenContainer.appendChild(newNode);
+
+                            // 设置哈希值
+                            if (newNode) {
+                                newNode.dataset.hash = nodeHash;
+                            }
+                        } else {
+                            console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 找不到父容器 ul.node-children`);
+                        }
+                    }
+                    // 节点存在但发生变化，更新节点
+                    else {
+                        console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 更新现有节点`);
+                        // 更新节点名称
+                        const nameElement = nodeElement.querySelector('.node-name');
+                        if (nameElement) {
+                            nameElement.textContent = node.name;
+
+                            // 更新激活状态样式
+                            if (isNodeActive) {
+                                nameElement.classList.remove('inactive-node');
+                            } else {
+                                nameElement.classList.add('inactive-node');
+                            }
+                        }
+
+                        // 更新整个节点的激活类
+                        if (isNodeActive) {
+                            nodeElement.classList.remove('node-inactive');
+                        } else {
+                            nodeElement.classList.add('node-inactive');
+                        }
+
+                        // 更新哈希值
+                        nodeElement.dataset.hash = nodeHash;
+                    }
+                } else {
+                    console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 无变化，跳过更新`);
+                }
+            } catch (error) {
+                console.error(`[增量更新:节点] 处理节点 ${nodeName}(${nodeUUID}) 时出错:`, error);
+            }
+
+            // 如果已达到本次更新的节点数限制，不继续递归子节点
+            if (updatedNodeCount >= maxNodes) {
+                this.pendingUpdate = true; // 标记有待更新的内容
+                console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 已达到节点限制，不处理子节点`);
+                return changedNodes;
+            }
+
+            // 递归处理子节点
+            try {
+                if (!node.children || node.children.length === 0) {
+                    console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 没有子节点`);
+                    return changedNodes;
+                }
+
+                console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 开始处理 ${node.children.length} 个子节点`);
+
+                const childrenContainer = nodeElement ?
+                    nodeElement.querySelector('.node-children') :
+                    parentElement.querySelector(`li[data-uuid="${nodeUUID}"] .node-children`);
+
+                if (childrenContainer && node.children && node.children.length > 0) {
+                    // 记录当前子节点
+                    const existingChildren = new Set<string>();
+                    // 修改查询选择器，只选择直接子节点，而不是所有后代节点
+                    const existingChildElements = childrenContainer.children;
+                    console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - DOM中有 ${existingChildElements.length} 个直接子节点元素`);
+
+                    // 只收集直接子节点的UUID
+                    Array.from(existingChildElements).forEach(child => {
+                        if (child instanceof HTMLElement && child.dataset.uuid) {
+                            existingChildren.add(child.dataset.uuid);
+                            console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 收集直接子节点: ${child.querySelector('.node-name')?.textContent || '未知'}(${child.dataset.uuid})`);
+                        }
+                    });
+                    console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 收集到 ${existingChildren.size} 个现有直接子节点UUID`);
+
+                    // 递归更新每个子节点
+                    for (let i = 0; i < node.children.length; i++) {
+                        const childNode = node.children[i];
+
+                        // 安全检查
+                        if (!childNode) {
+                            console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 子节点 ${i + 1}/${node.children.length} 为空`);
+                            continue;
+                        }
+
+                        console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 处理子节点 ${i + 1}/${node.children.length}: ${childNode.name}(${childNode.uuid})`);
+
+                        // 如果已达到节点更新限制，标记待更新并退出
+                        if (updatedNodeCount >= maxNodes) {
+                            this.pendingUpdate = true;
+                            console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 处理子节点时达到节点限制，中断处理`);
+                            break;
+                        }
+
+                        const childChanges = updateNode(childNode, nodeElement || parentElement);
+                        if (childChanges.length > 0) {
+                            console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 子节点 ${childNode.name}(${childNode.uuid}) 及其子节点中有 ${childChanges.length} 个发生变化`);
+                            changedNodes.push(...childChanges);
+                        }
+
+                        // 从现有子节点集合中移除已处理的节点
+                        existingChildren.delete(childNode.uuid);
+                    }
+
+                    // 移除不再存在的子节点（如果未达到节点更新限制）
+                    if (updatedNodeCount < maxNodes && existingChildren.size > 0) {
+                        console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 有 ${existingChildren.size} 个子节点需要移除`);
+
+                        let removedCount = 0;
+                        existingChildren.forEach(uuid => {
+                            const childToRemove = childrenContainer.querySelector(`li[data-uuid="${uuid}"]`);
+                            if (childToRemove) {
+                                const childName = (childToRemove.querySelector('.node-name')?.textContent || '未知节点');
+                                console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 移除子节点: ${childName}(${uuid})`);
+                                childToRemove.remove();
+                                changedNodes.push(uuid);
+                                updatedNodeCount++;
+                                removedCount++;
+                            }
+                        });
+                        console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 成功移除 ${removedCount} 个子节点`);
+                    }
+                } else {
+                    console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 有子节点但找不到子节点容器`);
+                }
+            } catch (error) {
+                console.error(`[增量更新:节点] 处理节点 ${nodeName}(${nodeUUID}) 的子节点时出错:`, error);
+            }
+
+            return changedNodes;
+        };
+
+        // 从场景根节点开始增量更新
+        if (this.treeContainer) {
+            const rootList = this.treeContainer.querySelector('.node-tree') as HTMLElement;
+            if (rootList) {
+                try {
+                    console.log(`[增量更新] 找到树根元素，开始递归更新`);
+                    const startTime = performance.now();
+                    const changedNodes = updateNode(scene, rootList.parentElement || this.treeContainer);
+                    const endTime = performance.now();
+
+                    if (changedNodes.length > 0) {
+                        console.log(`[增量更新] 增量更新了 ${changedNodes.length} 个节点，耗时: ${(endTime - startTime).toFixed(2)}ms`);
+
+                        // 如果有待更新内容，记录日志
+                        if (this.pendingUpdate) {
+                            console.log(`[增量更新] 达到最大节点限制 (${maxNodes})，剩余节点将在下次更新`);
+                        }
+
+                        // 如果有选中的节点，确保其选中状态保持
+                        if (this.selectedNode) {
+                            const item = this.container?.querySelector(`[data-uuid="${this.selectedNode.uuid}"] .node-tree-item`);
+                            if (item) {
+                                item.classList.add('selected');
+                                console.log(`[增量更新] 恢复选中节点的选中状态: ${this.selectedNode.name}`);
+                            } else {
+                                console.log(`[增量更新] 找不到选中节点的DOM元素: ${this.selectedNode.name}`);
+                            }
+                        }
+                    } else {
+                        console.log(`[增量更新] 没有节点需要更新`);
+                    }
+
+                    // 打印总耗时
+                    const totalTime = performance.now() - updateStartTime;
+                    console.log(`[增量更新] 整个增量更新过程耗时: ${totalTime.toFixed(2)}ms`);
+                } catch (error) {
+                    console.error('[增量更新] 增量更新失败，错误:', error);
+
+                    // 出错时重置pendingUpdate标记
+                    this.pendingUpdate = false;
+                }
+            } else {
+                console.warn('[增量更新] 找不到树根元素');
+            }
+        } else {
+            console.warn('[增量更新] treeContainer不存在');
+        }
+    }
+
+    // 生成简化版节点哈希，只包含用于UI显示的属性
+    private generateSimpleNodeHash(node: cc.Node, isActive?: boolean): string {
+        // 检查是否是场景节点
+        const isScene = node === cc.director.getScene();
+
+        // 对于场景节点，active总是true
+        const active = isActive !== undefined ? isActive :
+            (isScene ? true : (node.active !== undefined ? node.active : true));
+
+        // 简化的哈希只包含名称、激活状态和子节点数量
+        const hash = `${node.name}:${active ? 1 : 0}:${node.children?.length || 0}`;
+        console.log(`[生成哈希] ${isScene ? '场景' : '节点'}: ${node.name}(${node.uuid}), 哈希: ${hash}`);
+        return hash;
+    }
+
     // 强制刷新树结构的方法
     private forceRefreshTree(): void {
-        // 重置哈希值，确保下次更新时会重建树
-        this.sceneStructureHash = '';
+        console.log('强制刷新树结构...');
 
         // 保存当前选中的节点UUID
         const selectedUUID = this.selectedNode?.uuid;
 
+        // 如果是在自动更新模式下，先暂停自动更新
+        const wasInAutoMode = this.syncMode === SyncMode.AUTO;
+        if (wasInAutoMode) {
+            this.stopAutoUpdate();
+        }
+
+        // 清除当前树的渲染缓存
+        if (this.treeContainer) {
+            // 移除所有节点的哈希值，以强制重新渲染
+            const nodeElements = this.treeContainer.querySelectorAll('li[data-uuid]');
+            nodeElements.forEach(node => {
+                if (node instanceof HTMLElement) {
+                    delete node.dataset.hash;
+                }
+            });
+        }
+
         // 立即更新树结构
-        this.updateTree();
+        const scene = cc.director.getScene();
+        if (scene && this.treeContainer) {
+            this.updateNodeTreeIncremental(scene);
+        }
 
         // 如果之前有选中的节点但现在没有，尝试重新选择
         if (selectedUUID && !this.selectedNode) {
@@ -676,42 +1428,301 @@ class CocosInspector {
                 }
             }
         }
+
+        // 如果之前是自动模式，恢复自动更新
+        if (wasInAutoMode) {
+            this.startAutoUpdate();
+        }
     }
 
     private refreshSceneView(): void {
         // 实现刷新场景视图的逻辑
-        console.log('Refreshing scene view...');
+        console.log('[场景更新] 开始刷新场景视图...');
 
         // 尝试通过修改节点的位置后再恢复，来触发节点的刷新
         if (this.selectedNode) {
             const node = this.selectedNode;
 
             try {
-                // 记录原始位置
-                const originalPosition = {
-                    x: node.position?.x || 0,
-                    y: node.position?.y || 0,
-                    z: node.position?.z || 0
-                };
+                // 如果节点是active的，我们可以通过修改位置来触发更新
+                if (node.active) {
+                    // 记录原始位置
+                    const originalPosition = {
+                        x: node.position?.x || 0,
+                        y: node.position?.y || 0,
+                        z: node.position?.z || 0
+                    };
 
-                // 临时修改并恢复位置，触发引擎更新渲染
-                // 使用简单的方法：直接设置position属性的x值然后恢复
-                if (node.position) {
-                    // 缓存原始值
-                    const originalX = node.position.x;
+                    // 临时修改并恢复位置，触发引擎更新渲染
+                    if (node.position) {
+                        // 缓存原始值
+                        const originalX = node.position.x;
 
-                    // 稍微改变然后恢复，以触发引擎更新
-                    node.position.x = originalX + 0.0001;
-                    // 立即恢复原值
-                    node.position.x = originalX;
+                        // 稍微改变然后恢复，以触发引擎更新
+                        node.position.x = originalX + 0.0001;
+                        // 立即恢复原值
+                        node.position.x = originalX;
 
-                    console.log('触发场景刷新成功');
+                        console.log(`[场景更新] 通过position属性触发场景刷新, 节点: ${node.name}(${node.uuid})`);
+                    }
+                }
+                // 对于已禁用的节点，我们尝试通过父节点触发更新
+                else if (node.parent && node.parent.active) {
+                    console.log(`[场景更新] 节点已禁用，尝试通过父节点触发更新: ${node.name}(${node.uuid}), 父节点: ${node.parent.name}(${node.parent.uuid})`);
+
+                    // 记录父节点原始位置
+                    const parentNode = node.parent;
+                    const originalParentX = parentNode.position?.x || 0;
+
+                    if (parentNode.position) {
+                        // 微调父节点位置然后恢复
+                        parentNode.position.x = originalParentX + 0.0001;
+                        parentNode.position.x = originalParentX;
+
+                        console.log(`[场景更新] 通过父节点position属性触发场景刷新: ${parentNode.name}(${parentNode.uuid})`);
+                    }
+                }
+                // 如果节点和父节点都被禁用，尝试通过触发场景事件刷新
+                else {
+                    console.log(`[场景更新] 节点及其父节点均已禁用，尝试触发场景事件: ${node.name}(${node.uuid})`);
+
+                    // 获取场景根节点
+                    const scene = cc.director.getScene();
+                    if (scene) {
+                        // 尝试触发场景更新
+                        try {
+                            // 尝试触发场景中某个活跃节点的位置变化
+                            if (this.triggerSceneUpdate(scene)) {
+                                console.log(`[场景更新] 成功通过活跃节点触发场景更新, 目标节点: ${node.name}(${node.uuid})`);
+                            } else {
+                                console.log(`[场景更新] 未找到可用的活跃节点来触发更新, 目标节点: ${node.name}(${node.uuid})`);
+                            }
+                        } catch (e) {
+                            console.error(`[场景更新] 触发场景更新失败, 目标节点: ${node.name}(${node.uuid})`, e);
+                        }
+                    }
                 }
 
                 // 额外记录日志，确认场景刷新尝试
-                console.log(`刷新节点: ${node.name}, 使用位置属性触发更新`);
+                console.log(`[场景更新] 尝试刷新节点完成: ${node.name}(${node.uuid}), active: ${node.active}`);
             } catch (error) {
-                console.error('刷新场景视图失败:', error);
+                console.error(`[场景更新] 刷新场景视图失败, 节点: ${node.name}(${node.uuid})`, error);
+            }
+        } else {
+            console.log(`[场景更新] 无选中节点，跳过场景刷新`);
+        }
+    }
+
+    // 递归查找一个活跃节点并触发其更新
+    private triggerSceneUpdate(node: cc.Node): boolean {
+        // 如果节点处于激活状态且有位置属性，触发位置更新
+        if (node.active && node.position) {
+            const origX = node.position.x;
+            node.position.x = origX + 0.0001;
+            node.position.x = origX;
+            console.log(`[场景更新] 通过激活节点触发场景更新: ${node.name}(${node.uuid})`);
+            return true;
+        }
+
+        // 递归查找子节点
+        if (node.children && node.children.length > 0) {
+            for (const child of node.children) {
+                if (this.triggerSceneUpdate(child)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    // 显示性能设置面板
+    private showPerformanceSettings(): void {
+        // 检查是否已有设置面板
+        let settingsPanel = document.querySelector('.performance-settings-panel');
+        if (settingsPanel) {
+            settingsPanel.remove();
+            return;
+        }
+
+        // 创建设置面板
+        settingsPanel = document.createElement('div');
+        settingsPanel.className = 'performance-settings-panel';
+
+        // 设置HTML内容
+        settingsPanel.innerHTML = `
+            <div class="settings-header">
+                <h4>性能设置</h4>
+                <button class="close-btn">×</button>
+            </div>
+            <div class="settings-content">
+                <div class="setting-item">
+                    <label>刷新间隔 (ms)</label>
+                    <input type="range" min="100" max="1000" step="50" 
+                           value="${this.updateInterval}" id="update-interval">
+                    <span>${this.updateInterval}ms</span>
+                </div>
+                <div class="setting-item">
+                    <label>节流阈值 (ms)</label>
+                    <input type="range" min="50" max="500" step="25" 
+                           value="${this.performanceConfig.updateThrottleMs}" id="throttle-threshold">
+                    <span>${this.performanceConfig.updateThrottleMs}ms</span>
+                </div>
+                <div class="setting-item">
+                    <label>每次更新最大节点数</label>
+                    <input type="range" min="10" max="200" step="10" 
+                           value="${this.performanceConfig.maxNodesPerUpdate}" id="max-nodes">
+                    <span>${this.performanceConfig.maxNodesPerUpdate}</span>
+                </div>
+                <div class="setting-item">
+                    <label>启用增量更新</label>
+                    <input type="checkbox" id="enable-incremental" 
+                           ${this.performanceConfig.enableIncrementalUpdates ? 'checked' : ''}>
+                </div>
+                <div class="setting-actions">
+                    <button id="apply-settings">应用</button>
+                    <button id="reset-settings">重置</button>
+                </div>
+            </div>
+        `;
+
+        // 添加到DOM
+        document.body.appendChild(settingsPanel);
+
+        // 添加事件监听
+        // 关闭按钮
+        const closeBtn = settingsPanel.querySelector('.close-btn');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', () => settingsPanel?.remove());
+        }
+
+        // 更新显示值
+        const updateInterval = settingsPanel.querySelector('#update-interval') as HTMLInputElement;
+        const updateIntervalDisplay = updateInterval?.nextElementSibling as HTMLElement;
+        updateInterval?.addEventListener('input', () => {
+            if (updateIntervalDisplay) {
+                updateIntervalDisplay.textContent = `${updateInterval.value}ms`;
+            }
+        });
+
+        const throttleThreshold = settingsPanel.querySelector('#throttle-threshold') as HTMLInputElement;
+        const throttleDisplay = throttleThreshold?.nextElementSibling as HTMLElement;
+        throttleThreshold?.addEventListener('input', () => {
+            if (throttleDisplay) {
+                throttleDisplay.textContent = `${throttleThreshold.value}ms`;
+            }
+        });
+
+        const maxNodes = settingsPanel.querySelector('#max-nodes') as HTMLInputElement;
+        const maxNodesDisplay = maxNodes?.nextElementSibling as HTMLElement;
+        maxNodes?.addEventListener('input', () => {
+            if (maxNodesDisplay) {
+                maxNodesDisplay.textContent = maxNodes.value;
+            }
+        });
+
+        // 应用按钮
+        const applyBtn = settingsPanel.querySelector('#apply-settings');
+        applyBtn?.addEventListener('click', () => {
+            // 获取设置值
+            const newUpdateInterval = parseInt(updateInterval?.value || '200');
+            const newThrottleThreshold = parseInt(throttleThreshold?.value || '100');
+            const newMaxNodes = parseInt(maxNodes?.value || '50');
+            const enableIncremental = (settingsPanel?.querySelector('#enable-incremental') as HTMLInputElement)?.checked || false;
+
+            // 更新配置
+            this.updateInterval = newUpdateInterval;
+            this.performanceConfig = {
+                updateThrottleMs: newThrottleThreshold,
+                maxNodesPerUpdate: newMaxNodes,
+                enableIncrementalUpdates: enableIncremental
+            };
+
+            // 如果在自动更新模式，重启更新定时器
+            if (this.syncMode === SyncMode.AUTO) {
+                this.startAutoUpdate();
+            }
+
+            console.log('应用新性能设置:', this.performanceConfig);
+
+            // 关闭面板
+            settingsPanel?.remove();
+        });
+
+        // 重置按钮
+        const resetBtn = settingsPanel.querySelector('#reset-settings');
+        resetBtn?.addEventListener('click', () => {
+            // 重置为默认值
+            if (updateInterval) updateInterval.value = '200';
+            if (updateIntervalDisplay) updateIntervalDisplay.textContent = '200ms';
+
+            if (throttleThreshold) throttleThreshold.value = '100';
+            if (throttleDisplay) throttleDisplay.textContent = '100ms';
+
+            if (maxNodes) maxNodes.value = '50';
+            if (maxNodesDisplay) maxNodesDisplay.textContent = '50';
+
+            const incrementalCheckbox = settingsPanel?.querySelector('#enable-incremental') as HTMLInputElement;
+            if (incrementalCheckbox) incrementalCheckbox.checked = true;
+        });
+    }
+
+    // 显示更新指示器
+    private showUpdatingIndicator(): void {
+        // 移除现有指示器
+        this.hideUpdatingIndicator();
+
+        // 创建新指示器
+        if (this.container) {
+            const indicator = document.createElement('div');
+            indicator.className = 'updating-indicator';
+            indicator.textContent = '正在更新...';
+            indicator.id = 'updating-indicator';
+            this.container.appendChild(indicator);
+
+            // 2秒后自动移除
+            setTimeout(() => this.hideUpdatingIndicator(), 2000);
+        }
+    }
+
+    // 隐藏更新指示器
+    private hideUpdatingIndicator(): void {
+        if (this.container) {
+            const indicator = this.container.querySelector('#updating-indicator');
+            if (indicator) {
+                indicator.remove();
+            }
+        }
+    }
+
+    // 显示错误指示器
+    private showErrorIndicator(message: string): void {
+        // 移除现有指示器
+        this.hideErrorIndicator();
+
+        // 创建新指示器
+        if (this.container) {
+            const indicator = document.createElement('div');
+            indicator.className = 'error-indicator';
+            indicator.textContent = message;
+            indicator.id = 'error-indicator';
+
+            // 添加点击事件，点击后尝试重新开始更新
+            indicator.addEventListener('click', () => {
+                this.hideErrorIndicator();
+                this.startAutoUpdate();
+            });
+
+            this.container.appendChild(indicator);
+        }
+    }
+
+    // 隐藏错误指示器
+    private hideErrorIndicator(): void {
+        if (this.container) {
+            const indicator = this.container.querySelector('#error-indicator');
+            if (indicator) {
+                indicator.remove();
             }
         }
     }

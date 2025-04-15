@@ -1,0 +1,28 @@
+private generateNodeItem(node: cc.Node): string {
+    const hasChildren = node.children && node.children.length > 0;
+    const isExpanded = this.expandedNodes.has(node.uuid);
+    const toggleClass = hasChildren ? 'node-toggle' : 'node-toggle-empty';
+    const toggleText = hasChildren ? (isExpanded ? '▼' : '▶') : '';
+    const childrenStyle = isExpanded ? '' : 'display: none;';
+    const activeClass = node.active ? '' : 'node-inactive';
+
+    let html = `
+        <li data-uuid="${node.uuid}" class="${activeClass}">
+            <div class="node-tree-item">
+                <span class="${toggleClass}">${toggleText}</span>
+                <span class="node-name ${node.active ? '' : 'inactive-node'}">${node.name}</span>
+                ${!node.active ? '<span class="node-inactive-indicator">禁用</span>' : ''}
+            </div>
+    `;
+
+    if (hasChildren) {
+        html += `<ul class="node-children" style="${childrenStyle}">`;
+        node.children.forEach(child => {
+            html += this.generateNodeItem(child);
+        });
+        html += '</ul>';
+    }
+
+    html += '</li>';
+    return html;
+} 
