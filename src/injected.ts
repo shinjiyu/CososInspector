@@ -1348,7 +1348,84 @@ class CocosInspector {
                         // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 成功移除 ${removedCount} 个子节点`);
                     }
                 } else {
-                    console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 有子节点但找不到子节点容器`);
+                    // 有子节点但找不到子节点容器时，创建新容器
+                    console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 有子节点但找不到子节点容器，创建新容器`);
+
+                    // 找到或创建当前节点元素
+                    let currentNodeElement: HTMLElement | null = nodeElement || null;
+                    if (!currentNodeElement) {
+                        const foundElement = parentElement.querySelector(`li[data-uuid="${nodeUUID}"]`);
+                        if (foundElement instanceof HTMLElement) {
+                            currentNodeElement = foundElement;
+                        } else if (foundElement) {
+                            console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 找到的节点元素不是HTMLElement`);
+                            return changedNodes;
+                        } else {
+                            // 如果找不到当前节点元素，创建新节点
+                            console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 找不到节点元素，创建节点`);
+                            const newNodeHtml = this.generateNodeItem(node, isNodeActive);
+                            const tempDiv = document.createElement('div');
+                            tempDiv.innerHTML = newNodeHtml;
+                            const newElement = tempDiv.firstElementChild;
+
+                            if (newElement instanceof HTMLElement) {
+                                currentNodeElement = newElement;
+
+                                // 添加到父元素
+                                const parentChildrenContainer = parentElement.querySelector('ul.node-children');
+                                if (parentChildrenContainer) {
+                                    parentChildrenContainer.appendChild(currentNodeElement);
+                                    changedNodes.push(nodeUUID);
+                                    updatedNodeCount++;
+                                } else {
+                                    console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 找不到父节点的子节点容器`);
+                                    return changedNodes;
+                                }
+                            } else {
+                                console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 创建的新节点元素无效`);
+                                return changedNodes;
+                            }
+                        }
+                    }
+
+                    // 此时currentNodeElement已确保是HTMLElement
+
+                    // 检查是否已有子节点容器
+                    const foundChildrenContainer = currentNodeElement.querySelector('.node-children');
+                    let childrenContainer: HTMLElement;
+
+                    if (foundChildrenContainer instanceof HTMLElement) {
+                        childrenContainer = foundChildrenContainer;
+                    } else {
+                        // 创建子节点容器
+                        childrenContainer = document.createElement('ul');
+                        childrenContainer.className = 'node-children';
+                        currentNodeElement.appendChild(childrenContainer);
+                    }
+
+                    // 设置节点哈希
+                    const nodeHash = this.generateSimpleNodeHash(node, isNodeActive);
+                    currentNodeElement.dataset.hash = nodeHash;
+
+                    // 递归处理子节点
+                    if (updatedNodeCount < maxNodes) {
+                        for (let i = 0; i < node.children.length && updatedNodeCount < maxNodes; i++) {
+                            const childNode = node.children[i];
+                            if (!childNode) continue;
+
+                            const childChanges = updateNode(childNode, currentNodeElement);
+                            if (childChanges.length > 0) {
+                                changedNodes.push(...childChanges);
+                            }
+                        }
+
+                        // 如果还有更多子节点但已达到限制，标记待更新
+                        if (updatedNodeCount >= maxNodes && node.children.length > 0) {
+                            this.pendingUpdate = true;
+                        }
+                    } else {
+                        this.pendingUpdate = true;
+                    }
                 }
             } catch (error) {
                 console.error(`[增量更新:节点] 处理节点 ${nodeName}(${nodeUUID}) 的子节点时出错:`, error);
