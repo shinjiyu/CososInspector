@@ -652,7 +652,35 @@ class CocosInspector {
                     if (obj && subProp in obj) {
                         const oldValue = obj[subProp];
                         obj[subProp] = value;
-                        console.log(`更新嵌套属性: ${property}, 旧值: ${oldValue}, 新值: ${value}, 节点: ${node.name}(${node.uuid})`);
+
+                        // 特殊处理向量类型属性(position, eulerAngles, scale)
+                        // 这些属性修改分量后，需要重新赋值整个对象以确保引擎能感知到变化
+                        if (mainProp === 'position' || mainProp === 'eulerAngles' || mainProp === 'scale') {
+                            try {
+                                // 检查cc.Vector3是否可用
+                                if (typeof cc.Vector3 === 'function') {
+                                    // 创建新的Vector3对象
+                                    const newVector = new cc.Vector3(obj.x, obj.y, obj.z);
+
+                                    // 使用新创建的Vector3对象更新属性
+                                    (node as any)[mainProp] = newVector;
+                                } else {
+                                    // 回退方法：直接复制属性
+                                    const currentObj = (node as any)[mainProp];
+                                    if (currentObj) {
+                                        // 确保引用变化，触发更新
+                                        const newObj = { ...currentObj };
+                                        newObj[subProp] = value;
+                                        (node as any)[mainProp] = newObj;
+                                    }
+                                }
+                                console.log(`更新向量属性: ${property}, 旧值: ${oldValue}, 新值: ${value}, 节点: ${node.name}(${node.uuid})`);
+                            } catch (e) {
+                                console.error(`更新向量属性失败: ${property}`, e);
+                            }
+                        } else {
+                            console.log(`更新嵌套属性: ${property}, 旧值: ${oldValue}, 新值: ${value}, 节点: ${node.name}(${node.uuid})`);
+                        }
                     } else {
                         console.warn(`对象 ${mainProp} 不包含子属性: ${subProp}, 节点: ${node.name}(${node.uuid})`);
                     }
