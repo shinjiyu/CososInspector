@@ -88,8 +88,8 @@ class CocosInspector {
      * 处理窗口大小调整，更新NODE RECT覆盖层位置
      */
     private handleWindowResize(): void {
-        // 如果当前选中了节点并且是容器节点，重新创建覆盖层
-        if (this.selectedNode && this.selectedNode.children && this.selectedNode.children.length > 0) {
+        // 如果当前选中了节点，重新创建覆盖层
+        if (this.selectedNode) {
             // 首先移除现有覆盖层
             this.removeNodeRectOverlay();
             // 重新创建覆盖层
@@ -774,13 +774,8 @@ class CocosInspector {
         if (this.selectedNode) {
             console.log(`选中节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
 
-            // 判断是否是容器节点（有子节点的节点）
-            const isContainer = this.selectedNode.children && this.selectedNode.children.length > 0;
-
-            // 为容器节点创建矩形覆盖层
-            if (isContainer) {
-                this.createNodeRectOverlay(this.selectedNode);
-            }
+            // 为所有选中的节点创建矩形覆盖层，不再仅限于容器节点
+            this.createNodeRectOverlay(this.selectedNode);
         } else {
             console.log(`未能找到UUID为 ${uuid} 的节点`);
         }
