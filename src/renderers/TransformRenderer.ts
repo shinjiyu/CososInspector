@@ -16,6 +16,9 @@ export class TransformRenderer implements ComponentRenderer {
             return '<div class="error-message">无法找到节点</div>';
         }
 
+        // 判断是否为容器节点（有子节点的节点）
+        const isContainer = node.children && node.children.length > 0;
+
         return `
             <div class="component-item" data-component-id="${component.uuid}">
                 <div class="component-header">
@@ -27,6 +30,7 @@ export class TransformRenderer implements ComponentRenderer {
                     ${this.hasPositionProperty(node) ? this.renderPositionProperty(node) : ''}
                     ${this.hasRotationProperty(node) ? this.renderRotationProperty(node) : ''}
                     ${this.hasScaleProperty(node) ? this.renderScaleProperty(node) : ''}
+                    ${this.renderNodeRect(node, isContainer)}
                 </div>
             </div>
         `;
@@ -203,6 +207,48 @@ export class TransformRenderer implements ComponentRenderer {
                             data-property="scale.z">
                         ${HookUIRenderer.renderHookButtons('scale.z', node)}
                     </div>
+                </div>
+            </div>
+        `;
+    }
+
+    /**
+     * 渲染节点矩形信息
+     * @param node 节点
+     * @param isContainer 是否为容器节点
+     * @returns 节点矩形HTML
+     */
+    public renderNodeRect(node: cc.Node, isContainer: boolean): string {
+        // 获取节点的宽高
+        const width = node.width || 0;
+        const height = node.height || 0;
+
+        // 为容器节点添加不同的样式
+        const containerClass = isContainer ? 'container-node-rect' : '';
+
+        return `
+            <div class="property-group">
+                <div class="property-group-header">
+                    <span>NODE RECT</span>
+                </div>
+                <div class="property-row">
+                    <div class="property-name">Width</div>
+                    <div class="property-value">
+                        <input type="number" class="property-input property-number" 
+                            value="${width}" 
+                            data-property="width">
+                    </div>
+                </div>
+                <div class="property-row">
+                    <div class="property-name">Height</div>
+                    <div class="property-value">
+                        <input type="number" class="property-input property-number" 
+                            value="${height}" 
+                            data-property="height">
+                    </div>
+                </div>
+                <div class="node-rect-display ${containerClass}">
+                    <div class="node-rect-inner" style="width: ${Math.min(width, 100)}px; height: ${Math.min(height, 50)}px;"></div>
                 </div>
             </div>
         `;

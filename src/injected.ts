@@ -33,6 +33,7 @@ class CocosInspector {
     private sceneStructureHash: string = ''; // 存储场景结构的哈希值
     private lastUpdateTime: number = 0; // 上次更新时间
     private pendingUpdate: boolean = false; // 是否有待处理的更新
+    private nodeRectOverlay: HTMLElement | null = null; // 节点矩形覆盖层
 
     // 性能配置
     private performanceConfig: PerformanceConfig = {
@@ -50,15 +51,49 @@ class CocosInspector {
         // 创建UI
         this.createUI();
 
-        // 设置事件监听和更新逻辑
-        this.startUpdate();
+        // 添加缩放和滚动监听
+        this.setupResizeObserver();
 
         // 初始化树结构
         this.initTree();
 
+        // 启动更新
+        this.startUpdate();
+
         // 初始化钩子按钮事件监听
         if (this.container) {
             HookUIRenderer.initHookButtonListeners(this.container, () => this.selectedNode);
+        }
+
+        // 添加窗口大小调整监听，用于更新NODE RECT覆盖层位置
+        window.addEventListener('resize', this.handleWindowResize.bind(this));
+
+        // 监听场景切换
+        if (window.cc && window.cc.director) {
+            // 使用any类型避免TypeScript编译错误
+            const director = window.cc.director as any;
+            if (typeof director.loadScene === 'function') {
+                const originalSceneLoadScene = director.loadScene;
+                director.loadScene = (...args: any[]) => {
+                    // 移除覆盖层
+                    this.removeNodeRectOverlay();
+                    // 调用原始方法
+                    return originalSceneLoadScene.apply(director, args);
+                };
+            }
+        }
+    }
+
+    /**
+     * 处理窗口大小调整，更新NODE RECT覆盖层位置
+     */
+    private handleWindowResize(): void {
+        // 如果当前选中了节点并且是容器节点，重新创建覆盖层
+        if (this.selectedNode && this.selectedNode.children && this.selectedNode.children.length > 0) {
+            // 首先移除现有覆盖层
+            this.removeNodeRectOverlay();
+            // 重新创建覆盖层
+            this.createNodeRectOverlay(this.selectedNode);
         }
     }
 
@@ -413,7 +448,10 @@ class CocosInspector {
 
         if (hasChildren) {
             // console.log(`[生成节点项] 处理 ${node.name}(${node.uuid}) 的 ${childrenCount} 个子节点`);
+            // 创建一个子节点容器
             html += `<ul class="node-children" style="${childrenStyle}">`;
+
+            // 递归处理每个子节点
             node.children.forEach((child, index) => {
                 if (child) {
                     // console.log(`[生成节点项] 处理 ${node.name}(${node.uuid}) 的第 ${index + 1}/${childrenCount} 个子节点: ${child.name}(${child.uuid})`);
@@ -422,6 +460,8 @@ class CocosInspector {
                     console.warn(`[生成节点项] ${node.name}(${node.uuid}) 的第 ${index + 1}/${childrenCount} 个子节点为空`);
                 }
             });
+
+            // 关闭子节点容器
             html += '</ul>';
         }
 
@@ -721,6 +761,9 @@ class CocosInspector {
         const item = this.container?.querySelector(`[data-uuid="${uuid}"] .node-tree-item`);
         if (item) item.classList.add('selected');
 
+        // 移除之前的节点矩形覆盖层
+        this.removeNodeRectOverlay();
+
         // 更新选中的节点
         const scene = cc.director.getScene();
         this.selectedNode = this.findNodeByUUID(scene, uuid);
@@ -730,8 +773,93 @@ class CocosInspector {
 
         if (this.selectedNode) {
             console.log(`选中节点: ${this.selectedNode.name}(${this.selectedNode.uuid})`);
+
+            // 判断是否是容器节点（有子节点的节点）
+            const isContainer = this.selectedNode.children && this.selectedNode.children.length > 0;
+
+            // 为容器节点创建矩形覆盖层
+            if (isContainer) {
+                this.createNodeRectOverlay(this.selectedNode);
+            }
         } else {
             console.log(`未能找到UUID为 ${uuid} 的节点`);
+        }
+    }
+
+    /**
+     * 创建节点矩形覆盖层
+     * @param node 要高亮显示的节点
+     */
+    private createNodeRectOverlay(node: cc.Node): void {
+        try {
+            // 首先尝试找到游戏Canvas元素
+            const canvas = document.querySelector('canvas');
+            if (!canvas) {
+                console.warn(`[节点矩形] 找不到Canvas元素，无法创建矩形覆盖层，节点: ${node.name}(${node.uuid})`);
+                return;
+            }
+
+            // 获取节点位置和大小信息
+            const nodePosition = node.position || { x: node.x || 0, y: node.y || 0 };
+            const nodeWidth = node.width || 100;
+            const nodeHeight = node.height || 100;
+
+            // 获取Canvas的大小和位置
+            const canvasRect = canvas.getBoundingClientRect();
+
+            // 创建覆盖层
+            const overlay = document.createElement('div');
+            overlay.className = 'node-rect-overlay';
+            overlay.id = 'node-rect-overlay';
+
+            // 设置样式
+            overlay.style.position = 'absolute';
+            overlay.style.border = '2px solid #ff3333';
+            overlay.style.boxSizing = 'border-box';
+            overlay.style.pointerEvents = 'none'; // 不影响交互
+            overlay.style.zIndex = '9999';
+
+            // 计算节点在Canvas中的位置
+            // 注意：这里可能需要根据实际的Cocos坐标系转换进行调整
+            const canvasCenterX = canvasRect.width / 2;
+            const canvasCenterY = canvasRect.height / 2;
+
+            // Cocos引擎中，通常(0,0)是屏幕中心，所以需要转换
+            const left = canvasRect.left + canvasCenterX + nodePosition.x - nodeWidth / 2;
+            const top = canvasRect.top + canvasCenterY - nodePosition.y - nodeHeight / 2;
+
+            // 设置位置和大小
+            overlay.style.left = `${left}px`;
+            overlay.style.top = `${top}px`;
+            overlay.style.width = `${nodeWidth}px`;
+            overlay.style.height = `${nodeHeight}px`;
+
+            // 添加到DOM
+            document.body.appendChild(overlay);
+
+            // 保存引用，以便后续删除
+            this.nodeRectOverlay = overlay;
+
+            console.log(`[节点矩形] 创建矩形覆盖层，节点: ${node.name}(${node.uuid}), 位置: (${left}, ${top}), 尺寸: ${nodeWidth}x${nodeHeight}`);
+        } catch (error) {
+            console.error(`[节点矩形] 创建矩形覆盖层出错，节点: ${node.name}(${node.uuid})`, error);
+        }
+    }
+
+    /**
+     * 移除节点矩形覆盖层
+     */
+    private removeNodeRectOverlay(): void {
+        if (this.nodeRectOverlay) {
+            this.nodeRectOverlay.remove();
+            this.nodeRectOverlay = null;
+            console.log('[节点矩形] 移除矩形覆盖层');
+        }
+
+        // 额外检查，确保没有残留的覆盖层
+        const existingOverlay = document.getElementById('node-rect-overlay');
+        if (existingOverlay) {
+            existingOverlay.remove();
         }
     }
 
@@ -742,6 +870,9 @@ class CocosInspector {
                 this.detailsContainer.innerHTML = '<div class="no-selection">请在左侧选择一个节点</div>';
                 // console.log(`[详情面板] 清空详情面板，无选中节点`);
             }
+
+            // 确保移除节点矩形覆盖层
+            this.removeNodeRectOverlay();
             return;
         }
 
@@ -1176,7 +1307,19 @@ class CocosInspector {
             }
 
             const nodeUUID = node.uuid;
-            const nodeElement = visibleNodes.get(nodeUUID);
+            // 每次获取节点时，首先在DOM中查找，可能其他递归分支已经创建了此节点
+            let nodeElement = visibleNodes.get(nodeUUID);
+
+            // 如果在映射中找不到，尝试在DOM中查找（以防节点被其他分支创建但未加入映射）
+            if (!nodeElement) {
+                const foundInDOM = parentElement.querySelector(`li[data-uuid="${nodeUUID}"]`);
+                if (foundInDOM instanceof HTMLElement) {
+                    nodeElement = foundInDOM;
+                    console.log(`[增量更新:节点] ${node.name}(${nodeUUID}) - 在DOM中找到节点但不在映射中，添加到映射`);
+                    visibleNodes.set(nodeUUID, foundInDOM);
+                }
+            }
+
             const changedNodes: string[] = [];
             const isScene = node === cc.director.getScene();
             const nodeName = node.name || '未命名节点';
@@ -1203,10 +1346,12 @@ class CocosInspector {
                     // 如果节点不存在，创建新节点
                     if (!nodeElement) {
                         // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 创建新节点元素`);
+                        // 注意：generateNodeItem会自动创建子节点容器
                         const newNodeHtml = this.generateNodeItem(node, isNodeActive);
                         const tempDiv = document.createElement('div');
                         tempDiv.innerHTML = newNodeHtml;
                         const newNode = tempDiv.firstElementChild as HTMLElement;
+
 
                         // 如果有子节点，确保展开状态正确
                         if (this.expandedNodes.has(nodeUUID) && newNode) {
@@ -1223,9 +1368,13 @@ class CocosInspector {
                             // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 添加到父容器`);
                             childrenContainer.appendChild(newNode);
 
-                            // 设置哈希值
+                            // 设置哈希值和添加到映射
                             if (newNode) {
                                 newNode.dataset.hash = nodeHash;
+                                // 同时将新节点添加到可见节点映射，防止重复创建
+                                visibleNodes.set(nodeUUID, newNode);
+                                // 同时更新原始nodeElement变量，避免后续重复创建
+                                nodeElement = newNode;
                             }
                         } else {
                             console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 找不到父容器 ul.node-children`);
@@ -1277,13 +1426,16 @@ class CocosInspector {
                                 }
                             }
 
-                            // 确保有子节点容器
+                            // 确保有子节点容器（仅在没有时创建）
                             let childrenContainer = nodeElement.querySelector('.node-children') as HTMLElement | null;
                             if (!childrenContainer) {
+                                console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 添加子节点容器`);
                                 childrenContainer = document.createElement('ul');
                                 childrenContainer.className = 'node-children';
                                 childrenContainer.style.display = this.expandedNodes.has(nodeUUID) ? '' : 'none';
                                 nodeElement.appendChild(childrenContainer);
+                            } else {
+                                console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 子节点容器已存在，无需添加`);
                             }
                         } else if (!hasChildren && toggleElement) {
                             // 移除展开/折叠按钮
@@ -1293,6 +1445,7 @@ class CocosInspector {
                             // 移除可能存在的空子节点容器
                             const childrenContainer = nodeElement.querySelector('.node-children');
                             if (childrenContainer && childrenContainer.children.length === 0) {
+                                console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 移除空子节点容器`);
                                 childrenContainer.remove();
                             }
                         } else if (hasChildren && toggleElement) {
@@ -1329,40 +1482,60 @@ class CocosInspector {
                 // 如果nodeElement不存在，先创建它
                 let currentNodeElement = nodeElement;
                 if (!currentNodeElement) {
-                    console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 节点元素不存在，创建节点元素后再处理子节点`);
+                    // 双重检查：再次尝试在DOM中查找节点元素
+                    const foundElement = parentElement.querySelector(`li[data-uuid="${nodeUUID}"]`);
+                    if (foundElement instanceof HTMLElement) {
+                        console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 在开始处理子节点前在DOM中找到节点，使用现有节点`);
+                        currentNodeElement = foundElement;
+                        // 添加到映射，确保其他递归分支能找到它
+                        visibleNodes.set(nodeUUID, foundElement);
+                    } else {
+                        console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 节点元素不存在，创建节点元素后再处理子节点`);
 
-                    // 创建新节点
-                    const newNodeHtml = this.generateNodeItem(node, isNodeActive);
-                    const tempDiv = document.createElement('div');
-                    tempDiv.innerHTML = newNodeHtml;
-                    const newNode = tempDiv.firstElementChild as HTMLElement;
+                        // 创建新节点 - 注意generateNodeItem会同时创建子节点容器
+                        const newNodeHtml = this.generateNodeItem(node, isNodeActive);
+                        const tempDiv = document.createElement('div');
+                        tempDiv.innerHTML = newNodeHtml;
+                        const newNode = tempDiv.firstElementChild as HTMLElement;
 
-                    if (!newNode) {
-                        console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 无法创建节点元素，跳过子节点处理`);
-                        return changedNodes;
+                        if (!newNode) {
+                            console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 无法创建节点元素，跳过子节点处理`);
+                            return changedNodes;
+                        }
+
+                        // 获取父级的子节点容器
+                        const parentChildrenContainer = parentElement.querySelector('ul.node-children');
+                        if (!parentChildrenContainer) {
+                            console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 父元素没有子容器，跳过子节点处理`);
+                            return changedNodes;
+                        }
+
+                        // 添加新节点到DOM
+                        parentChildrenContainer.appendChild(newNode);
+
+                        // 设置哈希值
+                        const newNodeHash = this.generateSimpleNodeHash(node, isNodeActive);
+                        newNode.dataset.hash = newNodeHash;
+
+                        // 现在使用新创建的节点元素作为父元素
+                        currentNodeElement = newNode;
+                        updatedNodeCount++; // 计数新创建的节点
+                        changedNodes.push(nodeUUID);
+
+                        // 将新创建的节点添加到可见节点映射中，防止后续重复创建
+                        visibleNodes.set(nodeUUID, newNode);
+                        // 同时更新原始nodeElement变量，避免后续重复创建
+                        nodeElement = newNode;
                     }
-
-                    // 获取父级的子节点容器
-                    const parentChildrenContainer = parentElement.querySelector('ul.node-children');
-                    if (!parentChildrenContainer) {
-                        console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 父元素没有子容器，跳过子节点处理`);
-                        return changedNodes;
-                    }
-
-                    // 添加新节点到DOM
-                    parentChildrenContainer.appendChild(newNode);
-
-                    // 设置哈希值
-                    const newNodeHash = this.generateSimpleNodeHash(node, isNodeActive);
-                    newNode.dataset.hash = newNodeHash;
-
-                    // 现在使用新创建的节点元素作为父元素
-                    currentNodeElement = newNode;
-                    updatedNodeCount++; // 计数新创建的节点
-                    changedNodes.push(nodeUUID);
                 }
 
+                // 获取子节点容器 - 此时currentNodeElement已确保存在
                 const childrenContainer = currentNodeElement.querySelector('.node-children');
+                if (!childrenContainer) {
+                    // 这种情况不应该发生，因为generateNodeItem应该已经创建了子节点容器
+                    console.error(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 找不到子节点容器，这是不应该发生的情况`);
+                    return changedNodes;
+                }
 
                 if (childrenContainer && node.children && node.children.length > 0) {
                     // 记录当前子节点
@@ -1434,53 +1607,91 @@ class CocosInspector {
                     // 找到或创建当前节点元素
                     let currentNodeElement: HTMLElement | null = nodeElement || null;
                     if (!currentNodeElement) {
-                        const foundElement = parentElement.querySelector(`li[data-uuid="${nodeUUID}"]`);
-                        if (foundElement instanceof HTMLElement) {
-                            currentNodeElement = foundElement;
-                        } else if (foundElement) {
-                            console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 找到的节点元素不是HTMLElement`);
-                            return changedNodes;
-                        } else {
-                            // 如果找不到当前节点元素，创建新节点
-                            console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 找不到节点元素，创建节点`);
-                            const newNodeHtml = this.generateNodeItem(node, isNodeActive);
-                            const tempDiv = document.createElement('div');
-                            tempDiv.innerHTML = newNodeHtml;
-                            const newElement = tempDiv.firstElementChild;
+                        // 首先检查可见节点映射中是否已经存在这个节点
+                        if (visibleNodes.has(nodeUUID)) {
+                            currentNodeElement = visibleNodes.get(nodeUUID) || null;
+                            console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 节点已存在于映射中，使用现有节点`);
+                        }
 
-                            if (newElement instanceof HTMLElement) {
-                                currentNodeElement = newElement;
-
-                                // 添加到父元素
-                                const parentChildrenContainer = parentElement.querySelector('ul.node-children');
-                                if (parentChildrenContainer) {
-                                    parentChildrenContainer.appendChild(currentNodeElement);
-                                    changedNodes.push(nodeUUID);
-                                    updatedNodeCount++;
-                                } else {
-                                    console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 找不到父节点的子节点容器`);
-                                    return changedNodes;
-                                }
+                        // 如果映射中没有，全面检查DOM中是否存在此节点
+                        if (!currentNodeElement) {
+                            // 首先尝试在整个树容器中查找节点，避免重复创建
+                            const foundInTree = this.treeContainer?.querySelector(`li[data-uuid="${nodeUUID}"]`);
+                            if (foundInTree instanceof HTMLElement) {
+                                console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 在整个树中找到节点，使用现有节点`);
+                                currentNodeElement = foundInTree;
+                                // 添加到映射
+                                visibleNodes.set(nodeUUID, foundInTree);
                             } else {
-                                console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 创建的新节点元素无效`);
-                                return changedNodes;
+                                // 只在父元素中查找
+                                const foundElement = parentElement.querySelector(`li[data-uuid="${nodeUUID}"]`);
+                                if (foundElement instanceof HTMLElement) {
+                                    console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 在父元素中找到了节点元素，使用现有节点`);
+                                    currentNodeElement = foundElement;
+                                    // 添加到映射
+                                    visibleNodes.set(nodeUUID, foundElement);
+                                } else {
+                                    // 如果找不到当前节点元素，才创建新节点
+                                    console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 找不到节点元素，创建新节点`);
+                                    const newNodeHtml = this.generateNodeItem(node, isNodeActive);
+                                    const tempDiv = document.createElement('div');
+                                    tempDiv.innerHTML = newNodeHtml;
+                                    const newElement = tempDiv.firstElementChild;
+
+                                    if (newElement instanceof HTMLElement) {
+                                        currentNodeElement = newElement;
+                                        // 添加到映射
+                                        visibleNodes.set(nodeUUID, newElement);
+                                        // 同时更新原始nodeElement变量，避免后续重复创建
+                                        nodeElement = newElement;
+
+                                        // 添加到父元素
+                                        const parentChildrenContainer = parentElement.querySelector('ul.node-children');
+                                        if (parentChildrenContainer) {
+                                            parentChildrenContainer.appendChild(currentNodeElement);
+                                            changedNodes.push(nodeUUID);
+                                            updatedNodeCount++;
+                                        } else {
+                                            console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 找不到父节点的子节点容器`);
+                                            return changedNodes;
+                                        }
+                                    } else {
+                                        console.warn(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 创建的新节点元素无效`);
+                                        return changedNodes;
+                                    }
+                                }
                             }
                         }
                     }
 
                     // 此时currentNodeElement已确保是HTMLElement
+                    if (!currentNodeElement) {
+                        console.error(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 节点元素仍然不存在，无法继续处理`);
+                        return changedNodes;
+                    }
 
-                    // 检查是否已有子节点容器
-                    const foundChildrenContainer = currentNodeElement.querySelector('.node-children');
-                    let childrenContainer: HTMLElement;
+                    // 再次检查是否已有子节点容器（避免重复创建）
+                    let foundChildrenContainer = currentNodeElement.querySelector('.node-children');
 
                     if (foundChildrenContainer instanceof HTMLElement) {
-                        childrenContainer = foundChildrenContainer;
+                        console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 节点已有子节点容器，无需创建新容器`);
+                        // 使用现有容器，无需创建新的
                     } else {
-                        // 创建子节点容器
-                        childrenContainer = document.createElement('ul');
+                        // 只有在确认没有子节点容器时才创建新容器
+                        console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 确认没有子节点容器，创建新容器`);
+                        const childrenContainer = document.createElement('ul');
                         childrenContainer.className = 'node-children';
+
+                        // 如果节点是展开状态，确保新容器也是展开的
+                        if (this.expandedNodes.has(nodeUUID)) {
+                            childrenContainer.style.display = '';
+                        } else {
+                            childrenContainer.style.display = 'none';
+                        }
+
                         currentNodeElement.appendChild(childrenContainer);
+                        // 更新foundChildrenContainer，避免后续再次查询
+                        foundChildrenContainer = childrenContainer;
                     }
 
                     // 设置节点哈希
@@ -1489,6 +1700,10 @@ class CocosInspector {
 
                     // 递归处理子节点
                     if (updatedNodeCount < maxNodes) {
+                        // 使用已找到或新创建的子节点容器
+                        const childrenContainer = foundChildrenContainer as HTMLElement;
+
+                        // 递归处理子节点
                         for (let i = 0; i < node.children.length && updatedNodeCount < maxNodes; i++) {
                             const childNode = node.children[i];
                             if (!childNode) continue;
