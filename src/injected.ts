@@ -1540,6 +1540,14 @@ class CocosInspector {
                     });
                     // console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 收集到 ${existingChildren.size} 个现有直接子节点UUID`);
 
+                    // 创建一个映射，用于记录每个子节点在DOM中的位置和对应元素
+                    const childPositions = new Map<string, { element: HTMLElement, index: number }>();
+                    Array.from(existingChildElements).forEach((child, index) => {
+                        if (child instanceof HTMLElement && child.dataset.uuid) {
+                            childPositions.set(child.dataset.uuid, { element: child, index: index });
+                        }
+                    });
+
                     // 递归更新每个子节点
                     for (let i = 0; i < node.children.length; i++) {
                         const childNode = node.children[i];
@@ -1567,6 +1575,35 @@ class CocosInspector {
 
                         // 从现有子节点集合中移除已处理的节点
                         existingChildren.delete(childNode.uuid);
+                    }
+
+                    // 修复子节点顺序
+                    if (childrenContainer.children.length > 1) {
+                        // 确保DOM中的子节点顺序与node.children数组中的顺序一致
+                        const orderedChildren = Array.from(node.children)
+                            .filter(childNode => childNode && childNode.uuid)
+                            .map(childNode => childNode.uuid);
+
+                        // 遍历有序的UUID数组，确保每个节点在DOM中的位置正确
+                        for (let i = 0; i < orderedChildren.length; i++) {
+                            const uuid = orderedChildren[i];
+                            if (!uuid) continue;
+
+                            const childElement = childrenContainer.querySelector(`li[data-uuid="${uuid}"]`);
+                            if (childElement && childElement !== childrenContainer.children[i]) {
+                                // 如果节点存在但顺序不对，则移动到正确位置
+                                console.log(`[增量更新:节点] ${nodeName}(${nodeUUID}) - 修正子节点顺序: ${childElement.querySelector('.node-name')?.textContent || '未知'}(${uuid})`);
+
+                                // 如果该位置已有其他元素，将当前节点插入到该位置前
+                                if (childrenContainer.children[i]) {
+                                    childrenContainer.insertBefore(childElement, childrenContainer.children[i]);
+                                } else {
+                                    // 如果到达末尾，则直接添加
+                                    childrenContainer.appendChild(childElement);
+                                }
+                                changedNodes.push(uuid);
+                            }
+                        }
                     }
 
                     // 移除不再存在的子节点（如果未达到节点更新限制）
