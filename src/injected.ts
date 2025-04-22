@@ -1400,7 +1400,8 @@ class CocosInspector {
 
                         // 检查子节点数量变化
                         const hasChildren = node.children && node.children.length > 0;
-                        const toggleElement = nodeElement.querySelector('.node-toggle') as HTMLElement | null;
+                        // 修改选择器，只查询当前节点中的第一级node-toggle，避免选到子节点中的元素
+                        const toggleElement = nodeElement.querySelector(':scope > .node-tree-item > .node-toggle') as HTMLElement | null;
 
                         // 处理展开/折叠按钮
                         if (hasChildren && !toggleElement) {
