@@ -112,14 +112,6 @@ class CocosInspector {
                 text-decoration: line-through;
                 color: #999;
             }
-            .node-inactive-indicator {
-                font-size: 10px;
-                background-color: #ff5252;
-                color: white;
-                padding: 1px 4px;
-                border-radius: 3px;
-                margin-left: 5px;
-            }
             
             /* Active状态指示器 */
             .active-indicator {
@@ -442,7 +434,6 @@ class CocosInspector {
                 <div class="node-tree-item">
                     <span class="${toggleClass}">${toggleText}</span>
                     <span class="node-name ${active ? '' : 'inactive-node'}">${node.name}</span>
-                    ${!active ? '<span class="node-inactive-indicator">禁用</span>' : ''}
                 </div>
         `;
 
