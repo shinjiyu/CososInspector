@@ -21,7 +21,7 @@ class CocosInspector {
     private selectedNode: cc.Node | null = null;
     private syncMode: SyncMode = SyncMode.AUTO;
     private updateIntervalId: number | null = null;
-    private updateInterval: number = 1000; // 更改为较低的默认刷新率，减轻性能压力
+    private updateInterval: number = 200; // 更改为较低的默认刷新率，减轻性能压力
     private isCollapsed: boolean = false; // 是否折叠
     private lastWidth: number = 600; // 记住最后的宽度，从300px增加到600px
     private rendererManager: RendererManager; // 组件渲染器管理器
