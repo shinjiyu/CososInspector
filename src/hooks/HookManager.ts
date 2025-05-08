@@ -1,3 +1,4 @@
+import { log } from '../utils/log';
 import { HookType, PROPERTY_HOOK_MAPPINGS } from './HookConfig';
 import { PropertyHook } from './PropertyHook';
 
@@ -41,7 +42,7 @@ export class HookManager {
     public addHook(node: cc.Node, propKey: string, hookType: HookType): void {
         const config = PROPERTY_HOOK_MAPPINGS[propKey];
         if (!config) {
-            console.error(`[HookManager] 未找到属性配置: ${propKey}`);
+            log.error(`[HookManager] 未找到属性配置: ${propKey}`);
             return;
         }
 
@@ -53,7 +54,7 @@ export class HookManager {
 
         // 检查是否已经hook
         if (this.isHooked(node.uuid, propKey, hookType)) {
-            console.log(`[HookManager] 属性已经被hook: ${config.uiName}, 节点: ${node.name}(${node.uuid})`);
+            log.info(`[HookManager] 属性已经被hook: ${config.uiName}, 节点: ${node.name}(${node.uuid})`);
             return;
         }
 
@@ -67,7 +68,7 @@ export class HookManager {
             hookType: hookType
         });
 
-        console.log(`[HookManager] 添加${hookType === 'get' ? '读取' : hookType === 'set' ? '写入' : '读写'}钩子: ${config.uiName}, 节点: ${node.name}(${node.uuid})`);
+        log.info(`[HookManager] 添加${hookType === 'get' ? '读取' : hookType === 'set' ? '写入' : '读写'}钩子: ${config.uiName}, 节点: ${node.name}(${node.uuid})`);
     }
 
     /**
@@ -79,7 +80,7 @@ export class HookManager {
     public removeHook(node: cc.Node, propKey: string, hookType: HookType): void {
         const config = PROPERTY_HOOK_MAPPINGS[propKey];
         if (!config) {
-            console.error(`[HookManager] 未找到属性配置: ${propKey}`);
+            log.error(`[HookManager] 未找到属性配置: ${propKey}`);
             return;
         }
 
@@ -91,7 +92,7 @@ export class HookManager {
 
         // 检查是否已经hook
         if (!this.isHooked(node.uuid, propKey, hookType)) {
-            console.log(`[HookManager] 属性未被hook: ${config.uiName}, 节点: ${node.name}(${node.uuid})`);
+            log.info(`[HookManager] 属性未被hook: ${config.uiName}, 节点: ${node.name}(${node.uuid})`);
             return;
         }
 
@@ -101,25 +102,25 @@ export class HookManager {
             if (config.arrayIndex !== undefined) {
                 // 获取要操作的数组和索引
                 const arrayPropertyName = `${config.targetProp}[${config.arrayIndex}]`;
-                console.log(`[HookManager] 尝试移除数组元素钩子: ${arrayPropertyName}, 节点: ${node.name}(${node.uuid})`);
+                log.info(`[HookManager] 尝试移除数组元素钩子: ${arrayPropertyName}, 节点: ${node.name}(${node.uuid})`);
 
                 // 处理数组元素钩子
                 success = PropertyHook.unhookArrayElement(targetObj, config.targetProp);
             } else {
                 // 普通属性钩子
-                console.log(`[HookManager] 尝试移除普通属性钩子: ${config.targetProp}, 节点: ${node.name}(${node.uuid})`);
+                log.info(`[HookManager] 尝试移除普通属性钩子: ${config.targetProp}, 节点: ${node.name}(${node.uuid})`);
                 success = PropertyHook.unhook(targetObj, config.targetProp);
             }
 
             if (success) {
                 // 移除记录
                 this.hookedProperties.delete(hookId);
-                console.log(`[HookManager] 移除${hookType === 'get' ? '读取' : hookType === 'set' ? '写入' : '读写'}钩子: ${config.uiName}, 节点: ${node.name}(${node.uuid})`);
+                log.info(`[HookManager] 移除${hookType === 'get' ? '读取' : hookType === 'set' ? '写入' : '读写'}钩子: ${config.uiName}, 节点: ${node.name}(${node.uuid})`);
             } else {
-                console.error(`[HookManager] 钩子移除失败: ${config.uiName}, 节点: ${node.name}(${node.uuid})`);
+                log.error(`[HookManager] 钩子移除失败: ${config.uiName}, 节点: ${node.name}(${node.uuid})`);
             }
         } catch (e) {
-            console.error(`[HookManager] 移除钩子时发生错误: ${config.uiName}, 节点: ${node.name}(${node.uuid})`, e);
+            log.error(`[HookManager] 移除钩子时发生错误: ${config.uiName}, 节点: ${node.name}(${node.uuid})`, { error: e });
             // 即使出错，也从记录中移除，避免状态不一致
             this.hookedProperties.delete(hookId);
         }
@@ -168,7 +169,7 @@ export class HookManager {
     private setPropertyHook(obj: any, prop: string, hookType: HookType, hookId: string, nodeUUID: string, propKey: string): void {
         const config = PROPERTY_HOOK_MAPPINGS[propKey];
         if (!config) {
-            console.error(`[HookManager] 未找到属性配置: ${propKey}`);
+            log.error(`[HookManager] 未找到属性配置: ${propKey}`);
             return;
         }
 
@@ -184,14 +185,14 @@ export class HookManager {
         if (hookType === 'get' || hookType === 'both') {
             getCallback = (value: any) => {
                 debugger; // 读取断点
-                console.log(`[属性钩子] 读取属性 ${prop}: ${this.formatValue(value)}, 节点UUID: ${nodeUUID}`);
+                log.info(`[属性钩子] 读取属性 ${prop}: ${this.formatValue(value)}, 节点UUID: ${nodeUUID}`);
             };
         }
 
         if (hookType === 'set' || hookType === 'both') {
             setCallback = (newValue: any, oldValue: any) => {
                 debugger; // 写入断点
-                console.log(`[属性钩子] 修改属性 ${prop}: ${this.formatValue(oldValue)} -> ${this.formatValue(newValue)}, 节点UUID: ${nodeUUID}`);
+                log.info(`[属性钩子] 修改属性 ${prop}: ${this.formatValue(oldValue)} -> ${this.formatValue(newValue)}, 节点UUID: ${nodeUUID}`);
             };
         }
 
@@ -213,9 +214,9 @@ export class HookManager {
                 debugger; // 读取断点
                 // 检查数组或类型数组是否有效
                 if (array && typeof array === 'object' && 'length' in array && idx < array.length) {
-                    console.log(`[属性钩子] 读取${propKey}属性: ${this.formatValue(array[idx])}, 节点UUID: ${nodeUUID}`);
+                    log.info(`[属性钩子] 读取${propKey}属性: ${this.formatValue(array[idx])}, 节点UUID: ${nodeUUID}`);
                 } else {
-                    console.error(`[属性钩子] 无法读取${arrayPropertyName}, 节点UUID: ${nodeUUID}`);
+                    log.error(`[属性钩子] 无法读取${arrayPropertyName}, 节点UUID: ${nodeUUID}`);
                 }
             };
         }
@@ -233,9 +234,9 @@ export class HookManager {
                     const newValue = newArray[idx];
                     const oldValue = oldArray[idx];
 
-                    console.log(`[属性钩子] 修改${propKey}属性: ${this.formatValue(oldValue)} -> ${this.formatValue(newValue)}, 节点UUID: ${nodeUUID}`);
+                    log.info(`[属性钩子] 修改${propKey}属性: ${this.formatValue(oldValue)} -> ${this.formatValue(newValue)}, 节点UUID: ${nodeUUID}`);
                 } else {
-                    console.error(`[属性钩子] 无法监测${arrayPropertyName}的变化, 节点UUID: ${nodeUUID}`);
+                    log.error(`[属性钩子] 无法监测${arrayPropertyName}的变化, 节点UUID: ${nodeUUID}`);
                 }
             };
         }
@@ -243,9 +244,9 @@ export class HookManager {
         // 应用数组元素hook
         try {
             PropertyHook.hookArrayElement(obj, arrayProp, index, onGet, onSet);
-            console.log(`[HookManager] 成功应用${hookType}钩子到 ${arrayPropertyName}, 节点UUID: ${nodeUUID}`);
+            log.info(`[HookManager] 成功应用${hookType}钩子到 ${arrayPropertyName}, 节点UUID: ${nodeUUID}`);
         } catch (e) {
-            console.error(`[HookManager] 应用钩子到 ${arrayPropertyName} 失败: `, e);
+            log.error(`[HookManager] 应用钩子到 ${arrayPropertyName} 失败: `, { error: e });
         }
     }
 

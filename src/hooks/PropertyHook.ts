@@ -1,3 +1,5 @@
+import { log } from '../utils/log';
+
 /**
  * 属性钩子工具 - 用于在属性读写时插入断点和日志
  */
@@ -12,13 +14,13 @@ export class PropertyHook {
      */
     static hook(obj: any, prop: string, onGet?: (value: any) => void, onSet?: (newValue: any, oldValue: any) => void, defaultValue?: any): void {
         if (!obj || typeof obj !== 'object') {
-            console.error('[PropertyHook] 无效的对象');
+            log.error('[PropertyHook] 无效的对象');
             return;
         }
 
         const descriptor = Object.getOwnPropertyDescriptor(obj, prop);
         if (!descriptor || (!descriptor.get && !descriptor.set && !descriptor.writable)) {
-            console.error(`[PropertyHook] 属性 ${prop} 不可配置`);
+            log.error(`[PropertyHook] 属性 ${prop} 不可配置`);
             return;
         }
 
@@ -62,13 +64,13 @@ export class PropertyHook {
      */
     static hookArrayElement(obj: any, prop: string, index: number, onGet?: (value: any, index: number) => void, onSet?: (newValue: any, oldValue: any, index: number) => void): void {
         if (!obj || typeof obj !== 'object') {
-            console.error('[PropertyHook] 无效的对象');
+            log.error('[PropertyHook] 无效的对象');
             return;
         }
 
         // 检查属性是否存在
         if (!(prop in obj)) {
-            console.error(`[PropertyHook] 属性 ${prop} 不存在`);
+            log.error(`[PropertyHook] 属性 ${prop} 不存在`);
             return;
         }
 
@@ -84,12 +86,12 @@ export class PropertyHook {
         const isTyped = this.isTypedArray(originalArray);
 
         if (!isArrayLike) {
-            console.error(`[PropertyHook] 属性 ${prop} 不是数组或类数组对象`);
+            log.error(`[PropertyHook] 属性 ${prop} 不是数组或类数组对象`);
             return;
         }
 
         if (isTyped) {
-            console.log(`[PropertyHook] 属性 ${prop} 是TypedArray类型: ${originalArray.constructor.name}`);
+            log.debug(`[PropertyHook] 属性 ${prop} 是TypedArray类型: ${originalArray.constructor.name}`);
         }
 
         // 创建一个代理对象来拦截数组的访问
@@ -162,7 +164,7 @@ export class PropertyHook {
      */
     static unhook(obj: any, prop: string): boolean {
         if (!obj || typeof obj !== 'object') {
-            console.error('[PropertyHook] 无效的对象');
+            log.error('[PropertyHook] 无效的对象');
             return false;
         }
 
@@ -178,7 +180,7 @@ export class PropertyHook {
 
             return true;
         } catch (e) {
-            console.error(`[PropertyHook] 移除钩子失败: ${prop}`, e);
+            log.error(`[PropertyHook] 移除钩子失败: ${prop}`, { error: e });
             return false;
         }
     }
@@ -190,7 +192,7 @@ export class PropertyHook {
      */
     static unhookArrayElement(obj: any, prop: string): boolean {
         if (!obj || typeof obj !== 'object') {
-            console.error('[PropertyHook] 无效的对象');
+            log.error('[PropertyHook] 无效的对象');
             return false;
         }
 
@@ -200,7 +202,7 @@ export class PropertyHook {
 
             // 如果不是对象或数组类对象，则可能未应用钩子
             if (!currentProxy || typeof currentProxy !== 'object' || !('length' in currentProxy)) {
-                console.error(`[PropertyHook] 属性 ${prop} 不是被代理的数组或类数组对象`);
+                log.error(`[PropertyHook] 属性 ${prop} 不是被代理的数组或类数组对象`);
                 return false;
             }
 
@@ -229,10 +231,10 @@ export class PropertyHook {
             // 将原始数组数据重新分配给属性
             obj[prop] = originalArrayData;
 
-            console.log(`[PropertyHook] 成功移除${isTypedArray ? 'TypedArray' : '数组'}元素钩子: ${prop}`);
+            log.debug(`[PropertyHook] 成功移除${isTypedArray ? 'TypedArray' : '数组'}元素钩子: ${prop}`);
             return true;
         } catch (e) {
-            console.error(`[PropertyHook] 移除数组元素钩子失败: ${prop}`, e);
+            log.error(`[PropertyHook] 移除数组元素钩子失败: ${prop}`, { error: e });
             return false;
         }
     }
