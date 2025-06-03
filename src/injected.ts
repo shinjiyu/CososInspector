@@ -1,5 +1,6 @@
 /// <reference path="./types/cocos.d.ts" />
 
+import { AnimationGraphUI } from './animation/AnimationGraphUI';
 import { HookUIRenderer } from './hooks/HookUIRenderer';
 import { RendererManager } from './renderers/RendererManager';
 import { log, LogLevel } from './utils/log';
@@ -43,11 +44,16 @@ class CocosInspector {
     private pendingUpdate: boolean = false; // 是否有待处理的更新
     private nodeRectOverlay: HTMLElement | null = null; // 节点矩形覆盖层
 
+    // 动画状态图相关
+    private animationGraphUI: AnimationGraphUI | null = null;
+    private currentTab: string = 'scene-tree'; // 当前激活的标签页
+    private tabContents: Map<string, HTMLElement> = new Map(); // 标签页内容容器
+
     // 性能配置
     private performanceConfig: PerformanceConfig = {
-        updateThrottleMs: 100, // 最小更新间隔
-        maxNodesPerUpdate: 50, // 每次更新的最大节点数
-        enableIncrementalUpdates: true // 默认启用增量更新
+        updateThrottleMs: 100, // 节流时间
+        maxNodesPerUpdate: 50, // 每次更新最大节点数
+        enableIncrementalUpdates: true // 启用增量更新
     };
 
     constructor() {
@@ -230,6 +236,53 @@ class CocosInspector {
                 padding: 2px 6px;
                 border-radius: 3px;
             }
+
+            /* 标签页样式 */
+            .inspector-tabs {
+                display: flex;
+                background: #2d2d2d;
+                border-bottom: 1px solid #444;
+            }
+
+            .inspector-tab {
+                padding: 8px 16px;
+                background: #3d3d3d;
+                border: none;
+                color: #ccc;
+                cursor: pointer;
+                border-right: 1px solid #444;
+                font-size: 12px;
+                transition: all 0.2s ease;
+            }
+
+            .inspector-tab:hover {
+                background: #4d4d4d;
+                color: #fff;
+            }
+
+            .inspector-tab.active {
+                background: #1e1e1e;
+                color: #fff;
+                border-bottom: 2px solid #3498db;
+            }
+
+            .inspector-tab-content {
+                display: none;
+                flex: 1;
+                overflow: hidden;
+            }
+
+            .inspector-tab-content.active {
+                display: flex;
+                flex-direction: column;
+            }
+
+            /* 场景树标签页样式 */
+            .scene-tree-tab {
+                display: flex;
+                flex: 1;
+                overflow: hidden;
+            }
         `;
         document.head.appendChild(style);
 
@@ -310,9 +363,35 @@ class CocosInspector {
 
         header.appendChild(controls);
 
+        // 创建标签页容器
+        const tabsContainer = document.createElement('div');
+        tabsContainer.className = 'inspector-tabs';
+
+        // 创建场景树标签
+        const sceneTreeTab = document.createElement('button');
+        sceneTreeTab.className = 'inspector-tab active';
+        sceneTreeTab.textContent = '场景树';
+        sceneTreeTab.dataset.tab = 'scene-tree';
+        sceneTreeTab.addEventListener('click', () => this.switchTab('scene-tree'));
+
+        // 创建动画状态图标签
+        const animationGraphTab = document.createElement('button');
+        animationGraphTab.className = 'inspector-tab';
+        animationGraphTab.textContent = '动画状态图';
+        animationGraphTab.dataset.tab = 'animation-graph';
+        animationGraphTab.addEventListener('click', () => this.switchTab('animation-graph'));
+
+        tabsContainer.appendChild(sceneTreeTab);
+        tabsContainer.appendChild(animationGraphTab);
+
         // 创建内容区
         const content = document.createElement('div');
         content.className = 'cocos-inspector-content';
+
+        // 创建场景树标签页内容
+        const sceneTreeContent = document.createElement('div');
+        sceneTreeContent.className = 'inspector-tab-content scene-tree-tab active';
+        sceneTreeContent.dataset.tab = 'scene-tree';
 
         // 创建树形结构容器
         this.treeContainer = document.createElement('div');
@@ -323,12 +402,28 @@ class CocosInspector {
         this.detailsContainer.className = 'node-details-container';
         this.detailsContainer.innerHTML = '<div class="no-selection">请在左侧选择一个节点</div>';
 
-        content.appendChild(this.treeContainer);
-        content.appendChild(this.detailsContainer);
+        sceneTreeContent.appendChild(this.treeContainer);
+        sceneTreeContent.appendChild(this.detailsContainer);
+
+        // 创建动画状态图标签页内容
+        const animationGraphContent = document.createElement('div');
+        animationGraphContent.className = 'inspector-tab-content';
+        animationGraphContent.dataset.tab = 'animation-graph';
+
+        // 存储标签页内容
+        this.tabContents.set('scene-tree', sceneTreeContent);
+        this.tabContents.set('animation-graph', animationGraphContent);
+
+        content.appendChild(sceneTreeContent);
+        content.appendChild(animationGraphContent);
 
         this.container.appendChild(header);
+        this.container.appendChild(tabsContainer);
         this.container.appendChild(content);
         document.body.appendChild(this.container);
+
+        // 初始化动画状态图UI
+        this.initializeAnimationGraphUI();
 
         // 应用默认收起状态
         if (this.isCollapsed) {
@@ -2464,6 +2559,62 @@ class CocosInspector {
             // 记录重置操作
             logInfo('日志设置已重置为默认值', { settings });
         });
+    }
+
+    /**
+     * 切换标签页
+     */
+    private switchTab(tabId: string): void {
+        // 更新当前标签
+        this.currentTab = tabId;
+
+        // 更新标签按钮状态
+        const tabs = this.container?.querySelectorAll('.inspector-tab');
+        tabs?.forEach(tab => {
+            const tabElement = tab as HTMLElement;
+            if (tabElement.dataset.tab === tabId) {
+                tabElement.classList.add('active');
+            } else {
+                tabElement.classList.remove('active');
+            }
+        });
+
+        // 更新标签页内容显示
+        const contents = this.container?.querySelectorAll('.inspector-tab-content');
+        contents?.forEach(content => {
+            const contentElement = content as HTMLElement;
+            if (contentElement.dataset.tab === tabId) {
+                contentElement.classList.add('active');
+            } else {
+                contentElement.classList.remove('active');
+            }
+        });
+
+        logInfo(`[标签页切换] 切换到标签页: ${tabId}`);
+    }
+
+    /**
+     * 初始化动画状态图UI
+     */
+    private initializeAnimationGraphUI(): void {
+        const animationGraphContent = this.tabContents.get('animation-graph');
+        if (animationGraphContent) {
+            try {
+                this.animationGraphUI = new AnimationGraphUI(animationGraphContent);
+                logInfo('[动画状态图] 初始化成功');
+            } catch (error) {
+                logError('[动画状态图] 初始化失败:', error);
+
+                // 显示错误信息
+                animationGraphContent.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: #e74c3c;">
+                        <h4>动画状态图初始化失败</h4>
+                        <p>错误信息: ${error instanceof Error ? error.message : String(error)}</p>
+                        <p>请检查控制台获取详细信息</p>
+                    </div>
+                `;
+            }
+        }
     }
 }
 
