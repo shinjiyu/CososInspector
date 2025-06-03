@@ -30,7 +30,7 @@ class CocosInspector {
     private syncMode: SyncMode = SyncMode.AUTO;
     private updateIntervalId: number | null = null;
     private updateInterval: number = 200; // 更改为较低的默认刷新率，减轻性能压力
-    private isCollapsed: boolean = false; // 是否折叠
+    private isCollapsed: boolean = true; // 默认收起状态
     private lastWidth: number = 600; // 记住最后的宽度，从300px增加到600px
     private rendererManager: RendererManager; // 组件渲染器管理器
     private treeContainer: HTMLElement | null = null; // 树形结构容器
@@ -52,7 +52,68 @@ class CocosInspector {
 
     constructor() {
         this.rendererManager = new RendererManager();
-        this.init();
+
+        // 检测Cocos环境
+        if (this.detectCocosEnvironment()) {
+            logInfo('[Cocos Inspector] 检测到Cocos环境，正在初始化Inspector...');
+            this.init();
+        } else {
+            logInfo('[Cocos Inspector] 未检测到Cocos环境，尝试延迟检测...');
+            this.delayedEnvironmentCheck();
+        }
+    }
+
+    /**
+     * 检测Cocos环境
+     * @returns 是否存在Cocos环境
+     */
+    private detectCocosEnvironment(): boolean {
+        try {
+            // 检查window.cc是否存在
+            if (typeof window !== 'undefined' && window.cc) {
+                logInfo('[环境检测] 发现window.cc对象');
+
+                // 进一步检查cc.director是否存在
+                if (window.cc.director) {
+                    logInfo('[环境检测] 发现cc.director对象');
+                    return true;
+                } else {
+                    logWarn('[环境检测] window.cc存在但cc.director不存在，可能Cocos引擎尚未完全初始化');
+                    return false;
+                }
+            }
+
+            logInfo('[环境检测] 未发现window.cc对象');
+            return false;
+        } catch (error) {
+            logError('[环境检测] 检测Cocos环境时发生错误:', error);
+            return false;
+        }
+    }
+
+    /**
+     * 延迟环境检测
+     * 用于处理Cocos引擎异步加载的情况
+     */
+    private delayedEnvironmentCheck(): void {
+        let checkCount = 0;
+        const maxChecks = 20; // 最多检测20次
+        const checkInterval = 500; // 每500ms检测一次
+
+        const checkTimer = setInterval(() => {
+            checkCount++;
+
+            if (this.detectCocosEnvironment()) {
+                logInfo(`[延迟检测] 第${checkCount}次检测成功，发现Cocos环境，正在初始化Inspector...`);
+                clearInterval(checkTimer);
+                this.init();
+            } else if (checkCount >= maxChecks) {
+                logInfo(`[延迟检测] 已检测${maxChecks}次，未发现Cocos环境，停止检测`);
+                clearInterval(checkTimer);
+            } else {
+                logInfo(`[延迟检测] 第${checkCount}次检测，未发现Cocos环境，继续等待...`);
+            }
+        }, checkInterval);
     }
 
     private init(): void {
@@ -90,6 +151,8 @@ class CocosInspector {
                 };
             }
         }
+
+        logInfo('[Cocos Inspector] Inspector初始化完成，默认为收起状态');
     }
 
     /**
@@ -266,6 +329,11 @@ class CocosInspector {
         this.container.appendChild(header);
         this.container.appendChild(content);
         document.body.appendChild(this.container);
+
+        // 应用默认收起状态
+        if (this.isCollapsed) {
+            this.container.classList.add('collapsed');
+        }
 
         // 添加快捷键支持
         document.addEventListener('keydown', (e) => {
