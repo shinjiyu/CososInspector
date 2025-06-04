@@ -21,29 +21,33 @@
 
 /* 添加折叠/展开功能 */
 .cocos-inspector.collapsed {
-  transform: translateX(590px);
+  transform: translateX(580px); /* 减少位移，确保按钮可见 */
 }
 
 /* 添加折叠按钮 */
 .collapse-btn {
   position: absolute;
-  left: 0;
+  left: -10px; /* 向左移动，确保在收起时可见 */
   top: 50%;
   transform: translateY(-50%);
-  width: 10px;
-  height: 40px;
+  width: 20px; /* 增加宽度 */
+  height: 60px; /* 增加高度 */
   background: #1e1e1e;
-  border-radius: 4px 0 0 4px;
+  border: 2px solid #555; /* 添加边框增加可见性 */
+  border-radius: 8px 0 0 8px;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
+  z-index: 10000; /* 确保在最上层 */
+  box-shadow: -2px 0 5px rgba(0, 0, 0, 0.5); /* 添加阴影 */
 }
 
 .collapse-btn::after {
   content: "›";
-  font-size: 14px;
-  color: #aaa;
+  font-size: 16px; /* 增加字体大小 */
+  color: #fff; /* 改为白色，更明显 */
+  font-weight: bold;
 }
 
 .cocos-inspector.collapsed .collapse-btn::after {

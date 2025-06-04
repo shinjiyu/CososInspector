@@ -87,6 +87,29 @@ class CocosInspector {
             logInfo('[Cocos Inspector] 未检测到Cocos环境，尝试延迟检测...');
             this.delayedEnvironmentCheck();
         }
+
+        // 添加全局调试函数
+        (window as any).CocosInspectorDebug = {
+            show: () => {
+                if (this.container) {
+                    this.container.classList.remove('collapsed');
+                    console.log('[调试] Inspector已展开');
+                }
+            },
+            hide: () => {
+                if (this.container) {
+                    this.container.classList.add('collapsed');
+                    console.log('[调试] Inspector已收起');
+                }
+            },
+            toggle: () => {
+                this.toggleCollapse();
+                console.log('[调试] Inspector状态已切换');
+            },
+            getContainer: () => this.container,
+            getInstance: () => this
+        };
+        console.log('[Cocos Inspector] 全局调试函数已添加: window.CocosInspectorDebug');
     }
 
     /**
