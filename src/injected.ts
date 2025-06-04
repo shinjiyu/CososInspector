@@ -1,10 +1,17 @@
 /// <reference path="./types/cocos.d.ts" />
 
+// 最基础的调试输出 - 确认脚本开始执行
+console.log('[Cocos Inspector] 脚本开始加载...');
+console.log('[Cocos Inspector] 当前时间:', new Date().toISOString());
+console.log('[Cocos Inspector] 当前URL:', window.location.href);
+
 import { AnimationGraphUI } from './animation/AnimationGraphUI';
 import { HookUIRenderer } from './hooks/HookUIRenderer';
 import { RendererManager } from './renderers/RendererManager';
 import { log, LogLevel } from './utils/log';
 import { logError, logInfo, logNodeError, logWarn } from './utils/nodeLogger';
+
+console.log('[Cocos Inspector] 导入完成，开始定义类...');
 
 // 同步模式枚举
 enum SyncMode {
@@ -57,6 +64,10 @@ class CocosInspector {
     };
 
     constructor() {
+        console.log('[Cocos Inspector] 构造函数开始执行...');
+        console.log('[Cocos Inspector] window对象存在:', typeof window !== 'undefined');
+        console.log('[Cocos Inspector] document对象存在:', typeof document !== 'undefined');
+
         this.rendererManager = new RendererManager();
 
         // 添加调试信息
@@ -2773,4 +2784,13 @@ class CocosInspector {
 }
 
 // 自动初始化
-new CocosInspector(); 
+console.log('[Cocos Inspector] 准备自动初始化...');
+console.log('[Cocos Inspector] 类定义完成，开始创建实例...');
+
+try {
+    const inspector = new CocosInspector();
+    console.log('[Cocos Inspector] 实例创建成功:', inspector);
+} catch (error) {
+    console.error('[Cocos Inspector] 实例创建失败:', error);
+    console.error('[Cocos Inspector] 错误堆栈:', error instanceof Error ? error.stack : 'No stack trace');
+} 
