@@ -59,6 +59,15 @@ class CocosInspector {
     constructor() {
         this.rendererManager = new RendererManager();
 
+        // 添加调试信息
+        logInfo('[Cocos Inspector] 开始初始化...');
+        logInfo('[Cocos Inspector] 当前环境信息:', {
+            hasWindow: typeof window !== 'undefined',
+            hasCC: typeof window !== 'undefined' && !!window.cc,
+            hasDirector: typeof window !== 'undefined' && !!window.cc?.director,
+            userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'unknown'
+        });
+
         // 检测Cocos环境
         if (this.detectCocosEnvironment()) {
             logInfo('[Cocos Inspector] 检测到Cocos环境，正在初始化Inspector...');
@@ -75,22 +84,35 @@ class CocosInspector {
      */
     private detectCocosEnvironment(): boolean {
         try {
-            // 检查window.cc是否存在
-            if (typeof window !== 'undefined' && window.cc) {
-                logInfo('[环境检测] 发现window.cc对象');
-
-                // 进一步检查cc.director是否存在
-                if (window.cc.director) {
-                    logInfo('[环境检测] 发现cc.director对象');
-                    return true;
-                } else {
-                    logWarn('[环境检测] window.cc存在但cc.director不存在，可能Cocos引擎尚未完全初始化');
-                    return false;
-                }
+            // 检查window是否存在
+            if (typeof window === 'undefined') {
+                logInfo('[环境检测] window对象不存在');
+                return false;
             }
 
-            logInfo('[环境检测] 未发现window.cc对象');
-            return false;
+            // 检查window.cc是否存在
+            if (!window.cc) {
+                logInfo('[环境检测] 未发现window.cc对象');
+                return false;
+            }
+
+            logInfo('[环境检测] 发现window.cc对象');
+
+            // 检查是否有Cocos相关的全局对象
+            const hasCocos = !!(window.cc || (window as any).CC || (window as any).cc);
+            if (hasCocos) {
+                logInfo('[环境检测] 发现Cocos相关对象，认为是Cocos环境');
+                return true;
+            }
+
+            // 进一步检查cc.director是否存在（可选）
+            if (window.cc.director) {
+                logInfo('[环境检测] 发现cc.director对象');
+                return true;
+            } else {
+                logWarn('[环境检测] window.cc存在但cc.director不存在，可能Cocos引擎尚未完全初始化，但仍然认为是Cocos环境');
+                return true; // 改为返回true，因为有cc对象就认为是Cocos环境
+            }
         } catch (error) {
             logError('[环境检测] 检测Cocos环境时发生错误:', error);
             return false;
@@ -109,12 +131,32 @@ class CocosInspector {
         const checkTimer = setInterval(() => {
             checkCount++;
 
+            logInfo(`[延迟检测] 第${checkCount}次检测，当前环境:`, {
+                hasWindow: typeof window !== 'undefined',
+                hasCC: typeof window !== 'undefined' && !!window.cc,
+                hasDirector: typeof window !== 'undefined' && !!window.cc?.director,
+                windowKeys: typeof window !== 'undefined' ? Object.keys(window).filter(k => k.toLowerCase().includes('cc') || k.toLowerCase().includes('cocos')) : []
+            });
+
             if (this.detectCocosEnvironment()) {
                 logInfo(`[延迟检测] 第${checkCount}次检测成功，发现Cocos环境，正在初始化Inspector...`);
                 clearInterval(checkTimer);
                 this.init();
             } else if (checkCount >= maxChecks) {
-                logInfo(`[延迟检测] 已检测${maxChecks}次，未发现Cocos环境，停止检测`);
+                logWarn(`[延迟检测] 已检测${maxChecks}次，未发现Cocos环境`);
+
+                // 强制显示选项：如果URL包含特定参数或者在开发环境，强制显示Inspector
+                const shouldForceShow = window.location.search.includes('force-inspector') ||
+                    window.location.hostname === 'localhost' ||
+                    window.location.hostname === '127.0.0.1';
+
+                if (shouldForceShow) {
+                    logInfo('[延迟检测] 检测到强制显示条件，强制初始化Inspector...');
+                    this.init();
+                } else {
+                    logInfo('[延迟检测] 停止检测，如需强制显示请在URL中添加 ?force-inspector 参数');
+                }
+
                 clearInterval(checkTimer);
             } else {
                 logInfo(`[延迟检测] 第${checkCount}次检测，未发现Cocos环境，继续等待...`);
