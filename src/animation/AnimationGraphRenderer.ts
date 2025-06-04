@@ -1,10 +1,15 @@
 import cytoscape, { Core, EdgeSingular, NodeSingular } from 'cytoscape';
+// @ts-ignore
+import dagre from 'cytoscape-dagre';
 import {
     AnimationGraph,
     AnimationGraphConfig
 } from '../types/animation';
 import { logInfo } from '../utils/nodeLogger';
 import { AnimationGraphManager } from './AnimationGraphManager';
+
+// 注册 dagre 布局
+cytoscape.use(dagre);
 
 /**
  * 动画图渲染器

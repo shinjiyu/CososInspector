@@ -2600,17 +2600,42 @@ class CocosInspector {
         const animationGraphContent = this.tabContents.get('animation-graph');
         if (animationGraphContent) {
             try {
-                this.animationGraphUI = new AnimationGraphUI(animationGraphContent);
-                logInfo('[动画状态图] 初始化成功');
+                // 先尝试简单的初始化
+                animationGraphContent.innerHTML = `
+                    <div style="padding: 20px; text-align: center; color: #ccc;">
+                        <h4>动画状态图</h4>
+                        <p>正在初始化动画状态图功能...</p>
+                    </div>
+                `;
+
+                // 延迟初始化动画图UI，避免阻塞主要功能
+                setTimeout(() => {
+                    try {
+                        this.animationGraphUI = new AnimationGraphUI(animationGraphContent);
+                        logInfo('[动画状态图] 初始化成功');
+                    } catch (error) {
+                        logError('[动画状态图] 延迟初始化失败:', error);
+
+                        // 显示简化的错误信息
+                        animationGraphContent.innerHTML = `
+                            <div style="padding: 20px; text-align: center; color: #e74c3c;">
+                                <h4>动画状态图暂时不可用</h4>
+                                <p>请检查控制台获取详细信息</p>
+                                <p style="font-size: 12px; margin-top: 10px;">场景树功能不受影响</p>
+                            </div>
+                        `;
+                    }
+                }, 1000);
+
             } catch (error) {
                 logError('[动画状态图] 初始化失败:', error);
 
-                // 显示错误信息
+                // 显示错误信息，但不影响其他功能
                 animationGraphContent.innerHTML = `
                     <div style="padding: 20px; text-align: center; color: #e74c3c;">
                         <h4>动画状态图初始化失败</h4>
                         <p>错误信息: ${error instanceof Error ? error.message : String(error)}</p>
-                        <p>请检查控制台获取详细信息</p>
+                        <p style="font-size: 12px; margin-top: 10px;">场景树功能不受影响</p>
                     </div>
                 `;
             }
