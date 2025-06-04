@@ -165,42 +165,92 @@ class CocosInspector {
     }
 
     private init(): void {
-        // 创建UI
-        this.createUI();
+        logInfo('[Cocos Inspector] 开始初始化UI...');
 
-        // 添加缩放和滚动监听
-        this.setupResizeObserver();
+        try {
+            // 创建UI
+            logInfo('[Cocos Inspector] 步骤1: 创建UI...');
+            this.createUI();
+            logInfo('[Cocos Inspector] 步骤1: UI创建完成');
 
-        // 初始化树结构
-        this.initTree();
+            // 添加缩放和滚动监听
+            logInfo('[Cocos Inspector] 步骤2: 设置缩放监听...');
+            this.setupResizeObserver();
+            logInfo('[Cocos Inspector] 步骤2: 缩放监听设置完成');
 
-        // 启动更新
-        this.startUpdate();
+            // 初始化树结构
+            logInfo('[Cocos Inspector] 步骤3: 初始化树结构...');
+            this.initTree();
+            logInfo('[Cocos Inspector] 步骤3: 树结构初始化完成');
 
-        // 初始化钩子按钮事件监听
-        if (this.container) {
-            HookUIRenderer.initHookButtonListeners(this.container, () => this.selectedNode);
-        }
+            // 启动更新
+            logInfo('[Cocos Inspector] 步骤4: 启动更新机制...');
+            this.startUpdate();
+            logInfo('[Cocos Inspector] 步骤4: 更新机制启动完成');
 
-        // 添加窗口大小调整监听，用于更新NODE RECT覆盖层位置
-        window.addEventListener('resize', this.handleWindowResize.bind(this));
-
-        // 监听场景切换
-        if (window.cc && window.cc.director) {
-            // 使用any类型避免TypeScript编译错误
-            const director = window.cc.director as any;
-            if (typeof director.loadScene === 'function') {
-                const originalSceneLoadScene = director.loadScene;
-                director.loadScene = (...args: any[]) => {
-                    // 移除覆盖层
-                    this.removeNodeRectOverlay();
-                    // 调用原始方法
-                    return originalSceneLoadScene.apply(director, args);
-                };
+            // 初始化钩子按钮事件监听
+            logInfo('[Cocos Inspector] 步骤5: 初始化钩子按钮...');
+            if (this.container) {
+                HookUIRenderer.initHookButtonListeners(this.container, () => this.selectedNode);
+                logInfo('[Cocos Inspector] 步骤5: 钩子按钮初始化完成');
+            } else {
+                logError('[Cocos Inspector] 步骤5: 容器不存在，跳过钩子按钮初始化');
             }
-        }
 
-        logInfo('[Cocos Inspector] Inspector初始化完成，默认为收起状态');
+            // 添加窗口大小调整监听，用于更新NODE RECT覆盖层位置
+            logInfo('[Cocos Inspector] 步骤6: 添加窗口监听...');
+            window.addEventListener('resize', this.handleWindowResize.bind(this));
+            logInfo('[Cocos Inspector] 步骤6: 窗口监听添加完成');
+
+            // 监听场景切换
+            logInfo('[Cocos Inspector] 步骤7: 设置场景切换监听...');
+            if (window.cc && window.cc.director) {
+                // 使用any类型避免TypeScript编译错误
+                const director = window.cc.director as any;
+                if (typeof director.loadScene === 'function') {
+                    const originalSceneLoadScene = director.loadScene;
+                    director.loadScene = (...args: any[]) => {
+                        // 移除覆盖层
+                        this.removeNodeRectOverlay();
+                        // 调用原始方法
+                        return originalSceneLoadScene.apply(director, args);
+                    };
+                    logInfo('[Cocos Inspector] 步骤7: 场景切换监听设置完成');
+                } else {
+                    logWarn('[Cocos Inspector] 步骤7: director.loadScene不是函数，跳过场景切换监听');
+                }
+            } else {
+                logWarn('[Cocos Inspector] 步骤7: cc.director不存在，跳过场景切换监听');
+            }
+
+            // 检查容器是否还在DOM中
+            logInfo('[Cocos Inspector] 步骤8: 检查容器状态...');
+            if (this.container && document.body.contains(this.container)) {
+                logInfo('[Cocos Inspector] 步骤8: 容器已成功添加到DOM');
+                logInfo('[Cocos Inspector] 容器信息:', {
+                    className: this.container.className,
+                    isCollapsed: this.isCollapsed,
+                    style: this.container.style.cssText,
+                    parentElement: this.container.parentElement?.tagName
+                });
+            } else {
+                logError('[Cocos Inspector] 步骤8: 容器未添加到DOM或已被移除');
+            }
+
+            logInfo('[Cocos Inspector] Inspector初始化完成，默认为收起状态');
+
+            // 延迟检查容器是否还存在
+            setTimeout(() => {
+                if (this.container && document.body.contains(this.container)) {
+                    logInfo('[Cocos Inspector] 延迟检查: 容器仍然存在于DOM中');
+                } else {
+                    logError('[Cocos Inspector] 延迟检查: 容器已从DOM中消失！');
+                }
+            }, 1000);
+
+        } catch (error) {
+            logError('[Cocos Inspector] 初始化过程中发生错误:', error);
+        }
     }
 
     /**
@@ -217,10 +267,14 @@ class CocosInspector {
     }
 
     private createUI(): void {
+        logInfo('[创建UI] 开始创建Inspector容器...');
+
         this.container = document.createElement('div');
         this.container.className = 'cocos-inspector';
+        logInfo('[创建UI] Inspector容器已创建，className:', this.container.className);
 
         // 添加CSS样式
+        logInfo('[创建UI] 开始添加CSS样式...');
         const style = document.createElement('style');
         style.textContent = `
             /* 节点状态样式 */
@@ -462,26 +516,44 @@ class CocosInspector {
         this.container.appendChild(header);
         this.container.appendChild(tabsContainer);
         this.container.appendChild(content);
+        logInfo('[创建UI] 开始将容器添加到document.body...');
         document.body.appendChild(this.container);
+        logInfo('[创建UI] 容器已添加到document.body');
 
         // 初始化动画状态图UI
+        logInfo('[创建UI] 开始初始化动画状态图UI...');
         this.initializeAnimationGraphUI();
+        logInfo('[创建UI] 动画状态图UI初始化完成');
 
         // 应用默认收起状态
+        logInfo('[创建UI] 应用默认收起状态...');
         if (this.isCollapsed) {
             this.container.classList.add('collapsed');
+            logInfo('[创建UI] 已应用收起状态，className:', this.container.className);
         }
 
         // 添加快捷键支持
+        logInfo('[创建UI] 添加快捷键支持...');
         document.addEventListener('keydown', (e) => {
             // 按 Alt+I 切换Inspector的显示/隐藏
             if (e.altKey && e.key === 'i') {
+                logInfo('[快捷键] Alt+I 被按下，切换Inspector显示状态');
                 this.toggleCollapse();
             }
         });
+        logInfo('[创建UI] 快捷键支持已添加');
 
         // 监听宽度变化
+        logInfo('[创建UI] 设置宽度变化监听...');
         this.setupResizeObserver();
+        logInfo('[创建UI] 宽度变化监听设置完成');
+
+        logInfo('[创建UI] UI创建完成，容器状态:', {
+            exists: !!this.container,
+            inDOM: this.container ? document.body.contains(this.container) : false,
+            className: this.container?.className,
+            isCollapsed: this.isCollapsed
+        });
     }
 
     private setupResizeObserver(): void {
@@ -510,14 +582,29 @@ class CocosInspector {
     }
 
     private toggleCollapse(): void {
+        logInfo('[切换收起] 开始切换收起状态，当前状态:', this.isCollapsed);
+
         this.isCollapsed = !this.isCollapsed;
+        logInfo('[切换收起] 新状态:', this.isCollapsed);
+
         if (this.container) {
             this.container.classList.toggle('collapsed', this.isCollapsed);
+            logInfo('[切换收起] 已更新className:', this.container.className);
 
             // 如果展开，恢复之前的宽度
             if (!this.isCollapsed && this.lastWidth) {
                 this.container.style.width = `${this.lastWidth}px`;
+                logInfo('[切换收起] 已恢复宽度:', this.lastWidth);
             }
+
+            logInfo('[切换收起] 容器当前状态:', {
+                isCollapsed: this.isCollapsed,
+                className: this.container.className,
+                style: this.container.style.cssText,
+                inDOM: document.body.contains(this.container)
+            });
+        } else {
+            logError('[切换收起] 容器不存在！');
         }
     }
 
