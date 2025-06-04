@@ -568,3 +568,50 @@
     background-color: rgba(255, 51, 51, 0.15);
   }
 }
+
+/* 标签页样式 */
+.inspector-tabs {
+  display: flex;
+  background: #2d2d2d;
+  border-bottom: 1px solid #444;
+}
+
+.inspector-tab {
+  padding: 8px 16px;
+  background: #3d3d3d;
+  border: none;
+  color: #ccc;
+  cursor: pointer;
+  border-right: 1px solid #444;
+  font-size: 12px;
+  transition: all 0.2s ease;
+}
+
+.inspector-tab:hover {
+  background: #4d4d4d;
+  color: #fff;
+}
+
+.inspector-tab.active {
+  background: #1e1e1e;
+  color: #fff;
+  border-bottom: 2px solid #3498db;
+}
+
+.inspector-tab-content {
+  display: none;
+  flex: 1;
+  overflow: hidden;
+}
+
+.inspector-tab-content.active {
+  display: flex;
+  flex-direction: column;
+}
+
+/* 场景树标签页样式 */
+.scene-tree-tab {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}

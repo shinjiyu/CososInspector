@@ -107,7 +107,84 @@ class CocosInspector {
                 console.log('[调试] Inspector状态已切换');
             },
             getContainer: () => this.container,
-            getInstance: () => this
+            getInstance: () => this,
+            checkScene: () => {
+                const scene = cc.director.getScene();
+                console.log('[调试] 场景信息:', {
+                    scene: scene,
+                    sceneName: scene?.name,
+                    sceneUUID: scene?.uuid,
+                    sceneChildren: scene?.children?.length || 0,
+                    hasCC: !!window.cc,
+                    hasDirector: !!window.cc?.director
+                });
+                return scene;
+            },
+            checkTreeContainer: () => {
+                console.log('[调试] 树容器信息:', {
+                    treeContainer: this.treeContainer,
+                    hasContent: !!this.treeContainer?.innerHTML,
+                    innerHTML: this.treeContainer?.innerHTML?.substring(0, 200) + '...'
+                });
+                return this.treeContainer;
+            },
+            forceRefresh: () => {
+                console.log('[调试] 强制刷新场景树...');
+                this.forceRefreshTree();
+            },
+            initTree: () => {
+                console.log('[调试] 重新初始化场景树...');
+                this.initTree();
+            },
+            switchToSceneTree: () => {
+                console.log('[调试] 强制切换到场景树标签页...');
+                this.switchTab('scene-tree');
+            },
+            getCurrentTab: () => {
+                console.log('[调试] 当前标签页:', this.currentTab);
+                return this.currentTab;
+            },
+            checkTabStructure: () => {
+                console.log('[调试] 检查标签页DOM结构...');
+
+                // 检查标签按钮
+                const tabs = this.container?.querySelectorAll('.inspector-tab');
+                console.log('[调试] 标签按钮:', Array.from(tabs || []).map(tab => ({
+                    text: (tab as HTMLElement).textContent,
+                    dataTab: (tab as HTMLElement).dataset.tab,
+                    classes: (tab as HTMLElement).className
+                })));
+
+                // 检查标签页内容
+                const contents = this.container?.querySelectorAll('.inspector-tab-content');
+                console.log('[调试] 标签页内容:', Array.from(contents || []).map(content => ({
+                    dataTab: (content as HTMLElement).dataset.tab,
+                    classes: (content as HTMLElement).className,
+                    hasContent: !!(content as HTMLElement).innerHTML.trim(),
+                    innerHTML: (content as HTMLElement).innerHTML.substring(0, 100) + '...'
+                })));
+
+                return { tabs, contents };
+            },
+            fixTabDisplay: () => {
+                console.log('[调试] 强制修复标签页显示...');
+
+                // 强制隐藏所有标签页内容
+                const contents = this.container?.querySelectorAll('.inspector-tab-content');
+                contents?.forEach(content => {
+                    (content as HTMLElement).style.display = 'none';
+                });
+
+                // 强制显示场景树标签页
+                const sceneTreeContent = this.container?.querySelector('.inspector-tab-content[data-tab="scene-tree"]') as HTMLElement;
+                if (sceneTreeContent) {
+                    sceneTreeContent.style.display = 'flex';
+                    sceneTreeContent.style.flexDirection = 'column';
+                    console.log('[调试] 已强制显示场景树标签页');
+                } else {
+                    console.error('[调试] 找不到场景树标签页内容');
+                }
+            }
         };
         console.log('[Cocos Inspector] 全局调试函数已添加: window.CocosInspectorDebug');
     }
@@ -718,12 +795,36 @@ class CocosInspector {
     }
 
     private initTree(): void {
-        const scene = cc.director.getScene();
-        if (!scene) return;
+        console.log('[初始化树] 开始初始化场景树...');
 
-        // logInfo(`[初始化树] 场景: ${scene.name}(${scene.uuid}), 子节点数: ${scene.children?.length || 0}`, scene);
+        const scene = cc.director.getScene();
+        console.log('[初始化树] 场景信息:', {
+            scene: scene,
+            sceneName: scene?.name,
+            sceneUUID: scene?.uuid,
+            sceneChildren: scene?.children?.length || 0
+        });
+
+        if (!scene) {
+            console.warn('[初始化树] 场景不存在，跳过初始化');
+            return;
+        }
+
+        console.log('[初始化树] 树容器信息:', {
+            treeContainer: this.treeContainer,
+            hasTreeContainer: !!this.treeContainer
+        });
+
         if (this.treeContainer) {
-            this.treeContainer.innerHTML = this.generateNodeTree(scene);
+            console.log('[初始化树] 开始生成节点树...');
+            const treeHTML = this.generateNodeTree(scene);
+            console.log('[初始化树] 生成的HTML长度:', treeHTML.length);
+            console.log('[初始化树] 生成的HTML预览:', treeHTML.substring(0, 300) + '...');
+
+            this.treeContainer.innerHTML = treeHTML;
+            console.log('[初始化树] 树容器内容已更新');
+        } else {
+            console.error('[初始化树] 树容器不存在！');
         }
     }
 
@@ -2728,31 +2829,60 @@ class CocosInspector {
      * 切换标签页
      */
     private switchTab(tabId: string): void {
+        console.log(`[标签页切换] 开始切换到标签页: ${tabId}`);
+        console.log(`[标签页切换] 当前标签页: ${this.currentTab}`);
+
         // 更新当前标签
         this.currentTab = tabId;
 
         // 更新标签按钮状态
         const tabs = this.container?.querySelectorAll('.inspector-tab');
+        console.log(`[标签页切换] 找到 ${tabs?.length || 0} 个标签按钮`);
+
         tabs?.forEach(tab => {
             const tabElement = tab as HTMLElement;
-            if (tabElement.dataset.tab === tabId) {
+            const tabDataId = tabElement.dataset.tab;
+            console.log(`[标签页切换] 处理标签按钮: ${tabDataId}, 目标: ${tabId}`);
+
+            if (tabDataId === tabId) {
                 tabElement.classList.add('active');
+                console.log(`[标签页切换] 激活标签按钮: ${tabDataId}`);
             } else {
                 tabElement.classList.remove('active');
+                console.log(`[标签页切换] 取消激活标签按钮: ${tabDataId}`);
             }
         });
 
         // 更新标签页内容显示
         const contents = this.container?.querySelectorAll('.inspector-tab-content');
+        console.log(`[标签页切换] 找到 ${contents?.length || 0} 个标签页内容`);
+
         contents?.forEach(content => {
             const contentElement = content as HTMLElement;
-            if (contentElement.dataset.tab === tabId) {
+            const contentDataId = contentElement.dataset.tab;
+            console.log(`[标签页切换] 处理标签页内容: ${contentDataId}, 目标: ${tabId}`);
+
+            if (contentDataId === tabId) {
                 contentElement.classList.add('active');
+                console.log(`[标签页切换] 显示标签页内容: ${contentDataId}`);
+
+                // 如果切换到场景树标签页，确保场景树已初始化
+                if (tabId === 'scene-tree') {
+                    console.log(`[标签页切换] 切换到场景树，检查树容器状态`);
+                    if (this.treeContainer && !this.treeContainer.innerHTML.trim()) {
+                        console.log(`[标签页切换] 场景树为空，重新初始化`);
+                        this.initTree();
+                    } else {
+                        console.log(`[标签页切换] 场景树已有内容，无需重新初始化`);
+                    }
+                }
             } else {
                 contentElement.classList.remove('active');
+                console.log(`[标签页切换] 隐藏标签页内容: ${contentDataId}`);
             }
         });
 
+        console.log(`[标签页切换] 标签页切换完成: ${tabId}`);
         logInfo(`[标签页切换] 切换到标签页: ${tabId}`);
     }
 
