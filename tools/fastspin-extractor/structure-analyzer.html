@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>FastSpin 结构分析器</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: #1a1a2e;
+        color: #fff;
+        padding: 20px;
+      }
+      .container {
+        max-width: 1400px;
+        margin: 0 auto;
+      }
+      h1 {
+        text-align: center;
+        margin-bottom: 20px;
+      }
+      h1 span {
+        color: #4caf50;
+      }
+
+      .layout {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+      }
+
+      .card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .card h2 {
+        font-size: 16px;
+        margin-bottom: 15px;
+        color: #4caf50;
+      }
+
+      .drop-zone {
+        border: 2px dashed #4caf50;
+        border-radius: 8px;
+        padding: 30px;
+        text-align: center;
+        cursor: pointer;
+        margin-bottom: 15px;
+      }
+      .drop-zone:hover {
+        background: rgba(76, 175, 80, 0.1);
+      }
+      .drop-zone input {
+        display: none;
+      }
+
+      .tree {
+        font-family: "Monaco", "Consolas", monospace;
+        font-size: 13px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        padding: 15px;
+        max-height: 600px;
+        overflow: auto;
+      }
+
+      .tree-node {
+        padding: 3px 0;
+      }
+      .tree-node.folder {
+        color: #ffc107;
+        cursor: pointer;
+      }
+      .tree-node.folder::before {
+        content: "📁 ";
+      }
+      .tree-node.folder.open::before {
+        content: "📂 ";
+      }
+      .tree-node.spine::before {
+        content: "🦴 ";
+        color: #e91e63;
+      }
+      .tree-node.atlas::before {
+        content: "🗺️ ";
+        color: #9c27b0;
+      }
+      .tree-node.sprite::before {
+        content: "🖼️ ";
+        color: #2196f3;
+      }
+      .tree-node.lottie::before {
+        content: "✨ ";
+        color: #ff9800;
+      }
+      .tree-node.texture::before {
+        content: "🎨 ";
+        color: #4caf50;
+      }
+      .tree-node.audio::before {
+        content: "🔊 ";
+        color: #00bcd4;
+      }
+      .tree-node.font::before {
+        content: "🔤 ";
+        color: #795548;
+      }
+      .tree-node.config::before {
+        content: "⚙️ ";
+        color: #607d8b;
+      }
+
+      .tree-children {
+        margin-left: 20px;
+      }
+      .tree-children.collapsed {
+        display: none;
+      }
+
+      .details {
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        padding: 15px;
+        font-size: 13px;
+      }
+
+      .details h3 {
+        color: #4caf50;
+        margin-bottom: 10px;
+      }
+      .details pre {
+        background: #0d1117;
+        padding: 10px;
+        border-radius: 4px;
+        overflow: auto;
+        max-height: 300px;
+      }
+
+      button {
+        padding: 10px 20px;
+        background: #4caf50;
+        color: #fff;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        margin-right: 10px;
+        margin-top: 10px;
+      }
+      button:hover {
+        background: #45a049;
+      }
+
+      .component-map {
+        margin-top: 15px;
+      }
+
+      .component {
+        background: rgba(76, 175, 80, 0.1);
+        border: 1px solid #4caf50;
+        border-radius: 8px;
+        padding: 10px;
+        margin-bottom: 10px;
+      }
+
+      .component h4 {
+        color: #4caf50;
+        margin-bottom: 8px;
+      }
+      .component ul {
+        margin-left: 20px;
+        font-size: 12px;
+        color: #aaa;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎰 FastSpin <span>结构分析器</span></h1>
+
+      <div class="layout">
+        <div class="card">
+          <h2>📂 上传 HAR 或 JSON 文件</h2>
+          <div class="drop-zone" id="dropZone">
+            <p>拖放文件到这里</p>
+            <p style="font-size: 12px; color: #888; margin-top: 5px">
+              支持 HAR 文件或之前导出的 JSON
+            </p>
+            <input type="file" id="fileInput" accept=".har,.json" />
+          </div>
+
+          <h2>🌳 资源结构树</h2>
+          <div class="tree" id="tree">
+            <div style="color: #666; text-align: center">
+              上传文件后显示结构
+            </div>
+          </div>
+
+          <button onclick="exportStructure()">📥 导出结构 JSON</button>
+          <button onclick="exportForCocos()">🎮 导出 Cocos 格式</button>
+        </div>
+
+        <div class="card">
+          <h2>🧩 推断的组件结构</h2>
+          <div class="component-map" id="componentMap">
+            <div style="color: #666; text-align: center">分析后显示组件</div>
+          </div>
+
+          <h2 style="margin-top: 20px">📋 选中资源详情</h2>
+          <div class="details" id="details">
+            <div style="color: #666">点击资源查看详情</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      let resources = [];
+      let structure = {};
+      let components = {};
+
+      // FastSpin 组件模式识别
+      const componentPatterns = {
+        IntroPage: {
+          patterns: ["intropage", "start"],
+          description: "开场/加载页面",
+        },
+        Background: {
+          patterns: ["bg", "body_bg", "background"],
+          description: "游戏背景",
+        },
+        Symbols: {
+          patterns: ["sym_\\d+", "symbols"],
+          description: "老虎机符号",
+        },
+        Reels: {
+          patterns: ["reel", "reelback"],
+          description: "卷轴系统",
+        },
+        ControlBar: {
+          patterns: ["controlbar", "spin", "turbo", "auto"],
+          description: "控制栏/按钮",
+        },
+        BonusWheel: {
+          patterns: ["wheel"],
+          description: "奖励转盘",
+        },
+        Multiplier: {
+          patterns: ["multiplier", "mul_num", "lucky"],
+          description: "倍数/幸运投注",
+        },
+        BigWin: {
+          patterns: ["bigwin", "megawin", "superwin"],
+          description: "大奖庆祝动画",
+        },
+        Effects: {
+          patterns: ["effect", "particle", "light", "glow"],
+          description: "特效系统",
+        },
+        Lines: {
+          patterns: ["line_", "payline"],
+          description: "赔付线",
+        },
+        TipsWin: {
+          patterns: ["tipswin", "tips"],
+          description: "获奖提示",
+        },
+        Audio: {
+          patterns: ["\\.mp3", "\\.ogg", "sound", "music"],
+          description: "音效系统",
+        },
+        Localization: {
+          patterns: ["zh_CN", "en_US", "lan_", "locale"],
+          description: "多语言文本",
+        },
+        Fonts: {
+          patterns: ["\\.xml", "num", "font"],
+          description: "位图字体",
+        },
+      };
+
+      // 拖放处理
+      const dropZone = document.getElementById("dropZone");
+      const fileInput = document.getElementById("fileInput");
+
+      dropZone.addEventListener("click", () => fileInput.click());
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+      });
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        if (e.dataTransfer.files[0]) processFile(e.dataTransfer.files[0]);
+      });
+      fileInput.addEventListener("change", (e) => {
+        if (e.target.files[0]) processFile(e.target.files[0]);
+      });
+
+      function processFile(file) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          try {
+            const data = JSON.parse(e.target.result);
+
+            // 判断是 HAR 还是之前导出的 JSON
+            if (data.log?.entries) {
+              parseHAR(data);
+            } else if (data.resources) {
+              resources = data.resources;
+              analyzeStructure();
+            } else {
+              alert("不支持的文件格式");
+            }
+          } catch (err) {
+            alert("解析失败: " + err.message);
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      function parseHAR(har) {
+        resources = [];
+        const seen = new Set();
+
+        for (const entry of har.log.entries) {
+          const url = entry.request?.url;
+          if (!url || seen.has(url) || entry.response?.status !== 200) continue;
+          seen.add(url);
+
+          const filename = url.split("/").pop().split("?")[0];
+          const ext = filename.split(".").pop().toLowerCase();
+
+          // 尝试解析 JSON 内容
+          let type = "other";
+          let metadata = {};
+
+          const content = entry.response?.content?.text;
+          if (ext === "json" && content) {
+            try {
+              const jsonData = JSON.parse(content);
+              if (jsonData.skeleton && jsonData.bones) {
+                type = "spine";
+                metadata = {
+                  spineVersion: jsonData.skeleton.spine,
+                  bones: jsonData.bones.length,
+                  animations: Object.keys(jsonData.animations || {}),
+                };
+              } else if (jsonData.frames && jsonData.meta) {
+                type = "sprite";
+                metadata = {
+                  frameCount: Object.keys(jsonData.frames).length,
+                  texture: jsonData.meta.image,
+                  size: jsonData.meta.size,
+                };
+              } else if (jsonData.v && jsonData.fr && jsonData.layers) {
+                type = "lottie";
+                metadata = {
+                  version: jsonData.v,
+                  name: jsonData.nm,
+                  frameRate: jsonData.fr,
+                };
+              } else if (url.includes("zh_CN") || url.includes("en_US")) {
+                type = "locale";
+              } else {
+                type = "config";
+              }
+            } catch (e) {
+              type = "config";
+            }
+          } else if (ext === "atlas") {
+            type = "atlas";
+          } else if (["png", "jpg", "jpeg", "webp"].includes(ext)) {
+            type = "texture";
+          } else if (["mp3", "ogg", "wav"].includes(ext)) {
+            type = "audio";
+          } else if (["xml", "ttf", "otf", "woff"].includes(ext)) {
+            type = "font";
+          }
+
+          if (type !== "other" || ext === "json") {
+            resources.push({ url, filename, type, ext, metadata });
+          }
+        }
+
+        analyzeStructure();
+      }
+
+      function analyzeStructure() {
+        structure = {};
+        components = {};
+
+        // 按文件名组织资源
+        for (const res of resources) {
+          // 从 URL 提取路径
+          const pathMatch = res.url.match(/assets\/([^?]+)/);
+          const baseName = res.filename.replace(
+            /\.[a-f0-9]+\.(json|atlas|png|mp3|ogg|xml)$/i,
+            ""
+          );
+
+          // 分配到组件
+          let assigned = false;
+          for (const [compName, compDef] of Object.entries(componentPatterns)) {
+            for (const pattern of compDef.patterns) {
+              if (
+                new RegExp(pattern, "i").test(res.filename) ||
+                new RegExp(pattern, "i").test(baseName)
+              ) {
+                if (!components[compName]) {
+                  components[compName] = {
+                    name: compName,
+                    description: compDef.description,
+                    resources: [],
+                  };
+                }
+                components[compName].resources.push(res);
+                assigned = true;
+                break;
+              }
+            }
+            if (assigned) break;
+          }
+
+          if (!assigned) {
+            if (!components["Other"]) {
+              components["Other"] = {
+                name: "Other",
+                description: "其他资源",
+                resources: [],
+              };
+            }
+            components["Other"].resources.push(res);
+          }
+
+          // 构建树结构
+          const parts = baseName.split("_");
+          let current = structure;
+          for (let i = 0; i < Math.min(parts.length - 1, 2); i++) {
+            const part = parts[i];
+            if (!current[part]) current[part] = { _files: [] };
+            current = current[part];
+          }
+          if (!current._files) current._files = [];
+          current._files.push(res);
+        }
+
+        renderTree();
+        renderComponents();
+      }
+
+      function renderTree() {
+        const container = document.getElementById("tree");
+        container.innerHTML = buildTreeHTML(structure, "root");
+
+        // 绑定折叠事件
+        container.querySelectorAll(".tree-node.folder").forEach((node) => {
+          node.addEventListener("click", (e) => {
+            e.stopPropagation();
+            node.classList.toggle("open");
+            const children = node.nextElementSibling;
+            if (children) children.classList.toggle("collapsed");
+          });
+        });
+
+        // 绑定文件点击事件
+        container
+          .querySelectorAll(".tree-node:not(.folder)")
+          .forEach((node) => {
+            node.addEventListener("click", () => {
+              const url = node.dataset.url;
+              const res = resources.find((r) => r.url === url);
+              if (res) showDetails(res);
+            });
+          });
+      }
+
+      function buildTreeHTML(obj, name) {
+        let html = "";
+        const files = obj._files || [];
+        const folders = Object.keys(obj).filter((k) => k !== "_files");
+
+        if (folders.length > 0 || files.length > 0) {
+          if (name !== "root") {
+            html += `<div class="tree-node folder">${name}</div>`;
+            html += '<div class="tree-children collapsed">';
+          }
+
+          // 子文件夹
+          for (const folder of folders.sort()) {
+            html += buildTreeHTML(obj[folder], folder);
+          }
+
+          // 文件
+          for (const file of files) {
+            html += `<div class="tree-node ${file.type}" data-url="${file.url}" style="cursor:pointer;">${file.filename}</div>`;
+          }
+
+          if (name !== "root") {
+            html += "</div>";
+          }
+        }
+
+        return html;
+      }
+
+      function renderComponents() {
+        const container = document.getElementById("componentMap");
+
+        const sortedComponents = Object.values(components).sort(
+          (a, b) => b.resources.length - a.resources.length
+        );
+
+        container.innerHTML = sortedComponents
+          .map(
+            (comp) => `
+                <div class="component">
+                    <h4>${
+                      comp.name
+                    } <span style="color:#888;font-weight:normal;">(${
+              comp.resources.length
+            })</span></h4>
+                    <p style="font-size:12px;color:#888;margin-bottom:5px;">${
+                      comp.description
+                    }</p>
+                    <ul>
+                        ${comp.resources
+                          .slice(0, 8)
+                          .map((r) => `<li>${r.filename}</li>`)
+                          .join("")}
+                        ${
+                          comp.resources.length > 8
+                            ? `<li>... 还有 ${
+                                comp.resources.length - 8
+                              } 个</li>`
+                            : ""
+                        }
+                    </ul>
+                </div>
+            `
+          )
+          .join("");
+      }
+
+      function showDetails(res) {
+        const container = document.getElementById("details");
+        container.innerHTML = `
+                <h3>${res.filename}</h3>
+                <p><strong>类型:</strong> ${res.type}</p>
+                <p><strong>URL:</strong> <a href="${
+                  res.url
+                }" target="_blank" style="color:#4CAF50;word-break:break-all;">${
+          res.url
+        }</a></p>
+                ${
+                  res.metadata
+                    ? `<pre>${JSON.stringify(res.metadata, null, 2)}</pre>`
+                    : ""
+                }
+            `;
+      }
+
+      function exportStructure() {
+        const data = {
+          exportTime: new Date().toISOString(),
+          totalResources: resources.length,
+          components: components,
+          resources: resources,
+        };
+        downloadFile(JSON.stringify(data, null, 2), "fastspin_structure.json");
+      }
+
+      function exportForCocos() {
+        // 生成类似 Cocos prefab 的结构
+        const prefab = {
+          __type__: "cc.Prefab",
+          _name: "FastSpinGame",
+          data: {
+            __type__: "cc.Node",
+            _name: "FastSpinGame",
+            _children: Object.values(components).map((comp) => ({
+              __type__: "cc.Node",
+              _name: comp.name,
+              _components: comp.resources.map((res) => ({
+                __type__:
+                  res.type === "spine"
+                    ? "sp.Skeleton"
+                    : res.type === "sprite"
+                    ? "cc.Sprite"
+                    : "cc.Component",
+                _asset: res.url,
+                _name: res.filename,
+              })),
+            })),
+          },
+        };
+        downloadFile(JSON.stringify(prefab, null, 2), "fastspin_prefab.json");
+      }
+
+      function downloadFile(content, filename) {
+        const blob = new Blob([content], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    </script>
+  </body>
+</html>

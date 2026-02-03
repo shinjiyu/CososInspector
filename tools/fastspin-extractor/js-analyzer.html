@@ -1,0 +1,812 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <title>FastSpin JS 代码分析器</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: "Monaco", "Consolas", "Courier New", monospace;
+        background: #0d1117;
+        color: #c9d1d9;
+        min-height: 100vh;
+      }
+
+      .header {
+        background: linear-gradient(135deg, #238636 0%, #1f6feb 100%);
+        padding: 15px 20px;
+        display: flex;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .header h1 {
+        font-size: 18px;
+        color: #fff;
+      }
+
+      .tabs {
+        display: flex;
+        gap: 5px;
+      }
+
+      .tab {
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        border-radius: 6px;
+        color: #fff;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .tab.active {
+        background: rgba(255, 255, 255, 0.25);
+      }
+
+      .main {
+        display: flex;
+        height: calc(100vh - 60px);
+      }
+
+      .sidebar {
+        width: 300px;
+        background: #161b22;
+        border-right: 1px solid #30363d;
+        overflow-y: auto;
+      }
+
+      .sidebar-section {
+        border-bottom: 1px solid #30363d;
+      }
+
+      .sidebar-section h3 {
+        padding: 12px 15px;
+        font-size: 12px;
+        color: #8b949e;
+        background: #0d1117;
+        cursor: pointer;
+        display: flex;
+        justify-content: space-between;
+      }
+
+      .sidebar-section h3:hover {
+        background: #161b22;
+      }
+
+      .sidebar-list {
+        max-height: 300px;
+        overflow-y: auto;
+      }
+
+      .sidebar-item {
+        padding: 8px 15px;
+        font-size: 12px;
+        cursor: pointer;
+        border-left: 3px solid transparent;
+      }
+
+      .sidebar-item:hover {
+        background: #21262d;
+      }
+      .sidebar-item.active {
+        background: #1f6feb20;
+        border-left-color: #1f6feb;
+        color: #58a6ff;
+      }
+
+      .sidebar-item .type {
+        display: inline-block;
+        padding: 1px 5px;
+        border-radius: 3px;
+        font-size: 10px;
+        margin-right: 5px;
+      }
+
+      .type-class {
+        background: #238636;
+        color: #fff;
+      }
+      .type-function {
+        background: #1f6feb;
+        color: #fff;
+      }
+      .type-var {
+        background: #f0883e;
+        color: #fff;
+      }
+      .type-module {
+        background: #a371f7;
+        color: #fff;
+      }
+
+      .content {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .toolbar {
+        padding: 10px 15px;
+        background: #161b22;
+        border-bottom: 1px solid #30363d;
+        display: flex;
+        gap: 10px;
+        align-items: center;
+      }
+
+      .toolbar input {
+        flex: 1;
+        padding: 8px 12px;
+        background: #0d1117;
+        border: 1px solid #30363d;
+        border-radius: 6px;
+        color: #c9d1d9;
+        font-size: 13px;
+      }
+
+      .toolbar button {
+        padding: 8px 16px;
+        background: #238636;
+        border: none;
+        border-radius: 6px;
+        color: #fff;
+        cursor: pointer;
+        font-size: 13px;
+      }
+
+      .toolbar button:hover {
+        background: #2ea043;
+      }
+
+      .code-view {
+        flex: 1;
+        overflow: auto;
+        padding: 15px;
+      }
+
+      .code-view pre {
+        font-size: 13px;
+        line-height: 1.5;
+        tab-size: 2;
+      }
+
+      .drop-overlay {
+        position: fixed;
+        inset: 0;
+        background: rgba(31, 111, 235, 0.9);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        font-size: 24px;
+        color: #fff;
+        z-index: 100;
+      }
+
+      .drop-overlay.active {
+        display: flex;
+      }
+
+      /* 语法高亮 */
+      .keyword {
+        color: #ff7b72;
+      }
+      .string {
+        color: #a5d6ff;
+      }
+      .number {
+        color: #79c0ff;
+      }
+      .comment {
+        color: #8b949e;
+      }
+      .function {
+        color: #d2a8ff;
+      }
+      .class {
+        color: #7ee787;
+      }
+      .property {
+        color: #79c0ff;
+      }
+
+      .analysis-panel {
+        background: #161b22;
+        border-top: 1px solid #30363d;
+        padding: 15px;
+        max-height: 300px;
+        overflow-y: auto;
+      }
+
+      .analysis-panel h3 {
+        color: #58a6ff;
+        margin-bottom: 10px;
+        font-size: 14px;
+      }
+
+      .analysis-item {
+        background: #0d1117;
+        padding: 10px;
+        border-radius: 6px;
+        margin-bottom: 8px;
+        font-size: 12px;
+      }
+
+      .analysis-item h4 {
+        color: #7ee787;
+        margin-bottom: 5px;
+      }
+      .analysis-item code {
+        display: block;
+        background: #161b22;
+        padding: 8px;
+        margin-top: 5px;
+        border-radius: 4px;
+        overflow-x: auto;
+      }
+
+      .loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 200px;
+        color: #8b949e;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="header">
+      <h1>🔍 FastSpin JS 代码分析器</h1>
+      <div class="tabs">
+        <button class="tab active" data-tab="files">文件列表</button>
+        <button class="tab" data-tab="classes">类定义</button>
+        <button class="tab" data-tab="flow">加载流程</button>
+        <button class="tab" data-tab="components">组件系统</button>
+      </div>
+    </div>
+
+    <div class="main">
+      <div class="sidebar">
+        <div class="sidebar-section">
+          <h3>📁 JS 文件 <span id="fileCount">0</span></h3>
+          <div class="sidebar-list" id="fileList">
+            <div class="loading">拖放 HAR 文件或 JS 文件到页面</div>
+          </div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>📦 类定义 <span id="classCount">0</span></h3>
+          <div class="sidebar-list" id="classList"></div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>⚡ 函数 <span id="funcCount">0</span></h3>
+          <div class="sidebar-list" id="funcList"></div>
+        </div>
+
+        <div class="sidebar-section">
+          <h3>🔧 重要模式 <span id="patternCount">0</span></h3>
+          <div class="sidebar-list" id="patternList"></div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="toolbar">
+          <input
+            type="text"
+            id="searchInput"
+            placeholder="搜索代码... (支持正则)"
+          />
+          <button onclick="searchCode()">搜索</button>
+          <button onclick="beautifyCode()">美化代码</button>
+          <button onclick="exportAnalysis()">导出分析</button>
+        </div>
+
+        <div class="code-view" id="codeView">
+          <pre id="codeContent">
+// 拖放文件开始分析
+// 
+// 支持的文件类型：
+// - HAR 文件 (包含 JS 内容)
+// - JS 文件 (直接拖放)
+// 
+// 分析内容：
+// 1. 类定义和继承关系
+// 2. 函数声明和调用关系
+// 3. 组件系统模式
+// 4. 事件系统
+// 5. 资源加载流程
+                </pre
+          >
+        </div>
+
+        <div class="analysis-panel" id="analysisPanel" style="display: none">
+          <h3>📊 代码分析结果</h3>
+          <div id="analysisContent"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="drop-overlay" id="dropOverlay">📂 拖放文件到这里</div>
+
+    <script>
+      // 状态管理
+      let files = [];
+      let classes = [];
+      let functions = [];
+      let patterns = [];
+      let currentFile = null;
+
+      // FastSpin 特有模式
+      const FASTSPIN_PATTERNS = {
+        "Component Registration":
+          /(?:registerComponent|addComponent|createComponent)\s*\(\s*['"]([\w]+)['"]/g,
+        "Event Binding":
+          /(?:on|addEventListener|bind)\s*\(\s*['"]([\w:]+)['"]/g,
+        "Asset Loading":
+          /(?:loadAsset|loadRes|loadBundle)\s*\(\s*['"]([\w\/\.]+)['"]/g,
+        "Scene Management":
+          /(?:loadScene|changeScene|pushScene)\s*\(\s*['"]([\w]+)['"]/g,
+        "Spine Creation": /(?:sp\.Skeleton|spine\.Skeleton|new\s+Spine)/g,
+        "Sprite Creation": /(?:cc\.Sprite|new\s+Sprite|createSprite)/g,
+        "Node Creation": /(?:new\s+cc\.Node|createNode|addChild)\s*\(/g,
+        Animation:
+          /(?:animation\.play|playAnimation|runAction)\s*\(\s*['"]([\w]+)['"]/g,
+        "State Machine": /(?:setState|changeState|FSM|StateMachine)/g,
+        "Pool System": /(?:NodePool|ObjectPool|getFromPool|returnToPool)/g,
+        "Signal/Event":
+          /(?:emit|dispatch|trigger|signal)\s*\(\s*['"]([\w:]+)['"]/g,
+        Configuration:
+          /(?:config|Config|settings|Settings|options|Options)\s*[=:]/g,
+        "Module Export":
+          /(?:module\.exports|export\s+(?:default|class|function|const))/g,
+        "Module Import": /(?:require\s*\(|import\s+.*\s+from)/g,
+      };
+
+      // 拖放处理
+      document.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        document.getElementById("dropOverlay").classList.add("active");
+      });
+
+      document.addEventListener("dragleave", (e) => {
+        if (e.target === document.getElementById("dropOverlay")) {
+          document.getElementById("dropOverlay").classList.remove("active");
+        }
+      });
+
+      document.addEventListener("drop", (e) => {
+        e.preventDefault();
+        document.getElementById("dropOverlay").classList.remove("active");
+
+        const droppedFiles = Array.from(e.dataTransfer.files);
+        processFiles(droppedFiles);
+      });
+
+      async function processFiles(droppedFiles) {
+        for (const file of droppedFiles) {
+          const text = await file.text();
+
+          if (file.name.endsWith(".har")) {
+            // 解析 HAR 文件
+            try {
+              const har = JSON.parse(text);
+              extractJSFromHAR(har);
+            } catch (e) {
+              alert("HAR 解析失败: " + e.message);
+            }
+          } else if (file.name.endsWith(".js")) {
+            // 直接添加 JS 文件
+            files.push({
+              name: file.name,
+              content: text,
+              size: text.length,
+            });
+          }
+        }
+
+        analyzeAllFiles();
+        renderUI();
+      }
+
+      function extractJSFromHAR(har) {
+        const entries = har.log?.entries || [];
+
+        for (const entry of entries) {
+          const url = entry.request?.url || "";
+          const content = entry.response?.content?.text;
+          const mimeType = entry.response?.content?.mimeType || "";
+
+          if (
+            (url.endsWith(".js") || mimeType.includes("javascript")) &&
+            content
+          ) {
+            const filename = url.split("/").pop().split("?")[0];
+
+            // 避免重复
+            if (!files.find((f) => f.name === filename)) {
+              files.push({
+                name: filename,
+                url: url,
+                content: content,
+                size: content.length,
+              });
+            }
+          }
+        }
+      }
+
+      function analyzeAllFiles() {
+        classes = [];
+        functions = [];
+        patterns = [];
+
+        for (const file of files) {
+          analyzeFile(file);
+        }
+
+        // 排序
+        files.sort((a, b) => {
+          // 按加载顺序排序 (lib -> slot -> game -> setup)
+          const order = ["lib_mm", "slot", "game", "polyfill", "setup"];
+          const aIdx = order.findIndex((o) => a.name.includes(o));
+          const bIdx = order.findIndex((o) => b.name.includes(o));
+          return (aIdx === -1 ? 99 : aIdx) - (bIdx === -1 ? 99 : bIdx);
+        });
+      }
+
+      function analyzeFile(file) {
+        const code = file.content;
+
+        // 提取类定义
+        const classRegex =
+          /(?:class\s+(\w+)(?:\s+extends\s+(\w+))?|(\w+)\s*=\s*(?:function|class)|\b(\w+)\.prototype\b)/g;
+        let match;
+        while ((match = classRegex.exec(code)) !== null) {
+          const name = match[1] || match[3] || match[4];
+          if (
+            name &&
+            name.length > 2 &&
+            !classes.find((c) => c.name === name)
+          ) {
+            classes.push({
+              name: name,
+              extends: match[2] || null,
+              file: file.name,
+              position: match.index,
+            });
+          }
+        }
+
+        // 提取函数定义
+        const funcRegex =
+          /(?:function\s+(\w+)|(\w+)\s*[=:]\s*(?:async\s+)?function|\b(\w+)\s*\([^)]*\)\s*\{)/g;
+        while ((match = funcRegex.exec(code)) !== null) {
+          const name = match[1] || match[2] || match[3];
+          if (
+            name &&
+            name.length > 2 &&
+            !["if", "for", "while", "switch", "catch"].includes(name)
+          ) {
+            if (
+              !functions.find((f) => f.name === name && f.file === file.name)
+            ) {
+              functions.push({
+                name: name,
+                file: file.name,
+                position: match.index,
+              });
+            }
+          }
+        }
+
+        // 检测重要模式
+        for (const [patternName, regex] of Object.entries(FASTSPIN_PATTERNS)) {
+          const patternRegex = new RegExp(regex.source, regex.flags);
+          while ((match = patternRegex.exec(code)) !== null) {
+            patterns.push({
+              type: patternName,
+              match: match[0],
+              value: match[1] || match[0],
+              file: file.name,
+              position: match.index,
+            });
+          }
+        }
+      }
+
+      function renderUI() {
+        // 更新计数
+        document.getElementById("fileCount").textContent = files.length;
+        document.getElementById("classCount").textContent = classes.length;
+        document.getElementById("funcCount").textContent = functions.length;
+        document.getElementById("patternCount").textContent = patterns.length;
+
+        // 渲染文件列表
+        document.getElementById("fileList").innerHTML =
+          files
+            .map(
+              (f) => `
+                <div class="sidebar-item" onclick="selectFile('${f.name}')">
+                    <span class="type type-module">JS</span>
+                    ${f.name}
+                    <span style="float:right;color:#8b949e;">${(
+                      f.size / 1024
+                    ).toFixed(1)}KB</span>
+                </div>
+            `
+            )
+            .join("") || '<div class="loading">无文件</div>';
+
+        // 渲染类列表
+        document.getElementById("classList").innerHTML =
+          classes
+            .slice(0, 50)
+            .map(
+              (c) => `
+                <div class="sidebar-item" onclick="goToDefinition('${
+                  c.file
+                }', ${c.position})">
+                    <span class="type type-class">C</span>
+                    ${c.name}
+                    ${
+                      c.extends
+                        ? `<span style="color:#8b949e;"> : ${c.extends}</span>`
+                        : ""
+                    }
+                </div>
+            `
+            )
+            .join("") || '<div class="loading">无类定义</div>';
+
+        // 渲染函数列表
+        document.getElementById("funcList").innerHTML =
+          functions
+            .slice(0, 50)
+            .map(
+              (f) => `
+                <div class="sidebar-item" onclick="goToDefinition('${f.file}', ${f.position})">
+                    <span class="type type-function">F</span>
+                    ${f.name}
+                </div>
+            `
+            )
+            .join("") || '<div class="loading">无函数</div>';
+
+        // 渲染模式列表
+        const patternGroups = {};
+        patterns.forEach((p) => {
+          if (!patternGroups[p.type]) patternGroups[p.type] = [];
+          patternGroups[p.type].push(p);
+        });
+
+        document.getElementById("patternList").innerHTML =
+          Object.entries(patternGroups)
+            .map(
+              ([type, items]) => `
+                <div class="sidebar-item" onclick="showPatternDetails('${type}')">
+                    <span class="type type-var">P</span>
+                    ${type}
+                    <span style="float:right;color:#8b949e;">${items.length}</span>
+                </div>
+            `
+            )
+            .join("") || '<div class="loading">无模式</div>';
+
+        // 显示分析面板
+        if (files.length > 0) {
+          showAnalysisSummary();
+        }
+      }
+
+      function selectFile(name) {
+        currentFile = files.find((f) => f.name === name);
+        if (currentFile) {
+          document
+            .querySelectorAll(".sidebar-item")
+            .forEach((el) => el.classList.remove("active"));
+          event.target.closest(".sidebar-item").classList.add("active");
+
+          const highlighted = highlightCode(currentFile.content);
+          document.getElementById("codeContent").innerHTML = highlighted;
+        }
+      }
+
+      function goToDefinition(fileName, position) {
+        const file = files.find((f) => f.name === fileName);
+        if (file) {
+          currentFile = file;
+          const highlighted = highlightCode(file.content);
+          document.getElementById("codeContent").innerHTML = highlighted;
+
+          // 滚动到位置
+          setTimeout(() => {
+            const codeView = document.getElementById("codeView");
+            const lineHeight = 20;
+            const lineNumber = file.content
+              .substring(0, position)
+              .split("\n").length;
+            codeView.scrollTop = (lineNumber - 5) * lineHeight;
+          }, 100);
+        }
+      }
+
+      function highlightCode(code) {
+        // 简单的语法高亮
+        return code
+          .replace(/&/g, "&amp;")
+          .replace(/</g, "&lt;")
+          .replace(/>/g, "&gt;")
+          .replace(/(\/\/.*$)/gm, '<span class="comment">$1</span>')
+          .replace(/(\/\*[\s\S]*?\*\/)/g, '<span class="comment">$1</span>')
+          .replace(
+            /\b(function|class|extends|return|if|else|for|while|switch|case|break|continue|new|this|const|let|var|async|await|import|export|from|default|try|catch|throw)\b/g,
+            '<span class="keyword">$1</span>'
+          )
+          .replace(
+            /(['"`])(?:(?!\1)[^\\]|\\.)*?\1/g,
+            '<span class="string">$&</span>'
+          )
+          .replace(/\b(\d+(?:\.\d+)?)\b/g, '<span class="number">$1</span>');
+      }
+
+      function searchCode() {
+        const query = document.getElementById("searchInput").value;
+        if (!query || !currentFile) return;
+
+        try {
+          const regex = new RegExp(query, "gi");
+          const highlighted = currentFile.content
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(
+              regex,
+              '<mark style="background:#f0883e;color:#000;">$&</mark>'
+            );
+          document.getElementById("codeContent").innerHTML = highlighted;
+        } catch (e) {
+          alert("无效的正则表达式");
+        }
+      }
+
+      function beautifyCode() {
+        if (!currentFile) return;
+
+        try {
+          // 简单的代码美化
+          let code = currentFile.content;
+
+          // 添加换行
+          code = code.replace(/;(?!\s*[\n\r])/g, ";\n");
+          code = code.replace(/\{(?!\s*[\n\r])/g, "{\n");
+          code = code.replace(/\}(?!\s*[\n\r])/g, "}\n");
+
+          // 添加缩进
+          let indent = 0;
+          code = code
+            .split("\n")
+            .map((line) => {
+              line = line.trim();
+              if (line.startsWith("}")) indent = Math.max(0, indent - 1);
+              const result = "  ".repeat(indent) + line;
+              if (line.endsWith("{")) indent++;
+              return result;
+            })
+            .join("\n");
+
+          currentFile.content = code;
+          document.getElementById("codeContent").innerHTML =
+            highlightCode(code);
+        } catch (e) {
+          alert("美化失败: " + e.message);
+        }
+      }
+
+      function showPatternDetails(type) {
+        const items = patterns.filter((p) => p.type === type);
+        const panel = document.getElementById("analysisPanel");
+        panel.style.display = "block";
+
+        document.getElementById("analysisContent").innerHTML = `
+                <div class="analysis-item">
+                    <h4>${type} (${items.length} 处)</h4>
+                    <code>${items
+                      .slice(0, 20)
+                      .map((p) => `${p.file}: ${p.match}`)
+                      .join("\n")}</code>
+                </div>
+            `;
+      }
+
+      function showAnalysisSummary() {
+        const panel = document.getElementById("analysisPanel");
+        panel.style.display = "block";
+
+        // 分析组件系统
+        const componentClasses = classes.filter(
+          (c) =>
+            c.name.includes("Component") ||
+            c.name.includes("Controller") ||
+            c.name.includes("Manager") ||
+            c.name.includes("System")
+        );
+
+        // 分析继承关系
+        const inheritance = classes.filter((c) => c.extends).slice(0, 10);
+
+        // 分析加载顺序
+        const loadOrder = files.map((f) => f.name);
+
+        document.getElementById("analysisContent").innerHTML = `
+                <div class="analysis-item">
+                    <h4>📦 加载顺序</h4>
+                    <code>${loadOrder.join("\n↓\n")}</code>
+                </div>
+                <div class="analysis-item">
+                    <h4>🧩 可能的组件类 (${componentClasses.length})</h4>
+                    <code>${componentClasses
+                      .map(
+                        (c) =>
+                          c.name + (c.extends ? " extends " + c.extends : "")
+                      )
+                      .join("\n")}</code>
+                </div>
+                <div class="analysis-item">
+                    <h4>🔗 继承关系</h4>
+                    <code>${inheritance
+                      .map((c) => `${c.name} extends ${c.extends}`)
+                      .join("\n")}</code>
+                </div>
+                <div class="analysis-item">
+                    <h4>📊 统计</h4>
+                    <code>文件数: ${files.length}
+总大小: ${(files.reduce((a, f) => a + f.size, 0) / 1024).toFixed(1)} KB
+类定义: ${classes.length}
+函数: ${functions.length}
+模式匹配: ${patterns.length}</code>
+                </div>
+            `;
+      }
+
+      function exportAnalysis() {
+        const analysis = {
+          exportTime: new Date().toISOString(),
+          files: files.map((f) => ({ name: f.name, size: f.size, url: f.url })),
+          classes: classes,
+          functions: functions.slice(0, 200),
+          patterns: patterns,
+          summary: {
+            totalFiles: files.length,
+            totalSize: files.reduce((a, f) => a + f.size, 0),
+            totalClasses: classes.length,
+            totalFunctions: functions.length,
+            totalPatterns: patterns.length,
+          },
+        };
+
+        const blob = new Blob([JSON.stringify(analysis, null, 2)], {
+          type: "application/json",
+        });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "fastspin_code_analysis.json";
+        a.click();
+      }
+
+      // 快捷键
+      document.addEventListener("keydown", (e) => {
+        if (e.ctrlKey && e.key === "f") {
+          e.preventDefault();
+          document.getElementById("searchInput").focus();
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -1,0 +1,2598 @@
+{
+  "extractTime": "2026-02-03T10:37:26.468Z",
+  "summary": {
+    "totalFiles": 11,
+    "totalSize": 1097683,
+    "categories": {
+      "component": {
+        "count": 4,
+        "size": 379479
+      },
+      "lib": {
+        "count": 3,
+        "size": 454761
+      },
+      "slot": {
+        "count": 1,
+        "size": 58854
+      },
+      "game": {
+        "count": 1,
+        "size": 28334
+      },
+      "other": {
+        "count": 2,
+        "size": 176255
+      }
+    }
+  },
+  "engine": {
+    "primary": "pixijs",
+    "scores": {
+      "pixijs": 10,
+      "cocos": 0,
+      "phaser": 0,
+      "three": 0,
+      "spine": 0,
+      "createjs": 0,
+      "custom": 0
+    },
+    "sorted": [
+      [
+        "pixijs",
+        10
+      ],
+      [
+        "cocos",
+        0
+      ],
+      [
+        "phaser",
+        0
+      ],
+      [
+        "three",
+        0
+      ],
+      [
+        "spine",
+        0
+      ],
+      [
+        "createjs",
+        0
+      ],
+      [
+        "custom",
+        0
+      ]
+    ]
+  },
+  "files": [
+    {
+      "name": "polyfills-legacy-f802ebb6.js",
+      "url": "https://contents.fastspindemo.com/touch/fsnew/fscommon/components/h5app/js/polyfills-legacy-f802ebb6.js",
+      "size": 75274,
+      "category": "component",
+      "classCount": 0,
+      "functionCount": 1,
+      "patternCount": 0
+    },
+    {
+      "name": "lib_mm-3cac1de77a.js",
+      "url": "https://contents.fastspindemo.com/touch/fsnew/fscommon/components/lib/lib_mm-3cac1de77a.js",
+      "size": 269434,
+      "category": "lib",
+      "classCount": 0,
+      "functionCount": 1,
+      "patternCount": 0
+    },
+    {
+      "name": "slot-d6b7a2a978.js",
+      "url": "https://contents.fastspindemo.com/touch/fsnew/20240901P/spade/slot-d6b7a2a978.js",
+      "size": 58854,
+      "category": "slot",
+      "classCount": 0,
+      "functionCount": 1,
+      "patternCount": 1
+    },
+    {
+      "name": "game-d7bd12fd2e.js",
+      "url": "https://contents.fastspindemo.com/touch/fsnew/20240901P/games/fortunejewels2/js/game-d7bd12fd2e.js",
+      "size": 28334,
+      "category": "game",
+      "classCount": 0,
+      "functionCount": 1,
+      "patternCount": 1
+    },
+    {
+      "name": "setup-794dc541.js",
+      "url": "https://contents.fastspindemo.com/touch/fsnew/fscommon/components/h5app/js/setup-794dc541.js",
+      "size": 305,
+      "category": "component",
+      "classCount": 1,
+      "functionCount": 1,
+      "patternCount": 0
+    },
+    {
+      "name": "require.min.js",
+      "url": "https://contents.fastspindemo.com/touch/fsnew/fscommon/components/lib/require.min.js?v=1768183837911",
+      "size": 15233,
+      "category": "lib",
+      "classCount": 9,
+      "functionCount": 31,
+      "patternCount": 20
+    },
+    {
+      "name": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js",
+      "url": "https://static.cloudflareinsights.com/beacon.min.js/vcd15cbe7772f49c399c6a5babf22c1241717689176015",
+      "size": 19948,
+      "category": "other",
+      "classCount": 13,
+      "functionCount": 30,
+      "patternCount": 12
+    },
+    {
+      "name": "app-24fcedf738.js",
+      "url": "https://contents.fastspindemo.com/touch/fsnew/20240901P/spade/app-24fcedf738.js",
+      "size": 156307,
+      "category": "other",
+      "classCount": 116,
+      "functionCount": 395,
+      "patternCount": 65
+    },
+    {
+      "name": "index-legacy-a1792e59.js",
+      "url": "https://contents.fastspindemo.com/touch/fsnew/fscommon/components/h5app/js/index-legacy-a1792e59.js",
+      "size": 208386,
+      "category": "component",
+      "classCount": 0,
+      "functionCount": 1,
+      "patternCount": 0
+    },
+    {
+      "name": "vendor-legacy-5ceec2ac.js",
+      "url": "https://contents.fastspindemo.com/touch/fsnew/fscommon/components/h5app/js/vendor-legacy-5ceec2ac.js",
+      "size": 170094,
+      "category": "lib",
+      "classCount": 0,
+      "functionCount": 1,
+      "patternCount": 1
+    },
+    {
+      "name": "lw-legacy-e7ccb268.js",
+      "url": "https://contents.fastspindemo.com/touch/fsnew/fscommon/components/h5app/js/lw-legacy-e7ccb268.js",
+      "size": 95514,
+      "category": "component",
+      "classCount": 0,
+      "functionCount": 1,
+      "patternCount": 0
+    }
+  ],
+  "allClasses": [
+    {
+      "name": "instantiate",
+      "extends": null,
+      "position": 75,
+      "file": "setup-794dc541.js"
+    },
+    {
+      "name": "undef",
+      "extends": null,
+      "position": 10686,
+      "file": "require.min.js"
+    },
+    {
+      "name": "Object",
+      "extends": null,
+      "position": 12216,
+      "file": "require.min.js"
+    },
+    {
+      "name": "Array",
+      "extends": null,
+      "position": 12273,
+      "file": "require.min.js"
+    },
+    {
+      "name": "requirejs",
+      "extends": null,
+      "position": 12777,
+      "file": "require.min.js"
+    },
+    {
+      "name": "config",
+      "extends": null,
+      "position": 12987,
+      "file": "require.min.js"
+    },
+    {
+      "name": "createNode",
+      "extends": null,
+      "position": 13493,
+      "file": "require.min.js"
+    },
+    {
+      "name": "load",
+      "extends": null,
+      "position": 13715,
+      "file": "require.min.js"
+    },
+    {
+      "name": "define",
+      "extends": null,
+      "position": 14632,
+      "file": "require.min.js"
+    },
+    {
+      "name": "exec",
+      "extends": null,
+      "position": 15186,
+      "file": "require.min.js"
+    },
+    {
+      "name": "exports",
+      "extends": null,
+      "position": 113,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "pushState",
+      "extends": null,
+      "position": 5458,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "sendObjectBeacon",
+      "extends": null,
+      "position": 8295,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "onreadystatechange",
+      "extends": null,
+      "position": 8939,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "rating",
+      "extends": null,
+      "position": 11213,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "onCLS",
+      "extends": null,
+      "position": 15260,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "onFCP",
+      "extends": null,
+      "position": 16250,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "onFID",
+      "extends": null,
+      "position": 16655,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "onINP",
+      "extends": null,
+      "position": 16856,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "PerformanceEventTiming",
+      "extends": null,
+      "position": 17453,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "onLCP",
+      "extends": null,
+      "position": 18087,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "onTTFB",
+      "extends": null,
+      "position": 19392,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "extend",
+      "extends": null,
+      "position": 1430,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "constructor",
+      "extends": null,
+      "position": 2336,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isXML",
+      "extends": null,
+      "position": 8104,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "setDocument",
+      "extends": null,
+      "position": 8200,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "matches",
+      "extends": null,
+      "position": 11716,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "matchesSelector",
+      "extends": null,
+      "position": 11765,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "contains",
+      "extends": null,
+      "position": 12062,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "attr",
+      "extends": null,
+      "position": 12132,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "error",
+      "extends": null,
+      "position": 12387,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "uniqueSort",
+      "extends": null,
+      "position": 12469,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "getText",
+      "extends": null,
+      "position": 12664,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "tokenize",
+      "extends": null,
+      "position": 20010,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "compile",
+      "extends": null,
+      "position": 20473,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "select",
+      "extends": null,
+      "position": 21215,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "filter",
+      "extends": null,
+      "position": 23161,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "init",
+      "extends": null,
+      "position": 23915,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "Callbacks",
+      "extends": null,
+      "position": 26585,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "ready",
+      "extends": null,
+      "position": 29129,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "promise",
+      "extends": null,
+      "position": 29464,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "handle",
+      "extends": null,
+      "position": 37028,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "removeEvent",
+      "extends": null,
+      "position": 41340,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "Event",
+      "extends": null,
+      "position": 41421,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "fire",
+      "extends": null,
+      "position": 57661,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "speed",
+      "extends": null,
+      "position": 58804,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "complete",
+      "extends": null,
+      "position": 59158,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "tick",
+      "extends": null,
+      "position": 60825,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "timer",
+      "extends": null,
+      "position": 60966,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "start",
+      "extends": null,
+      "position": 61056,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "stop",
+      "extends": null,
+      "position": 61125,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "delay",
+      "extends": null,
+      "position": 61220,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "get",
+      "extends": null,
+      "position": 66899,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "parseJSON",
+      "extends": null,
+      "position": 69435,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "parseXML",
+      "extends": null,
+      "position": 69484,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "_evalUrl",
+      "extends": null,
+      "position": 75654,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "hidden",
+      "extends": null,
+      "position": 76522,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "visible",
+      "extends": null,
+      "position": 76590,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "param",
+      "extends": null,
+      "position": 76803,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "xhr",
+      "extends": null,
+      "position": 77921,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "parseHTML",
+      "extends": null,
+      "position": 80603,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "animated",
+      "extends": null,
+      "position": 81537,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "noConflict",
+      "extends": null,
+      "position": 84334,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "gameSenceAdapter",
+      "extends": null,
+      "position": 89429,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "changeFullScreen",
+      "extends": null,
+      "position": 91454,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "SpaceFn",
+      "extends": null,
+      "position": 91921,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "onIframeFocus",
+      "extends": null,
+      "position": 92723,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "onorientationchange",
+      "extends": null,
+      "position": 96003,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "onresize",
+      "extends": null,
+      "position": 96063,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isString",
+      "extends": null,
+      "position": 97594,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isArray",
+      "extends": null,
+      "position": 97699,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isBoolean",
+      "extends": null,
+      "position": 97821,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isNumber",
+      "extends": null,
+      "position": 97873,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isFunction",
+      "extends": null,
+      "position": 97978,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isObject",
+      "extends": null,
+      "position": 98032,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isIE",
+      "extends": null,
+      "position": 98137,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isUndefined",
+      "extends": null,
+      "position": 98212,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "parseFloat",
+      "extends": null,
+      "position": 98258,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "parseInt",
+      "extends": null,
+      "position": 98338,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "parseNumber",
+      "extends": null,
+      "position": 98399,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "parseAmount",
+      "extends": null,
+      "position": 98465,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "toFixed",
+      "extends": null,
+      "position": 98534,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "screenType",
+      "extends": null,
+      "position": 98599,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isMobile",
+      "extends": null,
+      "position": 98747,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isPC",
+      "extends": null,
+      "position": 98978,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isIpad",
+      "extends": null,
+      "position": 99027,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isMobileInPCNarrowScreen",
+      "extends": null,
+      "position": 99109,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "formatAmount",
+      "extends": null,
+      "position": 99242,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "formatThousand",
+      "extends": null,
+      "position": 99628,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "distinct",
+      "extends": null,
+      "position": 99827,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "max",
+      "extends": null,
+      "position": 99955,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "exChildIndex",
+      "extends": null,
+      "position": 100053,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "clearTimeout",
+      "extends": null,
+      "position": 100459,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "setInterval",
+      "extends": null,
+      "position": 100543,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "clearInterval",
+      "extends": null,
+      "position": 100706,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "createSerialNo",
+      "extends": null,
+      "position": 100748,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "updateObject",
+      "extends": null,
+      "position": 100834,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "formatStr",
+      "extends": null,
+      "position": 100978,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "format",
+      "extends": null,
+      "position": 101290,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "getQueryString",
+      "extends": null,
+      "position": 101477,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "getUrlBase64String",
+      "extends": null,
+      "position": 101646,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "loadImgToBlob",
+      "extends": null,
+      "position": 101861,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "onload",
+      "extends": null,
+      "position": 101937,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "clone",
+      "extends": null,
+      "position": 102088,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "each",
+      "extends": null,
+      "position": 102280,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "async",
+      "extends": null,
+      "position": 102328,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "log",
+      "extends": null,
+      "position": 102462,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "getAudioContext",
+      "extends": null,
+      "position": 102524,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "runNumber",
+      "extends": null,
+      "position": 102708,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "runNumberTween",
+      "extends": null,
+      "position": 102959,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "onerror",
+      "extends": null,
+      "position": 104735,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "Date",
+      "extends": null,
+      "position": 106307,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "Class",
+      "extends": null,
+      "position": 106954,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "this",
+      "extends": null,
+      "position": 107007,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "implement",
+      "extends": null,
+      "position": 108275,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "defineGetterSetter",
+      "extends": null,
+      "position": 108333,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "inject",
+      "extends": null,
+      "position": 109240,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isWeb",
+      "extends": null,
+      "position": 111423,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isJackpot",
+      "extends": null,
+      "position": 111479,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isDebug",
+      "extends": null,
+      "position": 111540,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isLoaderPixi",
+      "extends": null,
+      "position": 111599,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "updateResource",
+      "extends": null,
+      "position": 111666,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "redirectGame",
+      "extends": null,
+      "position": 112132,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "initContent",
+      "extends": null,
+      "position": 112583,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "setTurboState",
+      "extends": null,
+      "position": 112947,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "checkHandshake",
+      "extends": null,
+      "position": 122066,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "processInbound",
+      "extends": null,
+      "position": 122354,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "processOutbound",
+      "extends": null,
+      "position": 122783,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "configure",
+      "extends": null,
+      "position": 130462,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "remove",
+      "extends": null,
+      "position": 131258,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "showError",
+      "extends": null,
+      "position": 131295,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "getSize",
+      "extends": null,
+      "position": 148529,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "info",
+      "extends": null,
+      "position": 152418,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "Sprite2d",
+      "extends": null,
+      "position": 153230,
+      "file": "app-24fcedf738.js"
+    }
+  ],
+  "allFunctions": [
+    {
+      "name": "eval",
+      "position": 0,
+      "file": "polyfills-legacy-f802ebb6.js"
+    },
+    {
+      "name": "instantiate",
+      "position": 75,
+      "file": "setup-794dc541.js"
+    },
+    {
+      "name": "normalize",
+      "position": 2450,
+      "file": "require.min.js"
+    },
+    {
+      "name": "setTimeout",
+      "position": 3894,
+      "file": "require.min.js"
+    },
+    {
+      "name": "require",
+      "position": 4576,
+      "file": "require.min.js"
+    },
+    {
+      "name": "exports",
+      "position": 4655,
+      "file": "require.min.js"
+    },
+    {
+      "name": "module",
+      "position": 4776,
+      "file": "require.min.js"
+    },
+    {
+      "name": "config",
+      "position": 4857,
+      "file": "require.min.js"
+    },
+    {
+      "name": "init",
+      "position": 5125,
+      "file": "require.min.js"
+    },
+    {
+      "name": "defineDep",
+      "position": 5414,
+      "file": "require.min.js"
+    },
+    {
+      "name": "fetch",
+      "position": 5521,
+      "file": "require.min.js"
+    },
+    {
+      "name": "load",
+      "position": 5821,
+      "file": "require.min.js"
+    },
+    {
+      "name": "check",
+      "position": 5896,
+      "file": "require.min.js"
+    },
+    {
+      "name": "callPlugin",
+      "position": 6842,
+      "file": "require.min.js"
+    },
+    {
+      "name": "enable",
+      "position": 8087,
+      "file": "require.min.js"
+    },
+    {
+      "name": "emit",
+      "position": 8749,
+      "file": "require.min.js"
+    },
+    {
+      "name": "configure",
+      "position": 8968,
+      "file": "require.min.js"
+    },
+    {
+      "name": "makeShimExports",
+      "position": 9708,
+      "file": "require.min.js"
+    },
+    {
+      "name": "makeRequire",
+      "position": 9836,
+      "file": "require.min.js"
+    },
+    {
+      "name": "nextTick",
+      "position": 10250,
+      "file": "require.min.js"
+    },
+    {
+      "name": "defined",
+      "position": 10566,
+      "file": "require.min.js"
+    },
+    {
+      "name": "specified",
+      "position": 10615,
+      "file": "require.min.js"
+    },
+    {
+      "name": "undef",
+      "position": 10686,
+      "file": "require.min.js"
+    },
+    {
+      "name": "completeLoad",
+      "position": 10925,
+      "file": "require.min.js"
+    },
+    {
+      "name": "nameToUrl",
+      "position": 11262,
+      "file": "require.min.js"
+    },
+    {
+      "name": "execCb",
+      "position": 11743,
+      "file": "require.min.js"
+    },
+    {
+      "name": "onScriptLoad",
+      "position": 11789,
+      "file": "require.min.js"
+    },
+    {
+      "name": "onScriptError",
+      "position": 11922,
+      "file": "require.min.js"
+    },
+    {
+      "name": "requirejs",
+      "position": 12777,
+      "file": "require.min.js"
+    },
+    {
+      "name": "createNode",
+      "position": 13493,
+      "file": "require.min.js"
+    },
+    {
+      "name": "define",
+      "position": 14632,
+      "file": "require.min.js"
+    },
+    {
+      "name": "replace",
+      "position": 14775,
+      "file": "require.min.js"
+    },
+    {
+      "name": "exec",
+      "position": 15186,
+      "file": "require.min.js"
+    },
+    {
+      "name": "343",
+      "position": 19,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "944",
+      "position": 345,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "508",
+      "position": 802,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "168",
+      "position": 1085,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "addEventListener",
+      "position": 2608,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "forEach",
+      "position": 4800,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "filter",
+      "position": 5257,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "pushState",
+      "position": 5458,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "752",
+      "position": 8220,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "sendObjectBeacon",
+      "position": 8295,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "onreadystatechange",
+      "position": 8939,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "699",
+      "position": 9100,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "104",
+      "position": 9386,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "PerformanceObserver",
+      "position": 10922,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "then",
+      "position": 10973,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "rating",
+      "position": 11213,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "requestAnimationFrame",
+      "position": 11323,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "firstHiddenTime",
+      "position": 12149,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "sort",
+      "position": 14566,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "onCLS",
+      "position": 15260,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "reduce",
+      "position": 15853,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "find",
+      "position": 15963,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "onFCP",
+      "position": 16250,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "onFID",
+      "position": 16655,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "onINP",
+      "position": 16856,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "some",
+      "position": 17031,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "onLCP",
+      "position": 18087,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "onTTFB",
+      "position": 19392,
+      "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+    },
+    {
+      "name": "toArray",
+      "position": 739,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "get",
+      "position": 779,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "pushStack",
+      "position": 856,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "each",
+      "position": 961,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "map",
+      "position": 1001,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "slice",
+      "position": 1089,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "first",
+      "position": 1154,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "last",
+      "position": 1190,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "end",
+      "position": 1321,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "extend",
+      "position": 1430,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "error",
+      "position": 1927,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "noop",
+      "position": 1965,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isFunction",
+      "position": 1983,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isWindow",
+      "position": 2058,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isNumeric",
+      "position": 2109,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isPlainObject",
+      "position": 2196,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "isEmptyObject",
+      "position": 2436,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "type",
+      "position": 2496,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "globalEval",
+      "position": 2607,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "camelCase",
+      "position": 2781,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "nodeName",
+      "position": 2843,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "trim",
+      "position": 3076,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "makeArray",
+      "position": 3133,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "inArray",
+      "position": 3247,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "merge",
+      "position": 3304,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "grep",
+      "position": 3400,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "proxy",
+      "position": 3679,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "setDocument",
+      "position": 8200,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "matches",
+      "position": 11716,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "matchesSelector",
+      "position": 11765,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "contains",
+      "position": 12062,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "attr",
+      "position": 12132,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "uniqueSort",
+      "position": 12469,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "getText",
+      "position": 12664,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "ATTR",
+      "position": 13139,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "CHILD",
+      "position": 13274,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "PSEUDO",
+      "position": 13484,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "TAG",
+      "position": 13713,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "CLASS",
+      "position": 13861,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "target",
+      "position": 16387,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "root",
+      "position": 16469,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "focus",
+      "position": 16500,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "enabled",
+      "position": 16608,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "disabled",
+      "position": 16651,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "checked",
+      "position": 16695,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "selected",
+      "position": 16806,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "empty",
+      "position": 16892,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "parent",
+      "position": 16982,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "header",
+      "position": 17028,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "input",
+      "position": 17075,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "button",
+      "position": 17121,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "text",
+      "position": 17223,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "tokenize",
+      "position": 20010,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "compile",
+      "position": 20473,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "select",
+      "position": 21215,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "not",
+      "position": 23718,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "closest",
+      "position": 24943,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "index",
+      "position": 25249,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "add",
+      "position": 25407,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "addBack",
+      "position": 25490,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "parents",
+      "position": 25656,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "parentsUntil",
+      "position": 25702,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "next",
+      "position": 25759,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "prev",
+      "position": 25804,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "nextAll",
+      "position": 25853,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "prevAll",
+      "position": 25900,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "nextUntil",
+      "position": 25951,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "prevUntil",
+      "position": 26006,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "siblings",
+      "position": 26065,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "children",
+      "position": 26129,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "contents",
+      "position": 26174,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "Callbacks",
+      "position": 26585,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "remove",
+      "position": 27128,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "has",
+      "position": 27251,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "disable",
+      "position": 27344,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "lock",
+      "position": 27420,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "locked",
+      "position": 27468,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "fireWith",
+      "position": 27497,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "fire",
+      "position": 27589,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "fired",
+      "position": 27645,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "state",
+      "position": 27895,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "always",
+      "position": 27922,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "Deferred",
+      "position": 28028,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "promise",
+      "position": 28326,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "when",
+      "position": 28650,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "ready",
+      "position": 29129,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "register",
+      "position": 30182,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "cache",
+      "position": 30342,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "set",
+      "position": 30515,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "access",
+      "position": 30709,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "hasData",
+      "position": 31216,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "data",
+      "position": 31704,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "removeData",
+      "position": 31749,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "_data",
+      "position": 31789,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "_removeData",
+      "position": 31835,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "dequeue",
+      "position": 32825,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "call",
+      "position": 33010,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "_queueHooks",
+      "position": 33071,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "clearQueue",
+      "position": 33558,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "handle",
+      "position": 37028,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "dispatch",
+      "position": 38484,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "handlers",
+      "position": 39160,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "fix",
+      "position": 40434,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "trigger",
+      "position": 40841,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "_default",
+      "position": 41165,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "postDispatch",
+      "position": 41234,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "removeEvent",
+      "position": 41340,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "Event",
+      "position": 41421,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "preventDefault",
+      "position": 41865,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "stopPropagation",
+      "position": 41985,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "stopImmediatePropagation",
+      "position": 42109,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "one",
+      "position": 42678,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "off",
+      "position": 42727,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "clone",
+      "position": 44879,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "cleanData",
+      "position": 45387,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "append",
+      "position": 45952,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "prepend",
+      "position": 46093,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "before",
+      "position": 46259,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "after",
+      "position": 46370,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "html",
+      "position": 46716,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "replaceWith",
+      "position": 47097,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "boxSizingReliable",
+      "position": 49449,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "pixelMarginRight",
+      "position": 49502,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "reliableMarginLeft",
+      "position": 49555,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "reliableMarginRight",
+      "position": 49610,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "style",
+      "position": 51848,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "css",
+      "position": 52371,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "expand",
+      "position": 53438,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "show",
+      "position": 53833,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "hide",
+      "position": 53869,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "toggle",
+      "position": 53902,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "cur",
+      "position": 54255,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "run",
+      "position": 54350,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "linear",
+      "position": 55210,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "swing",
+      "position": 55239,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "createTween",
+      "position": 56253,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "stop",
+      "position": 56369,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "tweener",
+      "position": 57295,
+      "file": "app-24fcedf738.js"
+    },
+    {
+      "name": "done",
+      "position": 58521,
+      "file": "app-24fcedf738.js"
+    }
+  ],
+  "allPatterns": {
+    "State Machine": [
+      {
+        "match": "FSM",
+        "value": "FSM",
+        "position": 18526,
+        "file": "slot-d6b7a2a978.js"
+      },
+      {
+        "match": "FSM",
+        "value": "FSM",
+        "position": 18711,
+        "file": "game-d7bd12fd2e.js"
+      },
+      {
+        "match": "FSM",
+        "value": "FSM",
+        "position": 24404,
+        "file": "vendor-legacy-5ceec2ac.js"
+      }
+    ],
+    "Event Binding": [
+      {
+        "match": "on(\"error\"",
+        "value": "error",
+        "position": 5198,
+        "file": "require.min.js"
+      },
+      {
+        "match": "on(\"error\"",
+        "value": "error",
+        "position": 7398,
+        "file": "require.min.js"
+      },
+      {
+        "match": "addEventListener(\"load\"",
+        "value": "load",
+        "position": 14042,
+        "file": "require.min.js"
+      },
+      {
+        "match": "addEventListener(\"error\"",
+        "value": "error",
+        "position": 14087,
+        "file": "require.min.js"
+      },
+      {
+        "match": "addEventListener(\"visibilitychange\"",
+        "value": "visibilitychange",
+        "position": 2608,
+        "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+      },
+      {
+        "match": "addEventListener(\"load\"",
+        "value": "load",
+        "position": 5164,
+        "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+      },
+      {
+        "match": "addEventListener(\"popstate\"",
+        "value": "popstate",
+        "position": 5636,
+        "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+      },
+      {
+        "match": "addEventListener(\"pageshow\"",
+        "value": "pageshow",
+        "position": 10335,
+        "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+      },
+      {
+        "match": "addEventListener(\"visibilitychange\"",
+        "value": "visibilitychange",
+        "position": 11512,
+        "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+      },
+      {
+        "match": "addEventListener(\"pagehide\"",
+        "value": "pagehide",
+        "position": 11554,
+        "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+      },
+      {
+        "match": "addEventListener(\"visibilitychange\"",
+        "value": "visibilitychange",
+        "position": 11859,
+        "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+      },
+      {
+        "match": "addEventListener(\"prerenderingchange\"",
+        "value": "prerenderingchange",
+        "position": 11901,
+        "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+      },
+      {
+        "match": "addEventListener(\"prerenderingchange\"",
+        "value": "prerenderingchange",
+        "position": 12215,
+        "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+      },
+      {
+        "match": "addEventListener(\"pointerup\"",
+        "value": "pointerup",
+        "position": 13308,
+        "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+      },
+      {
+        "match": "addEventListener(\"pointercancel\"",
+        "value": "pointercancel",
+        "position": 13342,
+        "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+      },
+      {
+        "match": "addEventListener(\"load\"",
+        "value": "load",
+        "position": 14801,
+        "file": "vcd15cbe7772f49c399c6a5babf22c1241717689176015.js"
+      },
+      {
+        "match": "addEventListener(\"unload\"",
+        "value": "unload",
+        "position": 8387,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"DOMContentLoaded\"",
+        "value": "DOMContentLoaded",
+        "position": 29618,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"load\"",
+        "value": "load",
+        "position": 29660,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"pageshow\"",
+        "value": "pageshow",
+        "position": 90789,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"resize\"",
+        "value": "resize",
+        "position": 90860,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"orientationchange\"",
+        "value": "orientationchange",
+        "position": 90983,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"contextmenu\"",
+        "value": "contextmenu",
+        "position": 91172,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"keydown\"",
+        "value": "keydown",
+        "position": 91273,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"touchend\"",
+        "value": "touchend",
+        "position": 95754,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"touchend\"",
+        "value": "touchend",
+        "position": 96129,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"click\"",
+        "value": "click",
+        "position": 96214,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"touchstart\"",
+        "value": "touchstart",
+        "position": 96333,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"gesturestart\"",
+        "value": "gesturestart",
+        "position": 96425,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"touchstart\"",
+        "value": "touchstart",
+        "position": 96498,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"load\"",
+        "value": "load",
+        "position": 104114,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"error\"",
+        "value": "error",
+        "position": 104241,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"canplaythrough\"",
+        "value": "canplaythrough",
+        "position": 104967,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"load\"",
+        "value": "load",
+        "position": 116615,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"message\"",
+        "value": "message",
+        "position": 129955,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "on(\"resize\"",
+        "value": "resize",
+        "position": 139421,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "on(\"touchstart\"",
+        "value": "touchstart",
+        "position": 139469,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "on(\"touchstart\"",
+        "value": "touchstart",
+        "position": 139551,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "on(\"touchend\"",
+        "value": "touchend",
+        "position": 139735,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "on(\"click\"",
+        "value": "click",
+        "position": 141019,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "on(\"pointertap\"",
+        "value": "pointertap",
+        "position": 152487,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "addEventListener(\"webglcontextlost\"",
+        "value": "webglcontextlost",
+        "position": 152992,
+        "file": "app-24fcedf738.js"
+      }
+    ],
+    "Node Creation": [
+      {
+        "match": "createNode(",
+        "value": "createNode(",
+        "position": 13774,
+        "file": "require.min.js"
+      }
+    ],
+    "Signal/Event": [
+      {
+        "match": "emit(\"error\"",
+        "value": "error",
+        "position": 3057,
+        "file": "require.min.js"
+      },
+      {
+        "match": "emit(\"error\"",
+        "value": "error",
+        "position": 3238,
+        "file": "require.min.js"
+      },
+      {
+        "match": "emit(\"error\"",
+        "value": "error",
+        "position": 5263,
+        "file": "require.min.js"
+      },
+      {
+        "match": "emit(\"error\"",
+        "value": "error",
+        "position": 6054,
+        "file": "require.min.js"
+      },
+      {
+        "match": "emit(\"defined\"",
+        "value": "defined",
+        "position": 6764,
+        "file": "require.min.js"
+      },
+      {
+        "match": "emit(\"error\"",
+        "value": "error",
+        "position": 7433,
+        "file": "require.min.js"
+      },
+      {
+        "match": "trigger(\"ajaxStart\"",
+        "value": "ajaxStart",
+        "position": 72602,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "trigger(\"ajaxSend\"",
+        "value": "ajaxSend",
+        "position": 73494,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "trigger(\"ajaxComplete\"",
+        "value": "ajaxComplete",
+        "position": 75275,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "trigger(\"ajaxStop\"",
+        "value": "ajaxStop",
+        "position": 75325,
+        "file": "app-24fcedf738.js"
+      }
+    ],
+    "Configuration": [
+      {
+        "match": "config:",
+        "value": "config:",
+        "position": 4517,
+        "file": "require.min.js"
+      },
+      {
+        "match": "config:",
+        "value": "config:",
+        "position": 4857,
+        "file": "require.min.js"
+      },
+      {
+        "match": "config:",
+        "value": "config:",
+        "position": 8844,
+        "file": "require.min.js"
+      },
+      {
+        "match": "config:",
+        "value": "config:",
+        "position": 9098,
+        "file": "require.min.js"
+      },
+      {
+        "match": "config=",
+        "value": "config=",
+        "position": 12987,
+        "file": "require.min.js"
+      },
+      {
+        "match": "options=",
+        "value": "options=",
+        "position": 54164,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "Options:",
+        "value": "Options:",
+        "position": 56195,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "Settings:",
+        "value": "Settings:",
+        "position": 70526,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "Options:",
+        "value": "Options:",
+        "position": 71089,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "Config:",
+        "value": "Config:",
+        "position": 105445,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "config:",
+        "value": "config:",
+        "position": 105455,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "Config:",
+        "value": "Config:",
+        "position": 105476,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "Config:",
+        "value": "Config:",
+        "position": 105675,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "Config:",
+        "value": "Config:",
+        "position": 106116,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "Config=",
+        "value": "Config=",
+        "position": 106186,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "Settings:",
+        "value": "Settings:",
+        "position": 128257,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "Settings:",
+        "value": "Settings:",
+        "position": 129162,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "config:",
+        "value": "config:",
+        "position": 130541,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "Config:",
+        "value": "Config:",
+        "position": 130918,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "Config:",
+        "value": "Config:",
+        "position": 131078,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "Config:",
+        "value": "Config:",
+        "position": 131960,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "Config:",
+        "value": "Config:",
+        "position": 133544,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "Config:",
+        "value": "Config:",
+        "position": 141089,
+        "file": "app-24fcedf738.js"
+      }
+    ],
+    "Module Import": [
+      {
+        "match": "require(",
+        "value": "require(",
+        "position": 2163,
+        "file": "require.min.js"
+      },
+      {
+        "match": "require(",
+        "value": "require(",
+        "position": 9676,
+        "file": "require.min.js"
+      },
+      {
+        "match": "require(",
+        "value": "require(",
+        "position": 10223,
+        "file": "require.min.js"
+      },
+      {
+        "match": "require(",
+        "value": "require(",
+        "position": 12969,
+        "file": "require.min.js"
+      },
+      {
+        "match": "require(",
+        "value": "require(",
+        "position": 89368,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "require(",
+        "value": "require(",
+        "position": 147983,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "require(",
+        "value": "require(",
+        "position": 156137,
+        "file": "app-24fcedf738.js"
+      }
+    ],
+    "Module Export": [
+      {
+        "match": "module.exports",
+        "value": "module.exports",
+        "position": 51,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "module.exports",
+        "value": "module.exports",
+        "position": 66,
+        "file": "app-24fcedf738.js"
+      }
+    ],
+    "PixiJS": [
+      {
+        "match": "PIXI.",
+        "value": "PIXI.",
+        "position": 89663,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "PIXI.",
+        "value": "PIXI.",
+        "position": 135236,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "PIXI.",
+        "value": "PIXI.",
+        "position": 152547,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "PIXI.",
+        "value": "PIXI.",
+        "position": 152670,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "PIXI.",
+        "value": "PIXI.",
+        "position": 152737,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "PIXI.",
+        "value": "PIXI.",
+        "position": 152824,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "new PIXI.Application",
+        "value": "new PIXI.Application",
+        "position": 152877,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "PIXI.",
+        "value": "PIXI.",
+        "position": 153159,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "PIXI.",
+        "value": "PIXI.",
+        "position": 153177,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "PIXI.",
+        "value": "PIXI.",
+        "position": 153202,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "PIXI.",
+        "value": "PIXI.",
+        "position": 153214,
+        "file": "app-24fcedf738.js"
+      },
+      {
+        "match": "new PIXI.Loader",
+        "value": "new PIXI.Loader",
+        "position": 154811,
+        "file": "app-24fcedf738.js"
+      }
+    ]
+  }
+}

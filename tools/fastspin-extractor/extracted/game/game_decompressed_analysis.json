@@ -1,0 +1,756 @@
+{
+  "filename": "game-d7bd12fd2e.js",
+  "size": 69343,
+  "modules": [],
+  "classes": [
+    {
+      "name": "setPos",
+      "position": 1644
+    },
+    {
+      "name": "getAttachmentContainer",
+      "position": 5576
+    },
+    {
+      "name": "setCredit",
+      "position": 25118
+    },
+    {
+      "name": "_reset",
+      "position": 25198
+    },
+    {
+      "name": "create",
+      "position": 42298
+    }
+  ],
+  "functions": [
+    {
+      "name": "_initBg",
+      "position": 47
+    },
+    {
+      "name": "setMode",
+      "position": 217
+    },
+    {
+      "name": "changeType",
+      "position": 241
+    },
+    {
+      "name": "ctor",
+      "position": 328
+    },
+    {
+      "name": "_initPool",
+      "position": 462
+    },
+    {
+      "name": "show",
+      "position": 647
+    },
+    {
+      "name": "showShake",
+      "position": 822
+    },
+    {
+      "name": "_addCoin",
+      "position": 912
+    },
+    {
+      "name": "_setMovieClip",
+      "position": 1033
+    },
+    {
+      "name": "setPos",
+      "position": 1643
+    },
+    {
+      "name": "_outBorder",
+      "position": 1900
+    },
+    {
+      "name": "_setCaches",
+      "position": 2191
+    },
+    {
+      "name": "_initWinAni",
+      "position": 2428
+    },
+    {
+      "name": "_showMask",
+      "position": 2589
+    },
+    {
+      "name": "onComplete",
+      "position": 2682
+    },
+    {
+      "name": "_hideMask",
+      "position": 2737
+    },
+    {
+      "name": "_playChangeSound",
+      "position": 3482
+    },
+    {
+      "name": "_showAni",
+      "position": 3910
+    },
+    {
+      "name": "playChangeAni",
+      "position": 4814
+    },
+    {
+      "name": "getAttachmentContainer",
+      "position": 5575
+    },
+    {
+      "name": "_luckClicked",
+      "position": 6436
+    },
+    {
+      "name": "_changeBet",
+      "position": 7222
+    },
+    {
+      "name": "_resetData",
+      "position": 7408
+    },
+    {
+      "name": "_resetSymbols",
+      "position": 9425
+    },
+    {
+      "name": "_resetLineWins",
+      "position": 10073
+    },
+    {
+      "name": "_transformBoxIndex",
+      "position": 10585
+    },
+    {
+      "name": "_spinRequestReq",
+      "position": 10642
+    },
+    {
+      "name": "_ultraSpinReData",
+      "position": 11209
+    },
+    {
+      "name": "getPaytableWinInfo",
+      "position": 11756
+    },
+    {
+      "name": "_resumeLastWin",
+      "position": 12012
+    },
+    {
+      "name": "_initResumeBefore",
+      "position": 13020
+    },
+    {
+      "name": "_resumeBonus",
+      "position": 13246
+    },
+    {
+      "name": "_doBonusGame",
+      "position": 13293
+    },
+    {
+      "name": "_requestBonus",
+      "position": 13978
+    },
+    {
+      "name": "_onBonusResponse",
+      "position": 14251
+    },
+    {
+      "name": "_doGameFlow",
+      "position": 14440
+    },
+    {
+      "name": "_bigWheelHide",
+      "position": 15001
+    },
+    {
+      "name": "_ultraBonusSpin",
+      "position": 15963
+    },
+    {
+      "name": "_onControlBarStatus",
+      "position": 16183
+    },
+    {
+      "name": "_initConfig",
+      "position": 16509
+    },
+    {
+      "name": "_initOthers",
+      "position": 17391
+    },
+    {
+      "name": "_enterGameReady",
+      "position": 18247
+    },
+    {
+      "name": "_playAni",
+      "position": 18392
+    },
+    {
+      "name": "_enterGame",
+      "position": 18899
+    },
+    {
+      "name": "_destroy",
+      "position": 19388
+    },
+    {
+      "name": "_init",
+      "position": 19516
+    },
+    {
+      "name": "_setCache",
+      "position": 19712
+    },
+    {
+      "name": "setPrepared",
+      "position": 19994
+    },
+    {
+      "name": "showClickAction",
+      "position": 20150
+    },
+    {
+      "name": "_setTitle",
+      "position": 21340
+    },
+    {
+      "name": "_getTextStyle",
+      "position": 21544
+    },
+    {
+      "name": "setTipInfo",
+      "position": 21638
+    },
+    {
+      "name": "_setHighWin",
+      "position": 22228
+    },
+    {
+      "name": "onStart",
+      "position": 23050
+    },
+    {
+      "name": "onUpdate",
+      "position": 23119
+    },
+    {
+      "name": "_setWin",
+      "position": 23745
+    },
+    {
+      "name": "_updateWin",
+      "position": 24555
+    },
+    {
+      "name": "_initBetInfo",
+      "position": 24890
+    },
+    {
+      "name": "setCredit",
+      "position": 25117
+    },
+    {
+      "name": "_reset",
+      "position": 25197
+    },
+    {
+      "name": "_createText",
+      "position": 26109
+    },
+    {
+      "name": "_resetTextScale",
+      "position": 26228
+    },
+    {
+      "name": "_createShowTween",
+      "position": 26416
+    },
+    {
+      "name": "_createHideTween",
+      "position": 26606
+    },
+    {
+      "name": "hide",
+      "position": 27050
+    },
+    {
+      "name": "reset",
+      "position": 27155
+    },
+    {
+      "name": "_getData",
+      "position": 27699
+    },
+    {
+      "name": "stopFast",
+      "position": 28084
+    },
+    {
+      "name": "_runStopTween",
+      "position": 28682
+    },
+    {
+      "name": "_playDropAni",
+      "position": 29078
+    },
+    {
+      "name": "_initReels",
+      "position": 29731
+    },
+    {
+      "name": "hideLastReel",
+      "position": 30630
+    },
+    {
+      "name": "showLastReel",
+      "position": 30728
+    },
+    {
+      "name": "_initMask",
+      "position": 30900
+    },
+    {
+      "name": "_getMask",
+      "position": 31410
+    },
+    {
+      "name": "_getIndexDefault",
+      "position": 31788
+    },
+    {
+      "name": "_getIndex",
+      "position": 32032
+    },
+    {
+      "name": "playDropAni",
+      "position": 32265
+    },
+    {
+      "name": "stopDropAni",
+      "position": 32615
+    },
+    {
+      "name": "playHit",
+      "position": 32731
+    },
+    {
+      "name": "_getRightReel",
+      "position": 33224
+    },
+    {
+      "name": "_customSymbol",
+      "position": 33282
+    },
+    {
+      "name": "_getSymbolCountText",
+      "position": 33335
+    },
+    {
+      "name": "_getSymbolPayText",
+      "position": 33459
+    },
+    {
+      "name": "_getPayoutValue",
+      "position": 33607
+    },
+    {
+      "name": "_drawMask",
+      "position": 33706
+    },
+    {
+      "name": "_getLanguageText",
+      "position": 33888
+    },
+    {
+      "name": "_initBack",
+      "position": 34546
+    },
+    {
+      "name": "_initSymbolCache",
+      "position": 35101
+    },
+    {
+      "name": "init",
+      "position": 35534
+    },
+    {
+      "name": "playBack",
+      "position": 35777
+    },
+    {
+      "name": "stopBack",
+      "position": 36046
+    },
+    {
+      "name": "playTutorialBg",
+      "position": 36221
+    },
+    {
+      "name": "stopTutorialBg",
+      "position": 36420
+    },
+    {
+      "name": "playTutorialChange",
+      "position": 36545
+    },
+    {
+      "name": "playTutorialContinue",
+      "position": 36577
+    },
+    {
+      "name": "playFreegameStart",
+      "position": 36664
+    },
+    {
+      "name": "playBtnClick",
+      "position": 36748
+    },
+    {
+      "name": "playTotalWinLow",
+      "position": 36827
+    },
+    {
+      "name": "playTotalWinHigh",
+      "position": 36912
+    },
+    {
+      "name": "playTotalWinCounting",
+      "position": 36999
+    },
+    {
+      "name": "stopTotalWinCounting",
+      "position": 37143
+    },
+    {
+      "name": "playBtnSpin",
+      "position": 37238
+    },
+    {
+      "name": "playBtnSpin2",
+      "position": 37263
+    },
+    {
+      "name": "playReelSpin",
+      "position": 37341
+    },
+    {
+      "name": "stopReelSpin",
+      "position": 37466
+    },
+    {
+      "name": "playReelStop",
+      "position": 37544
+    },
+    {
+      "name": "playReelStopFast",
+      "position": 37623
+    },
+    {
+      "name": "playBomb",
+      "position": 37710
+    },
+    {
+      "name": "playCascade",
+      "position": 37791
+    },
+    {
+      "name": "playWinning",
+      "position": 37875
+    },
+    {
+      "name": "playBigWin",
+      "position": 38066
+    },
+    {
+      "name": "playBigWinChange",
+      "position": 38141
+    },
+    {
+      "name": "playCoin",
+      "position": 38228
+    },
+    {
+      "name": "stopCoin",
+      "position": 38250
+    },
+    {
+      "name": "playTakewin",
+      "position": 38272
+    },
+    {
+      "name": "playWild",
+      "position": 38442
+    },
+    {
+      "name": "playWildHit",
+      "position": 38513
+    },
+    {
+      "name": "playScatter",
+      "position": 38661
+    },
+    {
+      "name": "playScatterHit",
+      "position": 38738
+    },
+    {
+      "name": "playScatterBeating",
+      "position": 38898
+    },
+    {
+      "name": "stopScatterBeating",
+      "position": 38989
+    },
+    {
+      "name": "playScatterBeatingBg",
+      "position": 39079
+    },
+    {
+      "name": "stopScatterBeatingBg",
+      "position": 39223
+    },
+    {
+      "name": "playPayLine",
+      "position": 39317
+    },
+    {
+      "name": "playReelSpeedup",
+      "position": 39342
+    },
+    {
+      "name": "playSpeedupFrist",
+      "position": 39423
+    },
+    {
+      "name": "stopReelSpeedup",
+      "position": 39503
+    },
+    {
+      "name": "playBuyBtn",
+      "position": 39583
+    },
+    {
+      "name": "playBtnBuyFeature",
+      "position": 39658
+    },
+    {
+      "name": "playBuyfeatureEnter",
+      "position": 39708
+    },
+    {
+      "name": "playFreeTrigger",
+      "position": 39801
+    },
+    {
+      "name": "playFreeRetrigger",
+      "position": 39886
+    },
+    {
+      "name": "playFreeRetriggerFly",
+      "position": 39971
+    },
+    {
+      "name": "playFreeCollectButton",
+      "position": 40062
+    },
+    {
+      "name": "playFreeGameTotalWin",
+      "position": 40097
+    },
+    {
+      "name": "stopFreeGameTotalWin",
+      "position": 40223
+    },
+    {
+      "name": "playFreeGameTotalWinTake",
+      "position": 40428
+    },
+    {
+      "name": "playWildTransform",
+      "position": 40572
+    },
+    {
+      "name": "playWildMove",
+      "position": 40662
+    },
+    {
+      "name": "playWildIncrease",
+      "position": 40742
+    },
+    {
+      "name": "playWildFlyUp",
+      "position": 40841
+    },
+    {
+      "name": "playWildFlyDown",
+      "position": 40935
+    },
+    {
+      "name": "playWildFly",
+      "position": 41033
+    },
+    {
+      "name": "playLuckBtn",
+      "position": 41111
+    },
+    {
+      "name": "playLuckOn",
+      "position": 41201
+    },
+    {
+      "name": "playLuckOff",
+      "position": 41286
+    },
+    {
+      "name": "playWheelHit",
+      "position": 41373
+    },
+    {
+      "name": "playWheelWin",
+      "position": 41456
+    },
+    {
+      "name": "playMultiplierAppear",
+      "position": 41540
+    },
+    {
+      "name": "playMultiplierAddInWheels",
+      "position": 41640
+    },
+    {
+      "name": "playWheelAppear",
+      "position": 41755
+    },
+    {
+      "name": "playWheelSpin",
+      "position": 41846
+    },
+    {
+      "name": "playWheelTotalWin",
+      "position": 41933
+    },
+    {
+      "name": "playWheelNumberAddedToTop",
+      "position": 42022
+    },
+    {
+      "name": "play",
+      "position": 42136
+    },
+    {
+      "name": "create",
+      "position": 42297
+    },
+    {
+      "name": "bindSymList",
+      "position": 43317
+    },
+    {
+      "name": "resumeStatus",
+      "position": 43358
+    },
+    {
+      "name": "changeBoard",
+      "position": 43470
+    },
+    {
+      "name": "_clearBoard",
+      "position": 44486
+    },
+    {
+      "name": "_onBtnClicked",
+      "position": 45138
+    },
+    {
+      "name": "actionComplete",
+      "position": 45525
+    },
+    {
+      "name": "setCanClick",
+      "position": 45717
+    },
+    {
+      "name": "_stopTween",
+      "position": 46618
+    },
+    {
+      "name": "startRotation",
+      "position": 48232
+    },
+    {
+      "name": "stopRotation",
+      "position": 48398
+    },
+    {
+      "name": "playLeave",
+      "position": 48498
+    },
+    {
+      "name": "playEnter",
+      "position": 48594
+    },
+    {
+      "name": "resetChangeNumber",
+      "position": 49007
+    },
+    {
+      "name": "updateValue",
+      "position": 49228
+    },
+    {
+      "name": "_formatWinText",
+      "position": 49409
+    },
+    {
+      "name": "checkIfCanRoll",
+      "position": 52663
+    },
+    {
+      "name": "_showMultiplyAni",
+      "position": 52888
+    },
+    {
+      "name": "_clearMulNumber",
+      "position": 53984
+    },
+    {
+      "name": "_transformIndex",
+      "position": 54112
+    },
+    {
+      "name": "_spin",
+      "position": 54178
+    }
+  ],
+  "patterns": {
+    "defineBlocks": [],
+    "requireCalls": [],
+    "eventBindings": [
+      {
+        "event": "fade",
+        "position": 36165
+      },
+      {
+        "event": "fade",
+        "position": 40372
+      },
+      {
+        "event": "pointertap",
+        "position": 45041
+      }
+    ],
+    "componentRegistrations": []
+  }
+}

@@ -24,4 +24,20 @@ yarn-error.log*
 
 # 打包文件
 *.zip
-*.crx 
+*.crx
+
+# HAR 文件 (太大)
+*.har
+
+# 提取的资源文件 (运行时生成)
+tools/fastspin-extractor/resources/
+tools/fastspin-extractor/resources-by-feature/
+
+# 提取的大型 JS 文件 (运行时生成，保留分析报告)
+tools/fastspin-extractor/extracted/other/app-*.js
+tools/fastspin-extractor/extracted/lib/vendor-*.js
+tools/fastspin-extractor/extracted/slot/slot_decompressed.js
+tools/fastspin-extractor/extracted/game/game_decompressed.js
+
+# Playwright
+.playwright-mcp/

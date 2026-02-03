@@ -1,0 +1,611 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FastSpin Resource Extractor</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: #1a1a2e;
+        color: #fff;
+        min-height: 100vh;
+      }
+
+      .toolbar {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 10px 20px;
+        display: flex;
+        align-items: center;
+        gap: 15px;
+        flex-wrap: wrap;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+      }
+
+      .toolbar h1 {
+        font-size: 16px;
+        margin-right: 20px;
+      }
+
+      .toolbar input[type="text"] {
+        flex: 1;
+        min-width: 300px;
+        padding: 8px 12px;
+        border: none;
+        border-radius: 4px;
+        font-size: 14px;
+      }
+
+      .toolbar button {
+        padding: 8px 16px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background: #4caf50;
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: #45a049;
+      }
+      .btn-secondary {
+        background: #2196f3;
+        color: #fff;
+      }
+      .btn-secondary:hover {
+        background: #1976d2;
+      }
+      .btn-warning {
+        background: #ff9800;
+        color: #fff;
+      }
+      .btn-warning:hover {
+        background: #f57c00;
+      }
+
+      .main-container {
+        display: flex;
+        height: calc(100vh - 60px);
+      }
+
+      .game-container {
+        flex: 1;
+        position: relative;
+        background: #000;
+      }
+
+      .game-container iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+      }
+
+      .panel {
+        width: 320px;
+        background: #16213e;
+        overflow-y: auto;
+        padding: 15px;
+      }
+
+      .panel h2 {
+        font-size: 14px;
+        margin-bottom: 10px;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #374151;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-bottom: 15px;
+      }
+
+      .stat-card {
+        background: rgba(255, 255, 255, 0.05);
+        padding: 10px;
+        border-radius: 6px;
+        text-align: center;
+      }
+
+      .stat-card .value {
+        font-size: 24px;
+        font-weight: bold;
+        color: #4caf50;
+      }
+
+      .stat-card .label {
+        font-size: 11px;
+        color: #9ca3af;
+        margin-top: 4px;
+      }
+
+      .resource-list {
+        max-height: 400px;
+        overflow-y: auto;
+        font-size: 11px;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 4px;
+        padding: 8px;
+      }
+
+      .resource-item {
+        padding: 4px 0;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        word-break: break-all;
+      }
+
+      .resource-item .cat {
+        display: inline-block;
+        padding: 2px 6px;
+        border-radius: 3px;
+        font-size: 10px;
+        margin-right: 5px;
+      }
+
+      .cat-spine {
+        background: #e91e63;
+      }
+      .cat-lottie {
+        background: #9c27b0;
+      }
+      .cat-sprite {
+        background: #673ab7;
+      }
+      .cat-texture {
+        background: #2196f3;
+      }
+      .cat-audio {
+        background: #4caf50;
+      }
+      .cat-font {
+        background: #ff9800;
+      }
+      .cat-locale {
+        background: #795548;
+      }
+      .cat-config {
+        background: #607d8b;
+      }
+
+      .actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+        margin-top: 15px;
+      }
+
+      .actions button {
+        width: 100%;
+      }
+
+      .status {
+        margin-top: 10px;
+        padding: 8px;
+        background: rgba(76, 175, 80, 0.2);
+        border-radius: 4px;
+        font-size: 12px;
+        text-align: center;
+      }
+
+      .status.loading {
+        background: rgba(255, 152, 0, 0.2);
+      }
+      .status.error {
+        background: rgba(244, 67, 54, 0.2);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="toolbar">
+      <h1>🎰 FastSpin Extractor</h1>
+      <input
+        type="text"
+        id="gameUrl"
+        placeholder="输入游戏 URL..."
+        value="https://go.fastspindemo.com/touch/fsnew/20240901P/games/fortunejewels2/index.jsp?game=S-FJ02&language=zh_CN&type=web&menumode=off&pm=3"
+      />
+      <button class="btn-primary" onclick="loadGame()">加载游戏</button>
+      <button class="btn-warning" onclick="reloadGame()">重新加载</button>
+    </div>
+
+    <div class="main-container">
+      <div class="game-container">
+        <iframe
+          id="gameFrame"
+          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+        ></iframe>
+      </div>
+
+      <div class="panel">
+        <h2>📊 资源统计</h2>
+        <div class="stats" id="stats">
+          <div class="stat-card">
+            <div class="value" id="totalCount">0</div>
+            <div class="label">总计</div>
+          </div>
+          <div class="stat-card">
+            <div class="value" id="spineCount">0</div>
+            <div class="label">Spine</div>
+          </div>
+          <div class="stat-card">
+            <div class="value" id="textureCount">0</div>
+            <div class="label">纹理</div>
+          </div>
+          <div class="stat-card">
+            <div class="value" id="audioCount">0</div>
+            <div class="label">音频</div>
+          </div>
+          <div class="stat-card">
+            <div class="value" id="spriteCount">0</div>
+            <div class="label">精灵图</div>
+          </div>
+          <div class="stat-card">
+            <div class="value" id="lottieCount">0</div>
+            <div class="label">Lottie</div>
+          </div>
+        </div>
+
+        <div class="status" id="status">等待加载游戏...</div>
+
+        <div class="actions">
+          <button class="btn-primary" onclick="exportJSON()">导出 JSON</button>
+          <button class="btn-secondary" onclick="exportURLs()">
+            导出 URLs
+          </button>
+          <button class="btn-primary" onclick="generateScript()">
+            下载脚本
+          </button>
+          <button class="btn-secondary" onclick="copyURLs()">复制 URLs</button>
+        </div>
+
+        <h2 style="margin-top: 20px">📝 资源列表</h2>
+        <div class="resource-list" id="resourceList">
+          <div style="color: #666; text-align: center; padding: 20px">
+            加载游戏后显示资源...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      // 全局资源存储
+      let resources = [];
+      let resourceMap = new Map();
+      let categories = {
+        spine_skeleton: [],
+        spine_atlas: [],
+        lottie: [],
+        sprite_sheet: [],
+        texture: [],
+        audio: [],
+        font: [],
+        locale: [],
+        config: [],
+        other: [],
+      };
+
+      // 注入到 iframe 的代码
+      const injectionCode = `
+        (function() {
+            if (window.__fsInjected) return;
+            window.__fsInjected = true;
+            
+            const report = (type, data) => {
+                window.parent.postMessage({ type: 'fs-resource', resourceType: type, data: data }, '*');
+            };
+
+            // Hook Fetch
+            const originalFetch = window.fetch;
+            window.fetch = async function(input, init) {
+                const url = typeof input === 'string' ? input : (input?.url || String(input));
+                const response = await originalFetch.apply(this, arguments);
+                
+                try {
+                    const clone = response.clone();
+                    processResponse(url, clone);
+                } catch(e) {}
+                
+                return response;
+            };
+
+            // Hook XHR
+            const originalOpen = XMLHttpRequest.prototype.open;
+            const originalSend = XMLHttpRequest.prototype.send;
+            
+            XMLHttpRequest.prototype.open = function(method, url, ...rest) {
+                this._url = url;
+                return originalOpen.apply(this, [method, url, ...rest]);
+            };
+            
+            XMLHttpRequest.prototype.send = function(body) {
+                const xhr = this;
+                xhr.addEventListener('load', function() {
+                    if (xhr.status === 200) {
+                        processXHR(xhr._url, xhr);
+                    }
+                });
+                return originalSend.apply(this, arguments);
+            };
+
+            // Hook Image
+            const OriginalImage = window.Image;
+            window.Image = function(w, h) {
+                const img = new OriginalImage(w, h);
+                const origSrc = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src').set;
+                Object.defineProperty(img, 'src', {
+                    set(v) { 
+                        if (v) report('texture', { url: v, source: 'Image' });
+                        return origSrc.call(this, v);
+                    },
+                    get() { return this.getAttribute('src'); }
+                });
+                return img;
+            };
+
+            // Hook Audio
+            const OriginalAudio = window.Audio;
+            window.Audio = function(src) {
+                if (src) report('audio', { url: src, source: 'Audio' });
+                return new OriginalAudio(src);
+            };
+
+            // 处理响应
+            async function processResponse(url, response) {
+                const ext = getExt(url);
+                
+                if (ext === 'json') {
+                    try {
+                        const data = await response.json();
+                        classifyJSON(url, data);
+                    } catch(e) {
+                        report('other', { url });
+                    }
+                } else if (ext === 'atlas') {
+                    report('spine_atlas', { url });
+                } else if (['png','jpg','jpeg','webp'].includes(ext)) {
+                    report('texture', { url, source: 'fetch' });
+                } else if (['mp3','ogg','wav','m4a'].includes(ext)) {
+                    report('audio', { url, source: 'fetch' });
+                } else if (['ttf','otf','woff','woff2'].includes(ext)) {
+                    report('font', { url });
+                } else if (ext === 'xml') {
+                    report('font', { url, subtype: 'bitmap' });
+                }
+            }
+
+            function processXHR(url, xhr) {
+                const ext = getExt(url);
+                
+                if (ext === 'json') {
+                    try {
+                        const data = JSON.parse(xhr.responseText);
+                        classifyJSON(url, data);
+                    } catch(e) {
+                        report('other', { url });
+                    }
+                } else if (ext === 'atlas') {
+                    report('spine_atlas', { url });
+                } else if (['png','jpg','jpeg','webp'].includes(ext)) {
+                    report('texture', { url, source: 'xhr' });
+                } else if (['mp3','ogg','wav','m4a'].includes(ext)) {
+                    report('audio', { url, source: 'xhr' });
+                }
+            }
+
+            function classifyJSON(url, data) {
+                if (data.skeleton && data.bones && data.slots) {
+                    report('spine_skeleton', { url, version: data.skeleton.spine });
+                } else if (data.frames && data.meta) {
+                    report('sprite_sheet', { url, count: Object.keys(data.frames).length, texture: data.meta.image });
+                } else if (data.v && data.fr && data.layers) {
+                    report('lottie', { url, version: data.v, name: data.nm });
+                } else if (url.includes('zh_CN') || url.includes('en_US')) {
+                    report('locale', { url });
+                } else {
+                    report('config', { url });
+                }
+            }
+
+            function getExt(url) {
+                return url.split('/').pop().split('?')[0].split('.').pop().toLowerCase();
+            }
+
+            console.log('[FastSpin Extractor] Hooks installed in iframe');
+            report('status', { message: 'ready' });
+        })();
+        `;
+
+      // 接收 iframe 消息
+      window.addEventListener("message", (e) => {
+        if (e.data?.type === "fs-resource") {
+          handleResource(e.data.resourceType, e.data.data);
+        }
+      });
+
+      function handleResource(type, data) {
+        if (type === "status") {
+          updateStatus("✅ Hook 已注入，正在捕获资源...", "loading");
+          return;
+        }
+
+        const url = data.url;
+        if (!url || resourceMap.has(url)) return;
+
+        const resource = {
+          url: url,
+          category: type,
+          filename: url.split("/").pop().split("?")[0],
+          ...data,
+        };
+
+        resources.push(resource);
+        resourceMap.set(url, resource);
+        categories[type]?.push(resource);
+
+        updateUI();
+      }
+
+      function updateUI() {
+        document.getElementById("totalCount").textContent = resources.length;
+        document.getElementById("spineCount").textContent =
+          categories.spine_skeleton.length + categories.spine_atlas.length;
+        document.getElementById("textureCount").textContent =
+          categories.texture.length;
+        document.getElementById("audioCount").textContent =
+          categories.audio.length;
+        document.getElementById("spriteCount").textContent =
+          categories.sprite_sheet.length;
+        document.getElementById("lottieCount").textContent =
+          categories.lottie.length;
+
+        // 更新资源列表（只显示最后20个）
+        const list = document.getElementById("resourceList");
+        const recent = resources.slice(-30).reverse();
+        list.innerHTML = recent
+          .map(
+            (r) => `
+                <div class="resource-item">
+                    <span class="cat cat-${r.category.split("_")[0]}">${
+              r.category
+            }</span>
+                    ${r.filename}
+                </div>
+            `
+          )
+          .join("");
+
+        updateStatus(`✅ 已捕获 ${resources.length} 个资源`);
+      }
+
+      function updateStatus(msg, cls = "") {
+        const el = document.getElementById("status");
+        el.textContent = msg;
+        el.className = "status " + cls;
+      }
+
+      function loadGame() {
+        const url = document.getElementById("gameUrl").value.trim();
+        if (!url) {
+          alert("请输入游戏 URL");
+          return;
+        }
+
+        // 清空数据
+        resources = [];
+        resourceMap.clear();
+        Object.keys(categories).forEach((k) => (categories[k] = []));
+        updateUI();
+
+        updateStatus("⏳ 正在加载游戏...", "loading");
+
+        const iframe = document.getElementById("gameFrame");
+
+        // 监听 iframe 加载
+        iframe.onload = () => {
+          try {
+            // 注入代码
+            const iframeDoc =
+              iframe.contentDocument || iframe.contentWindow.document;
+            const script = iframeDoc.createElement("script");
+            script.textContent = injectionCode;
+            iframeDoc.head.appendChild(script);
+          } catch (e) {
+            console.error("注入失败:", e);
+            updateStatus("❌ 注入失败: 跨域限制", "error");
+          }
+        };
+
+        iframe.src = url;
+      }
+
+      function reloadGame() {
+        const iframe = document.getElementById("gameFrame");
+        if (iframe.src) {
+          // 清空数据
+          resources = [];
+          resourceMap.clear();
+          Object.keys(categories).forEach((k) => (categories[k] = []));
+          updateUI();
+
+          updateStatus("⏳ 正在重新加载...", "loading");
+          iframe.src = iframe.src;
+        }
+      }
+
+      function exportJSON() {
+        const data = {
+          exportTime: new Date().toISOString(),
+          gameUrl: document.getElementById("gameUrl").value,
+          totalResources: resources.length,
+          categories: Object.fromEntries(
+            Object.entries(categories).map(([k, v]) => [k, v.length])
+          ),
+          resources: resources,
+        };
+
+        downloadFile(
+          JSON.stringify(data, null, 2),
+          `fastspin_${Date.now()}.json`,
+          "application/json"
+        );
+      }
+
+      function exportURLs() {
+        const urls = resources.map((r) => r.url).join("\n");
+        downloadFile(urls, `fastspin_urls_${Date.now()}.txt`, "text/plain");
+      }
+
+      function copyURLs() {
+        const urls = resources.map((r) => r.url).join("\n");
+        navigator.clipboard.writeText(urls).then(() => {
+          alert(`已复制 ${resources.length} 个 URL`);
+        });
+      }
+
+      function generateScript() {
+        const script = `#!/bin/bash
+# FastSpin Resources - ${new Date().toISOString()}
+# Total: ${resources.length} files
+
+mkdir -p fastspin/{spine,lottie,sprites,textures,audio,fonts,locales,configs}
+
+${resources
+  .map((r) => {
+    let dir = r.category
+      .replace("spine_skeleton", "spine")
+      .replace("spine_atlas", "spine")
+      .replace("sprite_sheet", "sprites")
+      .replace("texture", "textures");
+    return `curl -o "fastspin/${dir}/${r.filename}" "${r.url}"`;
+  })
+  .join("\n")}
+
+echo "Done!"`;
+
+        downloadFile(script, "download_fastspin.sh", "text/plain");
+      }
+
+      function downloadFile(content, filename, type) {
+        const blob = new Blob([content], { type });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    </script>
+  </body>
+</html>

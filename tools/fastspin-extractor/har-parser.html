@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FastSpin HAR 资源解析器</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+          sans-serif;
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+        color: #fff;
+        min-height: 100vh;
+        padding: 30px;
+      }
+
+      .container {
+        max-width: 1200px;
+        margin: 0 auto;
+      }
+
+      h1 {
+        text-align: center;
+        margin-bottom: 30px;
+        font-size: 28px;
+      }
+      h1 span {
+        color: #4caf50;
+      }
+
+      .card {
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 12px;
+        padding: 25px;
+        margin-bottom: 20px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+
+      .card h2 {
+        font-size: 16px;
+        margin-bottom: 15px;
+        color: #4caf50;
+      }
+
+      .steps {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 20px;
+        flex-wrap: wrap;
+      }
+
+      .step {
+        flex: 1;
+        min-width: 200px;
+        background: rgba(0, 0, 0, 0.3);
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+      }
+
+      .step-num {
+        width: 30px;
+        height: 30px;
+        background: #4caf50;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: bold;
+        margin-bottom: 10px;
+      }
+
+      .step p {
+        font-size: 13px;
+        color: #aaa;
+      }
+
+      .drop-zone {
+        border: 2px dashed #4caf50;
+        border-radius: 12px;
+        padding: 50px;
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s;
+        background: rgba(76, 175, 80, 0.05);
+      }
+
+      .drop-zone:hover,
+      .drop-zone.dragover {
+        background: rgba(76, 175, 80, 0.15);
+        border-color: #81c784;
+      }
+
+      .drop-zone input {
+        display: none;
+      }
+
+      .drop-zone .icon {
+        font-size: 48px;
+        margin-bottom: 15px;
+      }
+
+      .stats {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+        gap: 12px;
+        margin: 20px 0;
+      }
+
+      .stat {
+        background: rgba(0, 0, 0, 0.3);
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+      }
+
+      .stat .value {
+        font-size: 28px;
+        font-weight: bold;
+        color: #4caf50;
+      }
+
+      .stat .label {
+        font-size: 12px;
+        color: #888;
+        margin-top: 5px;
+      }
+
+      .actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 20px;
+      }
+
+      button {
+        padding: 12px 24px;
+        border: none;
+        border-radius: 6px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 500;
+        transition: all 0.2s;
+      }
+
+      .btn-primary {
+        background: #4caf50;
+        color: #fff;
+      }
+      .btn-primary:hover {
+        background: #45a049;
+        transform: translateY(-1px);
+      }
+      .btn-secondary {
+        background: #2196f3;
+        color: #fff;
+      }
+      .btn-secondary:hover {
+        background: #1976d2;
+      }
+      .btn-outline {
+        background: transparent;
+        border: 1px solid #4caf50;
+        color: #4caf50;
+      }
+      .btn-outline:hover {
+        background: rgba(76, 175, 80, 0.1);
+      }
+
+      button:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+
+      .resource-list {
+        max-height: 500px;
+        overflow-y: auto;
+        background: rgba(0, 0, 0, 0.3);
+        border-radius: 8px;
+        margin-top: 15px;
+      }
+
+      .resource-item {
+        padding: 10px 15px;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        font-size: 13px;
+      }
+
+      .resource-item:hover {
+        background: rgba(255, 255, 255, 0.05);
+      }
+
+      .resource-type {
+        padding: 3px 8px;
+        border-radius: 4px;
+        font-size: 11px;
+        font-weight: 500;
+        min-width: 60px;
+        text-align: center;
+      }
+
+      .type-spine {
+        background: #e91e63;
+      }
+      .type-atlas {
+        background: #9c27b0;
+      }
+      .type-sprite {
+        background: #673ab7;
+      }
+      .type-lottie {
+        background: #3f51b5;
+      }
+      .type-texture {
+        background: #2196f3;
+      }
+      .type-audio {
+        background: #4caf50;
+      }
+      .type-font {
+        background: #ff9800;
+      }
+      .type-locale {
+        background: #795548;
+      }
+      .type-config {
+        background: #607d8b;
+      }
+      .type-other {
+        background: #9e9e9e;
+      }
+
+      .resource-url {
+        flex: 1;
+        word-break: break-all;
+        color: #aaa;
+      }
+
+      .filter-bar {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 15px;
+      }
+
+      .filter-btn {
+        padding: 6px 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border: none;
+        border-radius: 20px;
+        color: #fff;
+        font-size: 12px;
+        cursor: pointer;
+      }
+
+      .filter-btn.active {
+        background: #4caf50;
+      }
+
+      .hidden {
+        display: none;
+      }
+
+      .progress {
+        height: 4px;
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 2px;
+        overflow: hidden;
+        margin-top: 15px;
+      }
+
+      .progress-bar {
+        height: 100%;
+        background: #4caf50;
+        width: 0%;
+        transition: width 0.3s;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>🎰 FastSpin <span>HAR 资源解析器</span></h1>
+
+      <div class="card">
+        <h2>📝 使用步骤</h2>
+        <div class="steps">
+          <div class="step">
+            <div class="step-num">1</div>
+            <p>打开游戏页面，按 F12 打开 DevTools</p>
+          </div>
+          <div class="step">
+            <div class="step-num">2</div>
+            <p>切换到 Network 标签，刷新页面</p>
+          </div>
+          <div class="step">
+            <div class="step-num">3</div>
+            <p>等待游戏完全加载</p>
+          </div>
+          <div class="step">
+            <div class="step-num">4</div>
+            <p>右键 → Save all as HAR with content</p>
+          </div>
+          <div class="step">
+            <div class="step-num">5</div>
+            <p>将 HAR 文件拖到下方区域</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>📂 上传 HAR 文件</h2>
+        <div class="drop-zone" id="dropZone">
+          <div class="icon">📁</div>
+          <p>拖放 HAR 文件到这里，或点击选择文件</p>
+          <input type="file" id="fileInput" accept=".har" />
+        </div>
+        <div class="progress hidden" id="progress">
+          <div class="progress-bar" id="progressBar"></div>
+        </div>
+      </div>
+
+      <div class="card hidden" id="resultsCard">
+        <h2>📊 资源统计</h2>
+        <div class="stats" id="stats"></div>
+
+        <div class="actions">
+          <button class="btn-primary" onclick="exportJSON()">
+            📥 导出 JSON
+          </button>
+          <button class="btn-secondary" onclick="exportURLs()">
+            📋 导出 URLs
+          </button>
+          <button class="btn-secondary" onclick="exportScript()">
+            🔧 生成下载脚本
+          </button>
+          <button class="btn-outline" onclick="copyURLs()">
+            📎 复制所有 URL
+          </button>
+        </div>
+
+        <h2 style="margin-top: 25px">📝 资源列表</h2>
+        <div class="filter-bar" id="filterBar"></div>
+        <div class="resource-list" id="resourceList"></div>
+      </div>
+    </div>
+
+    <script>
+      let resources = [];
+      let categories = {};
+      let currentFilter = "all";
+
+      // 拖放处理
+      const dropZone = document.getElementById("dropZone");
+      const fileInput = document.getElementById("fileInput");
+
+      dropZone.addEventListener("click", () => fileInput.click());
+      dropZone.addEventListener("dragover", (e) => {
+        e.preventDefault();
+        dropZone.classList.add("dragover");
+      });
+      dropZone.addEventListener("dragleave", () => {
+        dropZone.classList.remove("dragover");
+      });
+      dropZone.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dropZone.classList.remove("dragover");
+        const file = e.dataTransfer.files[0];
+        if (file) processFile(file);
+      });
+      fileInput.addEventListener("change", (e) => {
+        if (e.target.files[0]) processFile(e.target.files[0]);
+      });
+
+      function processFile(file) {
+        document.getElementById("progress").classList.remove("hidden");
+        document.getElementById("progressBar").style.width = "30%";
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          document.getElementById("progressBar").style.width = "60%";
+          try {
+            const har = JSON.parse(e.target.result);
+            parseHAR(har);
+            document.getElementById("progressBar").style.width = "100%";
+            setTimeout(() => {
+              document.getElementById("progress").classList.add("hidden");
+            }, 500);
+          } catch (err) {
+            alert("解析 HAR 文件失败: " + err.message);
+            document.getElementById("progress").classList.add("hidden");
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      function parseHAR(har) {
+        resources = [];
+        categories = {};
+        const seen = new Set();
+
+        const entries = har.log?.entries || [];
+
+        for (const entry of entries) {
+          const url = entry.request?.url;
+          if (!url || seen.has(url)) continue;
+
+          const status = entry.response?.status;
+          if (status !== 200) continue;
+
+          seen.add(url);
+
+          const filename = url.split("/").pop().split("?")[0];
+          const ext = filename.split(".").pop().toLowerCase();
+          const mimeType = entry.response?.content?.mimeType || "";
+
+          let type = classifyResource(url, ext, mimeType, entry);
+          if (!type) continue;
+
+          const resource = {
+            url,
+            type,
+            filename,
+            ext,
+            size: entry.response?.content?.size || 0,
+            mimeType,
+          };
+
+          resources.push(resource);
+          categories[type] = (categories[type] || 0) + 1;
+        }
+
+        // 尝试分析 JSON 内容
+        analyzeJSONContent(har);
+
+        renderResults();
+      }
+
+      function classifyResource(url, ext, mimeType, entry) {
+        // 排除非资源
+        if (
+          url.includes("google") ||
+          url.includes("analytics") ||
+          url.includes("facebook")
+        ) {
+          return null;
+        }
+
+        if (ext === "atlas") return "atlas";
+        if (["png", "jpg", "jpeg", "webp", "gif"].includes(ext))
+          return "texture";
+        if (["mp3", "ogg", "wav", "m4a", "aac"].includes(ext)) return "audio";
+        if (["ttf", "otf", "woff", "woff2"].includes(ext)) return "font";
+        if (ext === "xml") return "font";
+        if (ext === "css") return "css";
+        if (ext === "js") return "js";
+        if (ext === "json") return "config"; // 稍后会细分
+
+        if (mimeType.includes("image")) return "texture";
+        if (mimeType.includes("audio")) return "audio";
+        if (mimeType.includes("font")) return "font";
+
+        return null;
+      }
+
+      function analyzeJSONContent(har) {
+        const entries = har.log?.entries || [];
+
+        for (const entry of entries) {
+          const url = entry.request?.url;
+          if (!url || !url.endsWith(".json")) continue;
+
+          const content = entry.response?.content?.text;
+          if (!content) continue;
+
+          try {
+            const data = JSON.parse(content);
+            const resource = resources.find((r) => r.url === url);
+            if (!resource) continue;
+
+            // Spine 骨骼
+            if (data.skeleton && data.bones && data.slots) {
+              resource.type = "spine";
+              resource.spineVersion = data.skeleton.spine;
+              resource.animations = Object.keys(data.animations || {}).length;
+              categories["spine"] = (categories["spine"] || 0) + 1;
+              categories["config"]--;
+            }
+            // 精灵图
+            else if (data.frames && data.meta) {
+              resource.type = "sprite";
+              resource.spriteCount = Object.keys(data.frames).length;
+              resource.textureFile = data.meta.image;
+              categories["sprite"] = (categories["sprite"] || 0) + 1;
+              categories["config"]--;
+            }
+            // Lottie
+            else if (data.v && data.fr && data.layers) {
+              resource.type = "lottie";
+              resource.lottieVersion = data.v;
+              resource.animationName = data.nm;
+              categories["lottie"] = (categories["lottie"] || 0) + 1;
+              categories["config"]--;
+            }
+            // 语言包
+            else if (
+              url.includes("zh_CN") ||
+              url.includes("en_US") ||
+              url.includes("locale")
+            ) {
+              resource.type = "locale";
+              categories["locale"] = (categories["locale"] || 0) + 1;
+              categories["config"]--;
+            }
+          } catch (e) {}
+        }
+
+        // 清理空分类
+        Object.keys(categories).forEach((k) => {
+          if (categories[k] <= 0) delete categories[k];
+        });
+      }
+
+      function renderResults() {
+        document.getElementById("resultsCard").classList.remove("hidden");
+
+        // 渲染统计
+        const statsHtml = Object.entries(categories)
+          .sort((a, b) => b[1] - a[1])
+          .map(
+            ([type, count]) => `
+                    <div class="stat">
+                        <div class="value">${count}</div>
+                        <div class="label">${type}</div>
+                    </div>
+                `
+          )
+          .join("");
+
+        document.getElementById("stats").innerHTML = `
+                <div class="stat">
+                    <div class="value">${resources.length}</div>
+                    <div class="label">总计</div>
+                </div>
+                ${statsHtml}
+            `;
+
+        // 渲染过滤器
+        const filterHtml = `
+                <button class="filter-btn active" data-type="all">全部 (${
+                  resources.length
+                })</button>
+                ${Object.entries(categories)
+                  .sort((a, b) => b[1] - a[1])
+                  .map(
+                    ([type, count]) =>
+                      `<button class="filter-btn" data-type="${type}">${type} (${count})</button>`
+                  )
+                  .join("")}
+            `;
+        document.getElementById("filterBar").innerHTML = filterHtml;
+
+        // 绑定过滤器事件
+        document.querySelectorAll(".filter-btn").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            document
+              .querySelectorAll(".filter-btn")
+              .forEach((b) => b.classList.remove("active"));
+            btn.classList.add("active");
+            currentFilter = btn.dataset.type;
+            renderResourceList();
+          });
+        });
+
+        renderResourceList();
+      }
+
+      function renderResourceList() {
+        const filtered =
+          currentFilter === "all"
+            ? resources
+            : resources.filter((r) => r.type === currentFilter);
+
+        const html = filtered
+          .map(
+            (r) => `
+                <div class="resource-item">
+                    <span class="resource-type type-${r.type}">${r.type}</span>
+                    <span class="resource-url" title="${r.url}">${r.filename}</span>
+                </div>
+            `
+          )
+          .join("");
+
+        document.getElementById("resourceList").innerHTML =
+          html || '<div class="resource-item">无资源</div>';
+      }
+
+      function exportJSON() {
+        const data = {
+          exportTime: new Date().toISOString(),
+          totalCount: resources.length,
+          categories: categories,
+          resources: resources,
+        };
+        downloadFile(
+          JSON.stringify(data, null, 2),
+          "fastspin_resources.json",
+          "application/json"
+        );
+      }
+
+      function exportURLs() {
+        const urls = resources.map((r) => r.url).join("\n");
+        downloadFile(urls, "fastspin_urls.txt", "text/plain");
+      }
+
+      function exportScript() {
+        const script = `#!/bin/bash
+# FastSpin Resources Download Script
+# Generated: ${new Date().toISOString()}
+# Total: ${resources.length} files
+
+mkdir -p fastspin/{spine,atlas,sprite,lottie,texture,audio,font,locale,config,css,js}
+
+${resources
+  .map((r) => `curl -o "fastspin/${r.type}/${r.filename}" "${r.url}"`)
+  .join("\n")}
+
+echo "Download complete!"
+`;
+        downloadFile(script, "download_fastspin.sh", "text/plain");
+      }
+
+      function copyURLs() {
+        const urls = resources.map((r) => r.url).join("\n");
+        navigator.clipboard.writeText(urls).then(() => {
+          alert(`已复制 ${resources.length} 个 URL 到剪贴板`);
+        });
+      }
+
+      function downloadFile(content, filename, type) {
+        const blob = new Blob([content], { type });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        a.click();
+        URL.revokeObjectURL(url);
+      }
+    </script>
+  </body>
+</html>
