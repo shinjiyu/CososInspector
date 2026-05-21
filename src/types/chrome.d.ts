@@ -1,6 +1,16 @@
 declare namespace chrome {
   namespace runtime {
     function getURL(path: string): string;
+    const lastError?: { message?: string };
+    function sendMessage(
+      message: unknown,
+      responseCallback?: (response: {
+        status?: string;
+        port?: number;
+        wsUrl?: string;
+        ok?: boolean;
+      }) => void
+    ): void;
     const onMessage: {
       addListener: (
         callback: (
@@ -10,6 +20,18 @@ declare namespace chrome {
         ) => boolean | void
       ) => void;
     };
+  }
+
+  namespace tabs {
+    function sendMessage(
+      tabId: number,
+      message: unknown,
+      responseCallback?: (response: {
+        ok?: boolean;
+        result?: unknown;
+        error?: string;
+      }) => void
+    ): void;
   }
 
   namespace tabs {

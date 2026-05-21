@@ -250,4 +250,55 @@ export type CocosInspectorMcpApi = typeof cocosInspectorMcpApi;
 export function installMcpBridge(): void {
   const win = window as Window & { __cocosInspectorApi?: CocosInspectorMcpApi };
   win.__cocosInspectorApi = cocosInspectorMcpApi;
+
+  window.addEventListener('message', async (ev) => {
+    if (ev.source !== window || ev.data?.type !== 'cocos-api-call') return;
+    const { requestId, method, args } = ev.data as {
+      requestId: string;
+      method: string;
+      args: unknown[];
+    };
+    const api = win.__cocosInspectorApi;
+    try {
+      if (!api) {
+        window.postMessage(
+          {
+            type: 'cocos-api-response',
+            requestId,
+            error: '__cocosInspectorApi 未就绪',
+          },
+          '*'
+        );
+        return;
+      }
+      const fn = api[method as keyof CocosInspectorMcpApi];
+      if (typeof fn !== 'function') {
+        window.postMessage(
+          {
+            type: 'cocos-api-response',
+            requestId,
+            error: `未知 API: ${method}`,
+          },
+          '*'
+        );
+        return;
+      }
+      const result = await (
+        fn as (...p: unknown[]) => Promise<unknown> | unknown
+      ).apply(api, args ?? []);
+      window.postMessage(
+        { type: 'cocos-api-response', requestId, result },
+        '*'
+      );
+    } catch (e) {
+      window.postMessage(
+        {
+          type: 'cocos-api-response',
+          requestId,
+          error: e instanceof Error ? e.message : String(e),
+        },
+        '*'
+      );
+    }
+  });
 }

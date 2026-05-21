@@ -11,8 +11,35 @@ function wsUrl(): string {
   return `ws://127.0.0.1:${bridgePort()}`;
 }
 
+type McpBridgeStatus = 'connecting' | 'connected' | 'disconnected';
+
 let socket: WebSocket | null = null;
 let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+let mcpStatus: McpBridgeStatus = 'disconnected';
+
+function setMcpStatus(next: McpBridgeStatus): void {
+  if (mcpStatus === next) return;
+  mcpStatus = next;
+  broadcastMcpStatus();
+}
+
+function getMcpStatusPayload(): {
+  status: McpBridgeStatus;
+  port: number;
+  wsUrl: string;
+} {
+  return { status: mcpStatus, port: bridgePort(), wsUrl: wsUrl() };
+}
+
+function broadcastMcpStatus(): void {
+  const payload = { type: 'cocos-mcp-status', ...getMcpStatusPayload() };
+  void chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] }).then((tabs) => {
+    for (const tab of tabs) {
+      if (!tab.id) continue;
+      chrome.tabs.sendMessage(tab.id, payload).catch(() => {});
+    }
+  });
+}
 
 async function publishTabs(): Promise<void> {
   if (!socket || socket.readyState !== WebSocket.OPEN) return;
@@ -32,69 +59,59 @@ async function publishTabs(): Promise<void> {
 async function findCocosTab(
   pageUrlMatch: string
 ): Promise<chrome.tabs.Tab | null> {
-  const tabs = await chrome.tabs.query({
-    url: ['http://*/*', 'https://*/*'],
-    active: true,
-    currentWindow: true,
+  const match = pageUrlMatch.trim().toLowerCase();
+  const all = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
+
+  const candidates = all.filter((t) => {
+    if (!t.id || !t.url) return false;
+    if (match && !t.url.toLowerCase().includes(match)) return false;
+    return true;
   });
 
-  const match = pageUrlMatch.trim().toLowerCase();
-  const pool = tabs.length ? tabs : await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
-
-  for (const tab of pool) {
-    if (!tab.id || !tab.url) continue;
-    if (match && !tab.url.toLowerCase().includes(match)) continue;
-    try {
-      const [{ result }] = await chrome.scripting.executeScript({
-        target: { tabId: tab.id },
-        world: 'MAIN',
-        func: () => !!(window as Window & { __cocosInspectorApi?: unknown }).__cocosInspectorApi,
-      });
-      if (result) return tab;
-    } catch {
-      /* 无权限或未注入 */
-    }
-  }
-
-  for (const tab of pool) {
-    if (!tab.id || !tab.url) continue;
-    if (match && !tab.url.toLowerCase().includes(match)) continue;
-    return tab;
+  for (const tab of candidates) {
+    if (!tab.id) continue;
+    if (await pingTab(tab.id)) return tab;
   }
 
   return null;
 }
 
-async function executeApiOnTab(
+function callApiViaContent(
   tabId: number,
   method: string,
   args: unknown[]
 ): Promise<unknown> {
-  const [{ result }] = await chrome.scripting.executeScript({
-    target: { tabId },
-    world: 'MAIN',
-    func: async (m: string, a: unknown[]) => {
-      const api = (window as Window & {
-        __cocosInspectorApi?: Record<string, (...p: unknown[]) => unknown>;
-      }).__cocosInspectorApi;
-      if (!api) {
-        return { __error: '__cocosInspectorApi 未就绪，请确认试玩页已加载扩展' };
+  return new Promise((resolve, reject) => {
+    chrome.tabs.sendMessage(
+      tabId,
+      { type: 'cocos-api-call', method, args: args ?? [] },
+      (res) => {
+        const err = chrome.runtime.lastError;
+        if (err?.message) {
+          reject(new Error(err.message));
+          return;
+        }
+        if (!res?.ok) {
+          reject(new Error(res?.error ?? '页面 API 调用失败'));
+          return;
+        }
+        resolve(res.result);
       }
-      if (m === '__ping') return { ok: true, pageUrl: location.href };
-      const fn = api[m];
-      if (typeof fn !== 'function') {
-        return { __error: `未知 API: ${m}` };
-      }
-      return await fn(...a);
-    },
-    args: [method, args],
+    );
   });
+}
 
-  const out = result as { __error?: string } | unknown;
-  if (out && typeof out === 'object' && '__error' in (out as object)) {
-    throw new Error((out as { __error: string }).__error);
-  }
-  return out;
+async function pingTab(tabId: number): Promise<boolean> {
+  return new Promise((resolve) => {
+    chrome.tabs.sendMessage(tabId, { type: 'cocos-api-ping' }, (res) => {
+      if (chrome.runtime.lastError || !res?.ok) {
+        resolve(false);
+        return;
+      }
+      const info = res.result as { hasCocos?: boolean } | null;
+      resolve(!!info?.hasCocos);
+    });
+  });
 }
 
 async function captureVisibleTab(
@@ -142,7 +159,7 @@ async function handleBridgeCall(msg: {
       return;
     }
 
-    const result = await executeApiOnTab(tab.id, msg.method, msg.args ?? []);
+    const result = await callApiViaContent(tab.id, msg.method, msg.args ?? []);
     respond({ result });
   } catch (e) {
     respond({
@@ -154,14 +171,18 @@ async function handleBridgeCall(msg: {
 function connectBridge(): void {
   if (socket?.readyState === WebSocket.OPEN) return;
 
+  setMcpStatus('connecting');
+
   try {
     socket = new WebSocket(wsUrl());
   } catch {
+    setMcpStatus('disconnected');
     scheduleReconnect();
     return;
   }
 
   socket.onopen = () => {
+    setMcpStatus('connected');
     socket?.send(JSON.stringify({ role: 'extension' }));
     void publishTabs();
   };
@@ -186,10 +207,12 @@ function connectBridge(): void {
 
   socket.onclose = () => {
     socket = null;
+    setMcpStatus('disconnected');
     scheduleReconnect();
   };
 
   socket.onerror = () => {
+    setMcpStatus('disconnected');
     socket?.close();
   };
 }
@@ -206,6 +229,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === 'cocos-page-active') {
     void publishTabs();
     sendResponse({ ok: true });
+    return true;
+  }
+  if (message?.type === 'get-mcp-status') {
+    sendResponse(getMcpStatusPayload());
     return true;
   }
   return false;
