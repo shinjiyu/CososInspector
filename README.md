@@ -12,6 +12,25 @@
 - 按名称搜索并自动展开匹配分支
 - 选中节点高亮（仅面板内，不修改游戏对象）
 - 自动刷新（500ms）与手动刷新
+- Sprite 预览、下载 PNG、运行时上传替换
+- **替换包**：记录「原贴图线索 → 新图」，导出后在下载的试玩页源码中批量替换资源文件
+
+### 试玩广告换皮流程（如 AppLovin / super-html）
+
+1. 打开试玩页（例如 `applovin2103.html`），在 **Sprite** 树中选中节点并 **上传替换**（仅当前会话预览）
+2. 打开 **替换包** Tab → **导出替换包**（`manifest.json`、`images/`、`page-resources.json`）
+3. **super-html 重打包**（推荐）：
+
+```bash
+# 将 tmp 内 manifest + 扁平图片放在同一目录，或标准 images/ 子目录
+node tools/repack-super-html.mjs --html path/to/applovin2103.html --pack tmp --out tmp/repacked.html
+```
+
+重打包默认会把 `cc` 的 import map 改成 `about:cocos-js/cc.js`，便于 `npx serve` 单目录预览；部署到含 `../cocos-js/` 的线上目录时加 `--keep-import-map`。
+
+**图集子帧**：manifest 里带有 `original.frameRect`（且区域小于整张 native 图集）时，会把替换图合成进对应 PNG 图集，而不是覆盖整张纹理；仍会自动处理 oasj 第 27 位占位与 data URL 长度上限。
+
+4. 备选：`node tools/apply-replacements.mjs`（已下载的整站目录 + 替换包）
 
 ## 构建与安装
 
@@ -33,6 +52,8 @@ src/
   cocos3/
     detect.ts         # 3.x 环境检测
     sceneTree.ts      # 场景树遍历与哈希
+    replacementStore.ts / replacementExport.ts / replacementPanel.ts
+  tools/apply-replacements.mjs
   styles/inspector.css
 ```
 

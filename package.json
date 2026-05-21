@@ -4,6 +4,7 @@
   "description": "Cocos Creator 3.x 节点树查看器 Chrome 扩展",
   "main": "dist/content.js",
   "scripts": {
+    "repack": "node tools/repack-super-html.mjs",
     "build": "node scripts/build.mjs",
     "watch": "node scripts/build.mjs --watch",
     "dev": "node scripts/build.mjs",
@@ -20,7 +21,11 @@
   ],
   "author": "",
   "license": "ISC",
+  "dependencies": {
+    "jszip": "^3.10.1"
+  },
   "devDependencies": {
+    "sharp": "^0.34.2",
     "esbuild": "^0.25.0",
     "typescript": "^5.0.0"
   }

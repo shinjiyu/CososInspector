@@ -41,3 +41,11 @@ tools/fastspin-extractor/extracted/game/game_decompressed.js
 
 # Playwright
 .playwright-mcp/
+
+# 本地试玩重打包测试
+tmp/
+cocos-patched_*.html
+tools/_probe/_cc.adapter.js
+tools/_probe/_super_load.js
+tools/_probe/_probe_atlas_pack/
+tools/_probe/_probe_atlas_patch.png
