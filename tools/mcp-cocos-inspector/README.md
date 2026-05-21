@@ -1,20 +1,32 @@
 # MCP — Cocos Inspector 3
 
-通过 Chrome DevTools Protocol 连接已打开试玩页上的 **`window.__cocosInspectorApi`**，供 Cursor Agent 自动：列 Sprite、下载纹理、替换、导出替换包、重打包、截屏。
+Cursor 通过 MCP 控制试玩页上的 Inspector：**无需 Chrome 调试模式**。
 
-## 前置条件
+## 连接方式（默认：桥接）
 
-1. 安装并启用 **Cocos Inspector 3** 扩展（`npm run build` 后加载 `dist/`）
-2. 用远程调试端口启动 Chrome，并打开试玩页，例如：
-
-```powershell
-# Windows 示例（路径按本机 Chrome 调整）
-& "C:\Program Files\Google\Chrome\Application\chrome.exe" `
-  --remote-debugging-port=9222 `
-  "https://你的试玩页.html"
+```text
+Cursor MCP 进程
+  └─ 本机 WebSocket 127.0.0.1:17373（bridge-server）
+        └─ 扩展 background 主动连接
+              └─ chrome.scripting → 试玩页 __cocosInspectorApi
 ```
 
-3. 安装 MCP 依赖：
+1. 在 Cursor 启用 `cocos-inspector` MCP（会自动监听 `17373`）
+2. **普通方式**打开 Chrome，打开 Cocos 试玩页
+3. 加载 **Cocos Inspector 3** 扩展（`npm run build` 后重载扩展）
+
+扩展后台每 2.5s 重连桥接；打开试玩页后即可用 MCP 工具。
+
+### 可选：CDP 模式（需调试端口）
+
+仅当你坚持用远程调试时：
+
+```powershell
+$env:COCOS_USE_CDP = "1"
+# Chrome 需 --remote-debugging-port=9222
+```
+
+## 安装
 
 ```powershell
 cd tools/mcp-cocos-inspector
@@ -23,8 +35,6 @@ npm install
 
 ## Cursor 配置
 
-在 Cursor Settings → MCP 中添加（路径改成本机绝对路径）：
-
 ```json
 {
   "mcpServers": {
@@ -32,48 +42,33 @@ npm install
       "command": "node",
       "args": ["D:/UGit/CososInspector/tools/mcp-cocos-inspector/index.mjs"],
       "env": {
-        "COCOS_CDP_PORT": "9222",
-        "COCOS_PAGE_URL_MATCH": "applovin"
+        "COCOS_PAGE_URL_MATCH": "applovin",
+        "COCOS_BRIDGE_PORT": "17373"
       }
     }
   }
 }
 ```
 
-`COCOS_PAGE_URL_MATCH` 为试玩页 URL 子串，用于在多个标签中选中正确页面。
+`COCOS_PAGE_URL_MATCH`：试玩页 URL 子串，用于在多个标签里选中正确页面。
 
-## 工具一览
+## 自检
+
+1. `cocos_list_tabs` → `extensionConnected: true`
+2. 试玩页控制台：`await window.__cocosInspectorApi?.listSprites()`
+
+若 `extensionConnected: false`：确认 Cursor 已启用 MCP、扩展已重载、试玩页为 http(s)。
+
+## 工具与工作流
 
 | 工具 | 作用 |
 |------|------|
-| `cocos_list_tabs` | 查看 CDP 可见标签 |
-| `cocos_page_info` | 页面 / 引擎 / 场景 |
-| `cocos_list_sprites` | 扁平 Sprite 列表（筛 UI 用） |
-| `cocos_get_sprite` | 单帧元数据 |
-| `cocos_download_texture` | 导出 PNG 到本地 |
-| `cocos_replace_texture` | base64 上传替换 |
-| `cocos_revert_texture` | 还原 |
-| `cocos_list_replacements` | 已记录替换对 |
-| `cocos_export_replacement_pack` | 写出 manifest + images |
-| `cocos_repack_super_html` | 调 `tools/repack-super-html.mjs` |
-| `cocos_screenshot` | `game` / `node` / `tab` 截屏 |
+| `cocos_list_tabs` | 桥接是否连通 |
+| `cocos_list_sprites` | 列 UI Sprite（供 Agent 筛选） |
+| `cocos_screenshot` | `game` / `node` / `tab`（tab 用扩展截屏，无需 CDP） |
+| `cocos_download_texture` | 导出 PNG |
+| `cocos_replace_texture` | base64 替换预览 |
+| `cocos_export_replacement_pack` | 写出替换包 |
+| `cocos_repack_super_html` | 本机重打包 |
 
-## 推荐工作流（风格替换）
-
-1. **`cocos_screenshot`** `kind=game` → 保存 `tmp/ui-ref.png`，让 Cursor 理解整体 UI
-2. **`cocos_list_sprites`** → Agent 根据名称/路径判断哪些是 UI 纹理（logo、btn、symbol 等）
-3. 对候选节点 **`cocos_download_texture`** → 本地 PNG
-4. 用 Cursor **GenerateImage**（或其它图生图）按风格出图，保持相近分辨率
-5. **`cocos_replace_texture`** 上传 base64 预览
-6. 满意后 **`cocos_export_replacement_pack`** → `tmp/cocos-replacements_*`
-7. **`cocos_repack_super_html`** 生成本地可试玩 HTML
-
-## 调试
-
-试玩页控制台应能访问：
-
-```js
-await window.__cocosInspectorApi?.listSprites()
-```
-
-若无此对象，说明扩展未注入或未 build。
+风格替换流程：截屏 → 列 Sprite → 下载 → GenerateImage → `cocos_replace_texture` → 导出 → 重打包。

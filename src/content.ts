@@ -19,9 +19,28 @@ function injectResources(): void {
     console.log('Script injected:', script.src);
 }
 
+function notifyExtensionActive(): void {
+    try {
+        chrome.runtime.sendMessage({ type: 'cocos-page-active', url: location.href });
+    } catch {
+        /* 扩展上下文不可用时忽略 */
+    }
+}
+
 // 确保页面完全加载后再注入
 if (document.readyState === 'complete') {
     injectResources();
+    notifyExtensionActive();
 } else {
-    window.addEventListener('load', injectResources);
-} 
+    window.addEventListener('load', () => {
+        injectResources();
+        notifyExtensionActive();
+    });
+}
+
+// injected 就绪后再次通知（便于 MCP 桥接选中本页）
+window.addEventListener('message', (ev) => {
+    if (ev.data?.type === 'cocos-inspector-ready') {
+        notifyExtensionActive();
+    }
+}); 

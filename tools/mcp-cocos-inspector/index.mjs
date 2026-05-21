@@ -1,11 +1,9 @@
 #!/usr/bin/env node
 /**
- * MCP ↔ Cocos Inspector 3（Chrome 扩展 + 试玩页 window.__cocosInspectorApi）
+ * MCP ↔ Cocos Inspector 3
  *
- * 前置：
- *   1. 安装并启用 Cocos Inspector 3 扩展，打开 Cocos 试玩页
- *   2. Chrome: --remote-debugging-port=9222
- *   3. npm install（本目录）
+ * 默认：本机 WebSocket 桥接（普通 Chrome + 扩展，无需 --remote-debugging-port）
+ * 可选：COCOS_USE_CDP=1 时使用 Chrome 远程调试（9222）
  */
 
 import { spawn } from 'child_process';
@@ -19,6 +17,13 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import {
+  startBridge,
+  bridgeApiCall,
+  bridgeCaptureVisibleTab,
+  isExtensionConnected,
+  getLastTabs,
+} from './bridge-server.mjs';
+import {
   captureTabScreenshot,
   ensureConnected,
   getConnectedPageUrl,
@@ -26,24 +31,32 @@ import {
 } from './cdp.mjs';
 
 const repoRoot = resolve(join(dirname(fileURLToPath(import.meta.url)), '../..'));
+const useCdp = process.env.COCOS_USE_CDP === '1';
 
-function cdpOpts(args) {
+startBridge(Number(process.env.COCOS_BRIDGE_PORT ?? 17373));
+
+function connOpts(args) {
   return {
     port: args?.cdpPort ? Number(args.cdpPort) : undefined,
     pageUrlMatch: args?.pageUrlMatch ?? process.env.COCOS_PAGE_URL_MATCH,
   };
 }
 
-async function apiCall(method, argList, opts) {
+async function cdpApiCall(method, argList, opts) {
   const argsJson = JSON.stringify(argList ?? []);
   return invokeInPage(
     `const api = window.__cocosInspectorApi;
-     if (!api) throw new Error('__cocosInspectorApi 未就绪：请确认已加载 Cocos Inspector 扩展且页面为 Cocos 试玩');
+     if (!api) throw new Error('__cocosInspectorApi 未就绪');
      const fn = api[${JSON.stringify(method)}];
      if (typeof fn !== 'function') throw new Error('未知 API: ${method}');
      return await fn(...${argsJson});`,
     opts
   );
+}
+
+async function apiCall(method, argList, opts) {
+  if (useCdp) return cdpApiCall(method, argList, opts);
+  return bridgeApiCall(method, argList, connOpts(opts));
 }
 
 function writeBase64File(outPath, base64) {
@@ -65,11 +78,11 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     {
       name: 'cocos_list_tabs',
       description:
-        '列出 Chrome 远程调试中的页面标签（用于确认 CDP 已连接）',
+        '桥接模式：扩展是否已连接 + 浏览器 http 标签；CDP 模式需 COCOS_USE_CDP=1',
       inputSchema: {
         type: 'object',
         properties: {
-          cdpPort: { type: 'number', description: '默认 9222' },
+          cdpPort: { type: 'number', description: '仅 CDP 模式' },
         },
       },
     },
@@ -215,30 +228,59 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
 
 server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const { name, arguments: args } = request.params;
-  const opts = cdpOpts(args ?? {});
+  const opts = connOpts(args ?? {});
 
   try {
     if (name === 'cocos_list_tabs') {
-      const CDP = (await import('chrome-remote-interface')).default;
-      const port = Number(args?.cdpPort ?? process.env.COCOS_CDP_PORT ?? 9222);
-      const targets = await CDP.List({ port });
-      const pages = targets
-        .filter((t) => t.type === 'page')
-        .map((t) => ({ title: t.title, url: t.url, id: t.id }));
-      return {
-        content: [{ type: 'text', text: JSON.stringify({ port, pages }, null, 2) }],
-      };
-    }
-
-    if (name === 'cocos_page_info') {
-      await ensureConnected(opts);
-      const info = await apiCall('getPageInfo', [], opts);
+      if (useCdp) {
+        const CDP = (await import('chrome-remote-interface')).default;
+        const port = Number(args?.cdpPort ?? process.env.COCOS_CDP_PORT ?? 9222);
+        const targets = await CDP.List({ port });
+        const pages = targets
+          .filter((t) => t.type === 'page')
+          .map((t) => ({ title: t.title, url: t.url, id: t.id }));
+        return {
+          content: [
+            { type: 'text', text: JSON.stringify({ mode: 'cdp', port, pages }, null, 2) },
+          ],
+        };
+      }
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify(
-              { connectedPage: getConnectedPageUrl(), ...info },
+              {
+                mode: 'bridge',
+                bridgePort: Number(process.env.COCOS_BRIDGE_PORT ?? 17373),
+                extensionConnected: isExtensionConnected(),
+                tabs: getLastTabs(),
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    if (name === 'cocos_page_info') {
+      if (useCdp) await ensureConnected(opts);
+      const info = await apiCall('getPageInfo', [], opts);
+      const connectedPage = useCdp
+        ? getConnectedPageUrl()
+        : info?.pageUrl ?? getLastTabs().find((t) => t.url)?.url;
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                mode: useCdp ? 'cdp' : 'bridge',
+                extensionConnected: isExtensionConnected(),
+                connectedPage,
+                ...info,
+              },
               null,
               2
             ),
@@ -397,9 +439,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       let meta = {};
 
       if (kind === 'tab') {
-        await ensureConnected(opts);
-        base64 = await captureTabScreenshot(opts);
-        meta = { kind: 'tab', connectedPage: getConnectedPageUrl() };
+        if (useCdp) {
+          await ensureConnected(opts);
+          base64 = await captureTabScreenshot(opts);
+          meta = { kind: 'tab', mode: 'cdp', connectedPage: getConnectedPageUrl() };
+        } else {
+          const res = await bridgeCaptureVisibleTab(opts.pageUrlMatch);
+          if (!res?.ok) {
+            return {
+              content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
+              isError: true,
+            };
+          }
+          base64 = res.base64;
+          meta = { kind: 'tab', mode: 'bridge' };
+        }
       } else if (kind === 'node') {
         if (!args.nodeId) throw new Error('kind=node 需要 nodeId');
         const res = await apiCall(

@@ -83,6 +83,7 @@ class CocosInspector3 {
       return enrichSpriteInspectData(base, id);
     };
     installMcpBridge();
+    window.postMessage({ type: 'cocos-inspector-ready' }, '*');
     this.stopThumbPoller = startSpriteThumbnailPoller(
       () => this.spriteTreeContainer
     );

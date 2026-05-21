@@ -4,8 +4,8 @@
       "command": "node",
       "args": ["D:/UGit/CososInspector/tools/mcp-cocos-inspector/index.mjs"],
       "env": {
-        "COCOS_CDP_PORT": "9222",
-        "COCOS_PAGE_URL_MATCH": "applovin"
+        "COCOS_PAGE_URL_MATCH": "applovin",
+        "COCOS_BRIDGE_PORT": "17373"
       }
     }
   }

@@ -36,6 +36,7 @@ async function build() {
       entryPoints: {
         content: join(root, 'src/content.ts'),
         injected: join(root, 'src/injected.ts'),
+        background: join(root, 'src/background.ts'),
       },
       outdir: dist,
     });
@@ -54,6 +55,7 @@ async function build() {
     for (const [name, entry] of [
       ['content', 'src/content.ts'],
       ['injected', 'src/injected.ts'],
+      ['background', 'src/background.ts'],
     ]) {
       const r = spawnSync(
         'npx',
