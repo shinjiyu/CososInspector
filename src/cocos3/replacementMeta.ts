@@ -113,7 +113,7 @@ export function captureOriginalSpriteSnapshot(
       width: Math.round(display.width ?? frameRectForSnapshot(frame, texture ?? null).width),
       height: Math.round(display.height ?? frameRectForSnapshot(frame, texture ?? null).height),
     },
-    isRotated: !!(frame.isRotated || frame._rotated),
+    isRotated: !!frame.isRotated,
   };
 }
 
