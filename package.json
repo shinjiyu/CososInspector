@@ -1,36 +1,27 @@
 {
   "name": "cocosinspector",
-  "version": "1.1.0",
-  "description": "Cocos Inspector Chrome Extension",
+  "version": "2.0.0",
+  "description": "Cocos Creator 3.x 节点树查看器 Chrome 扩展",
   "main": "dist/content.js",
   "scripts": {
-    "build": "webpack --config webpack.config.js",
-    "watch": "webpack --watch --config webpack.config.js",
-    "dev": "webpack --config webpack.config.js --mode development",
-    "prod": "webpack --config webpack.config.js --mode production",
-    "postbuild": "copy src\\styles\\inspector.css dist\\",
-    "clean": "rimraf dist",
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "dev": "node scripts/build.mjs",
+    "prod": "node scripts/build.mjs --minify",
+    "clean": "node -e \"require('fs').rmSync('dist',{recursive:true,force:true})\"",
     "prebuild": "npm run clean",
-    "package": "npm run prod && cd dist && zip -r ../cocos-inspector.zip *"
+    "package": "npm run prod && cd dist && tar -a -c -f ../cocos-inspector.zip *"
   },
   "keywords": [
     "cocos",
+    "cocos-creator-3",
     "inspector",
     "chrome-extension"
   ],
   "author": "",
   "license": "ISC",
   "devDependencies": {
-    "copy-webpack-plugin": "^12.0.0",
-    "rimraf": "^5.0.10",
-    "ts-loader": "^9.0.0",
-    "typescript": "^5.0.0",
-    "webpack": "^5.0.0",
-    "webpack-cli": "^5.0.0"
-  },
-  "dependencies": {
-    "cytoscape": "^3.32.0",
-    "cytoscape-dagre": "^2.5.0",
-    "dagre": "^0.8.5"
+    "esbuild": "^0.25.0",
+    "typescript": "^5.0.0"
   }
 }
