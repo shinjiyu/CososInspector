@@ -21,6 +21,7 @@ import {
   bridgeApiCall,
   bridgeCaptureVisibleTab,
   isExtensionConnected,
+  bridgeGetStatus,
   getLastTabs,
 } from './bridge-server.mjs';
 import {
@@ -32,8 +33,6 @@ import {
 
 const repoRoot = resolve(join(dirname(fileURLToPath(import.meta.url)), '../..'));
 const useCdp = process.env.COCOS_USE_CDP === '1';
-
-startBridge(Number(process.env.COCOS_BRIDGE_PORT ?? 17373));
 
 function connOpts(args) {
   return {
@@ -245,6 +244,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           ],
         };
       }
+      const st = useCdp ? null : await bridgeGetStatus().catch(() => ({}));
       return {
         content: [
           {
@@ -253,8 +253,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               {
                 mode: 'bridge',
                 bridgePort: Number(process.env.COCOS_BRIDGE_PORT ?? 17373),
-                extensionConnected: isExtensionConnected(),
-                tabs: getLastTabs(),
+                extensionConnected: st?.extensionConnected ?? (await isExtensionConnected()),
+                tabs: st?.tabs ?? getLastTabs(),
               },
               null,
               2
@@ -267,9 +267,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (name === 'cocos_page_info') {
       if (useCdp) await ensureConnected(opts);
       const info = await apiCall('getPageInfo', [], opts);
+      const st = useCdp ? null : await bridgeGetStatus().catch(() => ({}));
       const connectedPage = useCdp
         ? getConnectedPageUrl()
-        : info?.pageUrl ?? getLastTabs().find((t) => t.url)?.url;
+        : info?.pageUrl ?? st?.tabs?.find((t) => t.url)?.url;
       return {
         content: [
           {
@@ -277,7 +278,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: JSON.stringify(
               {
                 mode: useCdp ? 'cdp' : 'bridge',
-                extensionConnected: isExtensionConnected(),
+                extensionConnected:
+                  st?.extensionConnected ?? (await isExtensionConnected()),
                 connectedPage,
                 ...info,
               },
@@ -508,6 +510,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     };
   }
 });
+
+// 顶层 await：先起桥接再连 MCP stdio
+await startBridge(Number(process.env.COCOS_BRIDGE_PORT ?? 17373));
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

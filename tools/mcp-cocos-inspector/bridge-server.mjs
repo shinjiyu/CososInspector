@@ -1,70 +1,226 @@
-import { WebSocketServer } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 
 const DEFAULT_PORT = Number(process.env.COCOS_BRIDGE_PORT ?? 17373);
 const CALL_TIMEOUT_MS = 120_000;
 
-/** @type {import('ws').WebSocket | null} */
-let extensionWs = null;
-/** @type {Map<number, { resolve: Function, reject: Function, timer: ReturnType<typeof setTimeout> }>} */
-const pending = new Map();
-let seq = 0;
+/** @type {'none' | 'server' | 'client'} */
+let mode = 'none';
 /** @type {import('ws').WebSocketServer | null} */
 let wss = null;
+/** @type {import('ws').WebSocket | null} */
+let extensionWs = null;
+/** @type {import('ws').WebSocket | null} */
+let mcpClientWs = null;
+/** @type {Map<number, { resolve: Function; reject: Function; timer: ReturnType<typeof setTimeout>; relayTo?: import('ws').WebSocket }>} */
+const pending = new Map();
+let seq = 0;
 let lastTabs = [];
 
-export function isBridgeRunning() {
-  return !!wss;
+function routeResponse(msg) {
+  const p = pending.get(msg.id);
+  if (!p) return;
+  clearTimeout(p.timer);
+  pending.delete(msg.id);
+
+  if (p.relayTo && p.relayTo.readyState === WebSocket.OPEN) {
+    p.relayTo.send(JSON.stringify(msg));
+    return;
+  }
+
+  if (msg.error) p.reject(new Error(msg.error));
+  else p.resolve(msg.result);
 }
 
-export function isExtensionConnected() {
-  return extensionWs?.readyState === 1;
+/** 其它 MCP 进程经 WebSocket 转发的调用 */
+function relayCallFromMcpClient(msg, mcpWs) {
+  if (!extensionWs || extensionWs.readyState !== WebSocket.OPEN) {
+    mcpWs.send(
+      JSON.stringify({
+        type: 'response',
+        id: msg.id,
+        error:
+          '扩展未连接桥接。请用普通 Chrome 打开试玩页并确认已加载 Cocos Inspector 扩展。',
+      })
+    );
+    return;
+  }
+
+  const timer = setTimeout(() => pending.delete(msg.id), CALL_TIMEOUT_MS);
+  pending.set(msg.id, {
+    resolve: () => {},
+    reject: () => {},
+    timer,
+    relayTo: mcpWs,
+  });
+
+  extensionWs.send(
+    JSON.stringify({
+      type: 'call',
+      id: msg.id,
+      method: msg.method,
+      args: msg.args ?? [],
+      pageUrlMatch: msg.pageUrlMatch ?? '',
+    })
+  );
+}
+
+/**
+ * @param {import('ws').WebSocket} ws
+ * @param {object} msg
+ */
+function onSocketMessage(ws, msg) {
+  if (msg.role === 'extension') {
+    extensionWs = ws;
+    if (Array.isArray(msg.tabs)) lastTabs = msg.tabs;
+    return;
+  }
+
+  if (msg.type === 'tabs' && Array.isArray(msg.tabs)) {
+    lastTabs = msg.tabs;
+    return;
+  }
+
+  if (msg.type === 'status') {
+    ws.send(
+      JSON.stringify({
+        type: 'status',
+        extensionConnected: extensionWs?.readyState === WebSocket.OPEN,
+        tabs: lastTabs,
+      })
+    );
+    return;
+  }
+
+  if (msg.type === 'call' && ws !== extensionWs) {
+    relayCallFromMcpClient(msg, ws);
+    return;
+  }
+
+  if (msg.type === 'response') {
+    routeResponse(msg);
+  }
+}
+
+function wireConnection(ws) {
+  ws.on('message', (raw) => {
+    try {
+      onSocketMessage(ws, JSON.parse(String(raw)));
+    } catch {
+      /* ignore */
+    }
+  });
+  ws.on('close', () => {
+    if (extensionWs === ws) extensionWs = null;
+    if (mcpClientWs === ws) mcpClientWs = null;
+  });
+}
+
+function connectBridgeClient(port) {
+  return new Promise((resolve, reject) => {
+    const ws = new WebSocket(`ws://127.0.0.1:${port}`);
+    const timer = setTimeout(() => {
+      ws.close();
+      reject(new Error(`连接已有桥接超时 (127.0.0.1:${port})`));
+    }, 8000);
+
+    ws.on('open', () => {
+      clearTimeout(timer);
+      mcpClientWs = ws;
+      mode = 'client';
+      wireConnection(ws);
+      ws.send(JSON.stringify({ role: 'mcp' }));
+      resolve();
+    });
+
+    ws.on('error', (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+  });
+}
+
+export function isBridgeRunning() {
+  return mode === 'server' && !!wss;
+}
+
+export async function isExtensionConnected() {
+  if (mode === 'server') {
+    return extensionWs?.readyState === WebSocket.OPEN;
+  }
+  if (mode === 'client' && mcpClientWs?.readyState === WebSocket.OPEN) {
+    try {
+      const st = await bridgeGetStatus();
+      return !!st.extensionConnected;
+    } catch {
+      return false;
+    }
+  }
+  return false;
 }
 
 export function getLastTabs() {
   return lastTabs;
 }
 
-export function startBridge(port = DEFAULT_PORT) {
-  if (wss) return wss;
-
-  wss = new WebSocketServer({ host: '127.0.0.1', port });
-
-  wss.on('connection', (ws) => {
-    ws.on('message', (raw) => {
-      let msg;
-      try {
-        msg = JSON.parse(String(raw));
-      } catch {
-        return;
-      }
-
-      if (msg.role === 'extension') {
-        extensionWs = ws;
-        if (Array.isArray(msg.tabs)) lastTabs = msg.tabs;
-        return;
-      }
-
-      if (msg.type === 'tabs' && Array.isArray(msg.tabs)) {
-        lastTabs = msg.tabs;
-        return;
-      }
-
-      if (msg.type === 'response' && typeof msg.id === 'number') {
-        const p = pending.get(msg.id);
-        if (!p) return;
-        clearTimeout(p.timer);
-        pending.delete(msg.id);
-        if (msg.error) p.reject(new Error(msg.error));
-        else p.resolve(msg.result);
-      }
+export async function bridgeGetStatus() {
+  if (mode === 'client' && mcpClientWs?.readyState === WebSocket.OPEN) {
+    return new Promise((resolve, reject) => {
+      const handler = (raw) => {
+        try {
+          const msg = JSON.parse(String(raw));
+          if (msg.type === 'status') {
+            mcpClientWs.off('message', handler);
+            lastTabs = msg.tabs ?? lastTabs;
+            resolve(msg);
+          }
+        } catch {
+          /* ignore */
+        }
+      };
+      mcpClientWs.on('message', handler);
+      mcpClientWs.send(JSON.stringify({ type: 'status' }));
+      setTimeout(() => {
+        mcpClientWs?.off('message', handler);
+        reject(new Error('status 超时'));
+      }, 5000);
     });
+  }
+  return {
+    extensionConnected: extensionWs?.readyState === WebSocket.OPEN,
+    tabs: lastTabs,
+  };
+}
 
-    ws.on('close', () => {
-      if (extensionWs === ws) extensionWs = null;
+/** @returns {Promise<void>} */
+export function startBridge(port = DEFAULT_PORT) {
+  if (mode === 'server' && wss) return Promise.resolve();
+  if (mode === 'client' && mcpClientWs?.readyState === WebSocket.OPEN) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve, reject) => {
+    const server = new WebSocketServer({ host: '127.0.0.1', port });
+
+    const onListenError = (err) => {
+      server.removeListener('error', onListenError);
+      if (err.code === 'EADDRINUSE') {
+        server.close();
+        connectBridgeClient(port).then(resolve).catch(reject);
+        return;
+      }
+      reject(err);
+    };
+
+    server.on('error', onListenError);
+
+    server.on('listening', () => {
+      server.removeListener('error', onListenError);
+      wss = server;
+      mode = 'server';
+      server.on('connection', wireConnection);
+      resolve();
     });
   });
-
-  return wss;
 }
 
 /**
@@ -73,12 +229,6 @@ export function startBridge(port = DEFAULT_PORT) {
  * @param {{ pageUrlMatch?: string }} opts
  */
 export function bridgeApiCall(method, argList = [], opts = {}) {
-  if (!extensionWs || extensionWs.readyState !== 1) {
-    throw new Error(
-      '扩展未连接 MCP 桥接。请：1) 在 Cursor 启用 cocos-inspector MCP；2) 用普通 Chrome 打开试玩页；3) 确认扩展已加载。'
-    );
-  }
-
   const id = ++seq;
   const payload = {
     type: 'call',
@@ -94,12 +244,41 @@ export function bridgeApiCall(method, argList = [], opts = {}) {
       reject(new Error(`桥接调用超时 (${method})`));
     }, CALL_TIMEOUT_MS);
 
+    if (mode === 'client') {
+      if (!mcpClientWs || mcpClientWs.readyState !== WebSocket.OPEN) {
+        clearTimeout(timer);
+        reject(new Error('MCP 桥接客户端未连接'));
+        return;
+      }
+      pending.set(id, { resolve, reject, timer });
+      mcpClientWs.send(JSON.stringify(payload));
+      return;
+    }
+
+    if (mode !== 'server') {
+      clearTimeout(timer);
+      reject(new Error('桥接未启动'));
+      return;
+    }
+
     pending.set(id, { resolve, reject, timer });
+
+    if (!extensionWs || extensionWs.readyState !== WebSocket.OPEN) {
+      clearTimeout(timer);
+      pending.delete(id);
+      reject(
+        new Error(
+          '扩展未连接 MCP 桥接。请用普通 Chrome 打开试玩页并确认扩展已加载。'
+        )
+      );
+      return;
+    }
+
     extensionWs.send(JSON.stringify(payload));
   });
 }
 
-/** 整页截屏（扩展 chrome.tabs.captureVisibleTab，无需 CDP） */
+/** 整页截屏（扩展 chrome.tabs.captureVisibleTab） */
 export async function bridgeCaptureVisibleTab(pageUrlMatch) {
   return bridgeApiCall('__captureVisibleTab', [], { pageUrlMatch });
 }
