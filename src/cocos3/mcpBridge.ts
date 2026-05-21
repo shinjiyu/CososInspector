@@ -1,0 +1,253 @@
+import { exportReplacementPackData } from './replacementExport';
+import { listReplacementPairs } from './replacementStore';
+import { findNodeById, getSceneRoot } from './sceneTree';
+import { exportSpritePngBase64 } from './spriteDownload';
+import {
+  collectSpriteInspectData,
+  enrichSpriteInspectData,
+  type SpriteInspectData,
+} from './spriteInspector';
+import { collectSpriteList, type SpriteListItem } from './spriteList';
+import {
+  replaceSpriteWithImageBase64,
+  revertSpriteFrame,
+} from './spriteReplace';
+import { readVisibleSpriteFromScreen } from './textureWebGL';
+
+export interface SerializableSpriteDetail {
+  nodeId: string;
+  nodeName: string;
+  frameName: string;
+  enabled: boolean;
+  type: string;
+  sizeMode: string;
+  textureSize: { w: number; h: number };
+  frameRect: { x: number; y: number; w: number; h: number };
+  displaySize: { w: number; h: number };
+  offset: { x: number; y: number };
+  originalSize: { w: number; h: number };
+  isRotated: boolean;
+  extractMethod: string;
+  extractError: string | null;
+  hasPixels: boolean;
+}
+
+function toDetail(nodeId: string, data: SpriteInspectData): SerializableSpriteDetail {
+  return {
+    nodeId,
+    nodeName: data.nodeName,
+    frameName: data.frameName,
+    enabled: data.enabled,
+    type: data.type,
+    sizeMode: data.sizeMode,
+    textureSize: data.textureSize,
+    frameRect: data.frameRect,
+    displaySize: data.displaySize,
+    offset: data.offset,
+    originalSize: data.originalSize,
+    isRotated: data.isRotated,
+    extractMethod: data.extractMethod,
+    extractError: data.extractError,
+    hasPixels: !!data.pixels,
+  };
+}
+
+async function captureCanvasPng(
+  canvas: HTMLCanvasElement
+): Promise<
+  | { ok: true; base64: string; width: number; height: number }
+  | { ok: false; error: string }
+> {
+  try {
+    const url = canvas.toDataURL('image/png');
+    if (!url || url.length < 32) {
+      return { ok: false, error: 'canvas.toDataURL 失败（需 preserveDrawingBuffer 或 WebGL 支持）' };
+    }
+    return {
+      ok: true,
+      base64: url.split(',')[1]!,
+      width: canvas.width,
+      height: canvas.height,
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
+/** 供 Chrome CDP / MCP 调用的页面 API */
+export const cocosInspectorMcpApi = {
+  version: 1 as const,
+
+  getPageInfo(): {
+    pageUrl: string;
+    engineVersion: string;
+    sceneName: string;
+    hasCocos: boolean;
+  } {
+    const scene = getSceneRoot();
+    return {
+      pageUrl: window.location.href,
+      engineVersion: String(window.cc?.ENGINE_VERSION ?? '3.x'),
+      sceneName: scene?.name ?? '',
+      hasCocos: !!window.cc,
+    };
+  },
+
+  listSprites(): SpriteListItem[] {
+    const scene = getSceneRoot();
+    if (!scene) return [];
+    return collectSpriteList(scene);
+  },
+
+  async getSpriteDetail(
+    nodeId: string
+  ): Promise<
+    | { ok: true; detail: SerializableSpriteDetail }
+    | { ok: false; error: string }
+  > {
+    const base = collectSpriteInspectData(nodeId);
+    if (!base) return { ok: false, error: '节点无 Sprite 或场景未就绪' };
+    const enriched = await enrichSpriteInspectData(base, nodeId);
+    return { ok: true, detail: toDetail(nodeId, enriched) };
+  },
+
+  async downloadTexture(
+    nodeId: string
+  ): Promise<
+    | {
+        ok: true;
+        base64: string;
+        width: number;
+        height: number;
+        filename: string;
+        detail: SerializableSpriteDetail;
+      }
+    | { ok: false; error: string }
+  > {
+    const base = collectSpriteInspectData(nodeId);
+    if (!base) return { ok: false, error: '节点无 Sprite' };
+    const enriched = await enrichSpriteInspectData(base, nodeId);
+    const png = exportSpritePngBase64(enriched);
+    if (!png.ok) return { ok: false, error: png.error };
+    return {
+      ok: true,
+      base64: png.base64,
+      width: png.width,
+      height: png.height,
+      filename: png.filename,
+      detail: toDetail(nodeId, enriched),
+    };
+  },
+
+  async replaceTexture(
+    nodeId: string,
+    imageBase64: string,
+    options?: { mime?: string; filename?: string }
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
+    return replaceSpriteWithImageBase64(nodeId, imageBase64, options);
+  },
+
+  revertTexture(
+    nodeId: string
+  ): Promise<{ ok: true } | { ok: false; error: string }> {
+    return revertSpriteFrame(nodeId);
+  },
+
+  async listReplacements(): Promise<
+    Array<{
+      id: string;
+      nodeId: string;
+      nodeName: string;
+      nodePath: string;
+      frameName: string;
+      fileName: string;
+      width: number;
+      height: number;
+    }>
+  > {
+    const pairs = await listReplacementPairs();
+    return pairs.map((p) => ({
+      id: p.id,
+      nodeId: p.nodeId,
+      nodeName: p.nodeName,
+      nodePath: p.nodePath,
+      frameName: p.original.frameName,
+      fileName: p.replacement.fileName,
+      width: p.replacement.width,
+      height: p.replacement.height,
+    }));
+  },
+
+  exportReplacementPack() {
+    return exportReplacementPackData();
+  },
+
+  /** 游戏主 Canvas 截图（整屏游戏区） */
+  async captureGameScreenshot(): Promise<
+    | { ok: true; base64: string; width: number; height: number; kind: 'game-canvas' }
+    | { ok: false; error: string }
+  > {
+    const ccg = window.cc as { game?: { canvas?: HTMLCanvasElement } };
+    const canvas =
+      ccg.game?.canvas ??
+      (document.getElementById('GameCanvas') as HTMLCanvasElement | null);
+    if (!canvas) return { ok: false, error: '未找到 GameCanvas' };
+    const shot = await captureCanvasPng(canvas);
+    if (!shot.ok) return shot;
+    return { ...shot, kind: 'game-canvas' };
+  },
+
+  /** 节点在世界空间的可视区域（优先 GPU 读屏，适合单控件） */
+  async captureNodeScreenshot(
+    nodeId: string,
+    maxSize = 512
+  ): Promise<
+    | {
+        ok: true;
+        base64: string;
+        width: number;
+        height: number;
+        kind: 'node-screen';
+      }
+    | { ok: false; error: string }
+  > {
+    const scene = getSceneRoot();
+    if (!scene) return { ok: false, error: '场景未就绪' };
+    const node = findNodeById(scene, nodeId);
+    if (!node) return { ok: false, error: '节点不存在' };
+
+    const inspect = collectSpriteInspectData(nodeId);
+    const w = Math.min(maxSize, inspect?.displaySize.w ?? maxSize);
+    const h = Math.min(maxSize, inspect?.displaySize.h ?? maxSize);
+    const pixels = readVisibleSpriteFromScreen(node, w, h);
+    if (!pixels) {
+      return {
+        ok: false,
+        error: '节点截屏失败（可能被遮挡或不在可视区域）',
+      };
+    }
+
+    const c = document.createElement('canvas');
+    c.width = pixels.width;
+    c.height = pixels.height;
+    c.getContext('2d')!.putImageData(pixels, 0, 0);
+    const url = c.toDataURL('image/png');
+    return {
+      ok: true,
+      base64: url.split(',')[1]!,
+      width: pixels.width,
+      height: pixels.height,
+      kind: 'node-screen',
+    };
+  },
+};
+
+export type CocosInspectorMcpApi = typeof cocosInspectorMcpApi;
+
+export function installMcpBridge(): void {
+  const win = window as Window & { __cocosInspectorApi?: CocosInspectorMcpApi };
+  win.__cocosInspectorApi = cocosInspectorMcpApi;
+}

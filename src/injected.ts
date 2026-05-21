@@ -28,6 +28,7 @@ import {
   createReplacementPanelElement,
   refreshReplacementList,
 } from './cocos3/replacementPanel';
+import { installMcpBridge } from './cocos3/mcpBridge';
 
 const REFRESH_MS = 500;
 type InspectorTab = 'scene' | 'sprite' | 'replacements';
@@ -81,6 +82,7 @@ class CocosInspector3 {
       if (!base) return { ok: false, reason: 'no sprite data' };
       return enrichSpriteInspectData(base, id);
     };
+    installMcpBridge();
     this.stopThumbPoller = startSpriteThumbnailPoller(
       () => this.spriteTreeContainer
     );

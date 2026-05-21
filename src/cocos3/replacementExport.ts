@@ -60,6 +60,118 @@ export async function exportReplacementManifest(): Promise<ExportManifest> {
   };
 }
 
+async function blobToBase64(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const dataUrl = reader.result as string;
+      resolve(dataUrl.includes(',') ? dataUrl.split(',')[1]! : dataUrl);
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(blob);
+  });
+}
+
+export interface ReplacementPackExportData {
+  prefix: string;
+  pageUrl: string;
+  repackCommand: string;
+  manifest: ExportManifest;
+  readme: string;
+  pageResources: ReturnType<typeof collectPageResources>;
+  files: Array<{ path: string; base64: string; mimeType: string }>;
+}
+
+/** 返回替换包数据（供 MCP 写入磁盘，不触发浏览器下载） */
+export async function exportReplacementPackData(): Promise<
+  | { ok: true; data: ReplacementPackExportData }
+  | { ok: false; error: string }
+> {
+  try {
+    const pairs = await listReplacementPairs();
+    if (pairs.length === 0) {
+      return { ok: false, error: '当前页面没有已记录的替换对' };
+    }
+
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const prefix = `cocos-replacements_${stamp}`;
+    const pageUrl = window.location.href;
+    const manifest = await exportReplacementManifest();
+    const pageResources = collectPageResources();
+    const packDirHint = `./${prefix}`;
+    const repackCmd = buildRepackCommand({ pageUrl, packDir: packDirHint });
+
+    const readme = [
+      'Cocos Inspector 3 — 替换包',
+      '',
+      `页面: ${pageUrl}`,
+      `导出时间: ${manifest.exportedAt}`,
+      `替换对数量: ${pairs.length}`,
+      '',
+      ...manifest.applyInstructions,
+      '',
+      ...buildRepackReadmeSection({
+        pageUrl,
+        packDir: packDirHint,
+        count: pairs.length,
+      }),
+    ].join('\n');
+
+    const files: ReplacementPackExportData['files'] = [
+      {
+        path: 'manifest.json',
+        base64: btoa(unescape(encodeURIComponent(JSON.stringify(manifest, null, 2)))),
+        mimeType: 'application/json',
+      },
+      {
+        path: 'page-resources.json',
+        base64: btoa(
+          unescape(encodeURIComponent(JSON.stringify(pageResources, null, 2)))
+        ),
+        mimeType: 'application/json',
+      },
+      {
+        path: 'README.txt',
+        base64: btoa(unescape(encodeURIComponent(readme))),
+        mimeType: 'text/plain',
+      },
+      {
+        path: 'repack-command.txt',
+        base64: btoa(unescape(encodeURIComponent(repackCmd + '\n'))),
+        mimeType: 'text/plain',
+      },
+    ];
+
+    for (const pair of pairs) {
+      const blob = await getReplacementBlob(pair.id);
+      if (!blob) continue;
+      files.push({
+        path: `images/${pair.replacement.exportFileName}`,
+        base64: await blobToBase64(blob),
+        mimeType: blob.type || 'image/png',
+      });
+    }
+
+    return {
+      ok: true,
+      data: {
+        prefix,
+        pageUrl,
+        repackCommand: repackCmd,
+        manifest,
+        readme,
+        pageResources,
+        files,
+      },
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
 /** 依次下载 manifest、page-resources、每张替换图（浏览器会多次保存对话框） */
 export async function exportReplacementPack(): Promise<
   | { ok: true; count: number; prefix: string; repackCommand: string }

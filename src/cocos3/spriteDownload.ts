@@ -29,10 +29,14 @@ export function buildSpriteDownloadFilename(data: SpriteInspectData): string {
   return `${node}_${frame}.png`;
 }
 
-/** 按显示尺寸导出 PNG（使用已提取的像素，非预览缩放图） */
-export function downloadSpritePng(data: SpriteInspectData): boolean {
+/** 将已提取像素导出为 PNG base64（供 MCP / API 使用） */
+export function exportSpritePngBase64(
+  data: SpriteInspectData
+): { ok: true; base64: string; width: number; height: number; filename: string } | { ok: false; error: string } {
   const pixels = data.pixels?.imageData;
-  if (!pixels) return false;
+  if (!pixels) {
+    return { ok: false, error: '纹理未提取，请先等待或重试' };
+  }
 
   const w = data.displaySize.w || pixels.width;
   const h = data.displaySize.h || pixels.height;
@@ -41,7 +45,7 @@ export function downloadSpritePng(data: SpriteInspectData): boolean {
   exportCanvas.width = w;
   exportCanvas.height = h;
   const ctx = exportCanvas.getContext('2d');
-  if (!ctx) return false;
+  if (!ctx) return { ok: false, error: '无法创建 canvas' };
 
   const tmp = document.createElement('canvas');
   tmp.width = pixels.width;
@@ -49,18 +53,27 @@ export function downloadSpritePng(data: SpriteInspectData): boolean {
   tmp.getContext('2d')!.putImageData(pixels, 0, 0);
   ctx.drawImage(tmp, 0, 0, pixels.width, pixels.height, 0, 0, w, h);
 
-  const filename = buildSpriteDownloadFilename(data);
+  const dataUrl = exportCanvas.toDataURL('image/png');
+  const base64 = dataUrl.includes(',') ? dataUrl.split(',')[1]! : dataUrl;
 
-  if (exportCanvas.toBlob) {
-    exportCanvas.toBlob((blob) => {
-      if (!blob) return;
-      triggerDownload(blob, filename);
-    }, 'image/png');
-    return true;
-  }
+  return {
+    ok: true,
+    base64,
+    width: w,
+    height: h,
+    filename: buildSpriteDownloadFilename(data),
+  };
+}
 
-  const url = exportCanvas.toDataURL('image/png');
-  triggerDownloadDataUrl(url, filename);
+/** 按显示尺寸导出 PNG（使用已提取的像素，非预览缩放图） */
+export function downloadSpritePng(data: SpriteInspectData): boolean {
+  const out = exportSpritePngBase64(data);
+  if (!out.ok) return false;
+
+  const bin = atob(out.base64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  triggerDownload(new Blob([arr], { type: 'image/png' }), out.filename);
   return true;
 }
 

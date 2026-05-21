@@ -147,6 +147,28 @@ export function hasOriginalSpriteFrame(nodeId: string): boolean {
   return originalFrames.has(nodeId);
 }
 
+export async function replaceSpriteWithImageBase64(
+  nodeId: string,
+  base64: string,
+  options?: { mime?: string; filename?: string }
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const mime = options?.mime ?? 'image/png';
+  const filename = options?.filename ?? 'mcp-upload.png';
+  try {
+    const raw = base64.includes(',') ? base64.split(',')[1]! : base64;
+    const bin = atob(raw);
+    const arr = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+    const file = new File([arr], filename, { type: mime });
+    return replaceSpriteWithImageFile(nodeId, file);
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
 export async function replaceSpriteWithImageFile(
   nodeId: string,
   file: File

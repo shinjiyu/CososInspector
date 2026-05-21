@@ -1,0 +1,16 @@
+{
+  "name": "mcp-cocos-inspector",
+  "version": "0.1.0",
+  "description": "MCP server for Cocos Inspector 3.x Chrome extension (CDP bridge)",
+  "type": "module",
+  "bin": {
+    "mcp-cocos-inspector": "./index.mjs"
+  },
+  "scripts": {
+    "start": "node index.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.12.1",
+    "chrome-remote-interface": "^0.33.3"
+  }
+}
