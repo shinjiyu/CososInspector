@@ -92,6 +92,55 @@ export function getAtlasCacheKey(
   return `${id}_${rect.x}_${rect.y}_${rect.w}_${rect.h}`;
 }
 
+export function isSpriteFrameRotated(frame: SpriteFrameRuntime): boolean {
+  return !!(frame.isRotated || frame._rotated);
+}
+
+/**
+ * TexturePacker / Cocos：rotated 帧在图集槽内顺时针 90° 存放。
+ * 从槽位 rect 裁出的像素需再旋转 +90° 才与 originalSize 朝向一致。
+ * （与 tools/fastspin-extractor 解包逻辑一致）
+ */
+export function uprightRotatedAtlasPixels(imageData: ImageData): ImageData {
+  const sw = imageData.width;
+  const sh = imageData.height;
+  if (sw <= 0 || sh <= 0) return imageData;
+
+  const dw = sh;
+  const dh = sw;
+  const out = document.createElement('canvas');
+  out.width = dw;
+  out.height = dh;
+  const ctx = out.getContext('2d');
+  if (!ctx) return imageData;
+
+  const tmp = document.createElement('canvas');
+  tmp.width = sw;
+  tmp.height = sh;
+  tmp.getContext('2d')!.putImageData(imageData, 0, 0);
+
+  ctx.translate(dw, 0);
+  ctx.rotate(Math.PI / 2);
+  ctx.drawImage(tmp, 0, 0, sw, sh, 0, 0, sw, sh);
+
+  return ctx.getImageData(0, 0, dw, dh);
+}
+
+/** 图集裁切类提取需还原旋转；屏幕截屏与引擎烘焙已是正确朝向 */
+function finalizeAtlasExtractResult(
+  result: TextureExtractResult,
+  frame: SpriteFrameRuntime
+): TextureExtractResult {
+  if (!isSpriteFrameRotated(frame)) return result;
+  if (result.method === 'screen-fbo' || result.method === 'engine-bake') {
+    return result;
+  }
+  return {
+    ...result,
+    imageData: uprightRotatedAtlasPixels(result.imageData),
+  };
+}
+
 export function resolveFrameRect(
   frame: SpriteFrameRuntime,
   texW: number,
@@ -581,8 +630,10 @@ export async function extractAtlasFramePixels(
   pendingReads.set(cacheKey, task);
   try {
     const result = await task;
-    if (result) pixelCache.set(cacheKey, result);
-    return result;
+    if (!result) return null;
+    const finalized = finalizeAtlasExtractResult(result, frame);
+    pixelCache.set(cacheKey, finalized);
+    return finalized;
   } finally {
     pendingReads.delete(cacheKey);
   }

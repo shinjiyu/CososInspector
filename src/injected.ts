@@ -2,12 +2,17 @@
 
 import { isCocos3, log, waitForCocos3 } from './cocos3/detect';
 import { getSceneRoot, hashTree, type TreeNodeInfo } from './cocos3/sceneTree';
+import { buildCompressedTreeInfo } from './cocos3/sprite';
 import {
-  buildCompressedTreeInfo,
-  buildSpriteTreeInfo,
-  countSpriteNodes,
-  hashSpriteTree,
-} from './cocos3/sprite';
+  collectSpriteList,
+  filterSpriteList,
+  hashSpriteList,
+  renderSpriteListHtml,
+} from './cocos3/spriteList';
+import {
+  applySpriteListThumbnails,
+  startSpriteThumbnailPoller,
+} from './cocos3/spriteListThumb';
 import {
   countNodes,
   expandMatchingNodes,
@@ -43,13 +48,13 @@ class CocosInspector3 {
 
   private currentTab: InspectorTab = 'scene';
   private expandedScene = new Set<string>();
-  private expandedSprite = new Set<string>();
   private selectedId: string | null = null;
   private searchQuery = '';
   private isCollapsed = false;
   private sceneTreeHash = '';
-  private spriteTreeHash = '';
+  private spriteListHash = '';
   private updateTimer: number | null = null;
+  private stopThumbPoller: (() => void) | null = null;
 
   constructor() {
     if (isCocos3()) {
@@ -76,7 +81,10 @@ class CocosInspector3 {
       if (!base) return { ok: false, reason: 'no sprite data' };
       return enrichSpriteInspectData(base, id);
     };
-    log('已启动（场景压缩树 + Sprite 树）');
+    this.stopThumbPoller = startSpriteThumbnailPoller(
+      () => this.spriteTreeContainer
+    );
+    log('已启动（场景压缩树 + Sprite 列表）');
   }
 
   private createUI(): void {
@@ -241,12 +249,6 @@ class CocosInspector3 {
         : '搜索节点名称…';
   }
 
-  private getExpandedSet(): Set<string> {
-    return this.currentTab === 'sprite'
-      ? this.expandedSprite
-      : this.expandedScene;
-  }
-
   private toggleCollapse(): void {
     this.setCollapsed(!this.isCollapsed);
   }
@@ -280,9 +282,8 @@ class CocosInspector3 {
       const target = event.target as HTMLElement;
       const toggle = target.closest('.node-toggle');
       const row = target.closest('.node-tree-item');
-      const expanded = this.getExpandedSet();
-
       if (toggle) {
+        const expanded = this.expandedScene;
         const li = toggle.closest('li');
         const id = li?.dataset.uuid;
         if (!id) return;
@@ -309,10 +310,14 @@ class CocosInspector3 {
       'click',
       onClick(this.sceneTreeContainer)
     );
-    this.spriteTreeContainer?.addEventListener(
-      'click',
-      onClick(this.spriteTreeContainer)
-    );
+    this.spriteTreeContainer?.addEventListener('click', (event: Event) => {
+      const row = (event.target as HTMLElement).closest('.sprite-list-item');
+      if (!row) return;
+      const id = (row as HTMLElement).dataset.uuid;
+      if (!id) return;
+      this.selectedId = id;
+      this.refreshAll(true);
+    });
   }
 
   private refreshAll(force: boolean): void {
@@ -327,32 +332,26 @@ class CocosInspector3 {
     }
 
     const compressed = buildCompressedTreeInfo(scene);
-    const spriteRoot = buildSpriteTreeInfo(scene);
+    const allSprites = collectSpriteList(scene);
+    const filteredSprites = filterSpriteList(allSprites, this.searchQuery);
 
     const nextSceneHash = hashTree(compressed);
-    const nextSpriteHash = spriteRoot ? hashSpriteTree(spriteRoot) : '';
+    const nextSpriteHash = hashSpriteList(allSprites);
 
     if (
       !force &&
       nextSceneHash === this.sceneTreeHash &&
-      nextSpriteHash === this.spriteTreeHash
+      nextSpriteHash === this.spriteListHash
     ) {
       this.updateSpriteInspector();
       return;
     }
 
     this.sceneTreeHash = nextSceneHash;
-    this.spriteTreeHash = nextSpriteHash;
+    this.spriteListHash = nextSpriteHash;
 
-    if (this.searchQuery) {
+    if (this.searchQuery && this.currentTab === 'scene') {
       expandMatchingNodes(compressed, this.searchQuery, this.expandedScene);
-      if (spriteRoot) {
-        expandMatchingNodes(
-          spriteRoot,
-          this.searchQuery,
-          this.expandedSprite
-        );
-      }
     }
 
     const baseRenderOpts = {
@@ -370,19 +369,16 @@ class CocosInspector3 {
     }
 
     if (this.spriteTreeContainer) {
-      if (spriteRoot) {
-        this.spriteTreeContainer.innerHTML = `<ul class="node-tree sprite-tree">${renderTreeHtml(
-          spriteRoot,
-          { ...baseRenderOpts, expanded: this.expandedSprite }
-        )}</ul>`;
-      } else {
-        this.spriteTreeContainer.innerHTML =
-          '<div class="empty-scene">场景中未找到 Sprite 节点</div>';
-      }
+      this.spriteTreeContainer.innerHTML = renderSpriteListHtml(
+        filteredSprites,
+        this.selectedId
+      );
+      applySpriteListThumbnails(this.spriteTreeContainer);
     }
 
     const sceneCount = countNodes(compressed);
-    const spriteCount = spriteRoot ? countSpriteNodes(spriteRoot) : 0;
+    const spriteCount = allSprites.length;
+    const spriteVisible = filteredSprites.length;
     if (this.currentTab === 'replacements') {
       void this.refreshReplacementPanel();
       this.setStatus(`替换包 · Sprite ${spriteCount} 个 · ${scene.name || 'Scene'}`);
@@ -391,8 +387,14 @@ class CocosInspector3 {
     }
 
     const tabLabel = this.currentTab === 'scene' ? '场景（压缩）' : 'Sprite';
+    const visible =
+      this.currentTab === 'scene' ? sceneCount : spriteVisible;
+    const spriteStatus =
+      this.currentTab === 'sprite' && this.searchQuery && spriteVisible !== spriteCount
+        ? ` · 共 ${spriteCount} 个`
+        : '';
     this.setStatus(
-      `${tabLabel} · 显示 ${this.currentTab === 'scene' ? sceneCount : spriteCount} 项 · Sprite ${spriteCount} 个 · ${scene.name || 'Scene'}`
+      `${tabLabel} · 列表 ${visible} 项${spriteStatus} · Sprite ${spriteCount} 个 · ${scene.name || 'Scene'}`
     );
     this.updateSpriteInspector();
   }
