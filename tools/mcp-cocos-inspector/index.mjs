@@ -17,13 +17,23 @@ import {
   ListToolsRequestSchema,
 } from '@modelcontextprotocol/sdk/types.js';
 import {
-  startBridge,
+  connectBridgeClientOnly,
   bridgeApiCall,
   bridgeCaptureVisibleTab,
   isExtensionConnected,
   bridgeGetStatus,
   getLastTabs,
+  waitForExtension,
 } from './bridge-server.mjs';
+import { writeReplacementPackToDisk } from './export-pack-lib.mjs';
+import { startShareHttp } from './share-http.mjs';
+import {
+  stageInputFile,
+  shareFileUrl,
+  writeShareOutput,
+  getShareHttpPort,
+  getShareDir,
+} from './shared-fs.mjs';
 import {
   captureTabScreenshot,
   ensureConnected,
@@ -137,18 +147,23 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: 'cocos_replace_texture',
-      description: '用 base64 图片替换节点 Sprite（会记入替换包会话）',
+      description:
+        '替换节点 Sprite。优先 imagePath（落盘共享目录，信道只传路径）；否则 imageBase64',
       inputSchema: {
         type: 'object',
         properties: {
           nodeId: { type: 'string' },
+          imagePath: {
+            type: 'string',
+            description: '本地图片路径，写入 tmp/mcp-share/in/ 后经 HTTP 拉取',
+          },
           imageBase64: { type: 'string' },
           mime: { type: 'string' },
           filename: { type: 'string' },
           pageUrlMatch: { type: 'string' },
           cdpPort: { type: 'number' },
         },
-        required: ['nodeId', 'imageBase64'],
+        required: ['nodeId'],
       },
     },
     {
@@ -313,19 +328,27 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           isError: true,
         };
       }
-      const outPath = resolve(args.outPath);
-      writeBase64File(outPath, res.base64);
+      const shareRel = writeShareOutput(
+        res.filename ?? `${args.nodeId}.png`,
+        res.base64
+      );
+      const outPath = args.outPath ? resolve(args.outPath) : null;
+      if (outPath) {
+        writeBase64File(outPath, res.base64);
+      }
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify(
               {
-                saved: outPath,
+                shareDir: getShareDir(),
+                sharePath: shareRel,
+                shareUrl: shareFileUrl(shareRel),
+                saved: outPath ?? undefined,
                 width: res.width,
                 height: res.height,
                 filename: res.filename,
-                detail: res.detail,
               },
               null,
               2
@@ -336,15 +359,46 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === 'cocos_replace_texture') {
-      const res = await apiCall(
-        'replaceTexture',
-        [
-          args.nodeId,
-          args.imageBase64,
-          { mime: args.mime, filename: args.filename },
-        ],
-        opts
-      );
+      let res;
+      if (args.imagePath) {
+        const rel = stageInputFile(resolve(args.imagePath));
+        res = await apiCall(
+          'replaceTextureFromShare',
+          [
+            args.nodeId,
+            rel,
+            {
+              mime: args.mime,
+              filename: args.filename,
+              shareBaseUrl: `http://127.0.0.1:${getShareHttpPort()}`,
+            },
+          ],
+          opts
+        );
+      } else if (args.imageBase64) {
+        res = await apiCall(
+          'replaceTexture',
+          [
+            args.nodeId,
+            args.imageBase64,
+            { mime: args.mime, filename: args.filename },
+          ],
+          opts
+        );
+      } else {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                ok: false,
+                error: '需要 imagePath 或 imageBase64',
+              }),
+            },
+          ],
+          isError: true,
+        };
+      }
       return {
         content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
         isError: res?.ok === false,
@@ -367,35 +421,13 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === 'cocos_export_replacement_pack') {
-      const res = await apiCall('exportReplacementPack', [], opts);
-      if (!res?.ok) {
-        return {
-          content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
-          isError: true,
-        };
-      }
-      const outDir = resolve(args?.outDir ?? join(repoRoot, 'tmp', res.data.prefix));
-      mkdirSync(outDir, { recursive: true });
-      for (const f of res.data.files) {
-        writeBase64File(join(outDir, f.path), f.base64);
-      }
+      if (!useCdp) await waitForExtension(60_000);
+      const pack = await writeReplacementPackToDisk({
+        pageUrlMatch: connOpts(args).pageUrlMatch,
+        outDir: args?.outDir ? resolve(args.outDir) : undefined,
+      });
       return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify(
-              {
-                outDir,
-                prefix: res.data.prefix,
-                pageUrl: res.data.pageUrl,
-                repackCommand: res.data.repackCommand,
-                fileCount: res.data.files.length,
-              },
-              null,
-              2
-            ),
-          },
-        ],
+        content: [{ type: 'text', text: JSON.stringify(pack, null, 2) }],
       };
     }
 
@@ -511,8 +543,14 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-// 顶层 await：先起桥接再连 MCP stdio
-await startBridge(Number(process.env.COCOS_BRIDGE_PORT ?? 17373));
+// 共享文件 HTTP（与 WebSocket 分离，大图只落盘 + 传路径）
+try {
+  await startShareHttp(getShareHttpPort());
+} catch (e) {
+  if (e?.code !== 'EADDRINUSE') throw e;
+}
+// 连接常驻桥接（请先运行 npm run cocos-bridge）
+await connectBridgeClientOnly(Number(process.env.COCOS_BRIDGE_PORT ?? 17373));
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

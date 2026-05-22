@@ -6,16 +6,43 @@ Cursor 通过 MCP 控制试玩页上的 Inspector：**无需 Chrome 调试模式
 
 ```text
 Cursor MCP 进程
-  └─ 本机 WebSocket 127.0.0.1:17373（bridge-server）
-        └─ 扩展 background 主动连接
-              └─ chrome.scripting → 试玩页 __cocosInspectorApi
+  └─ WebSocket 127.0.0.1:17373（只传 JSON / 路径）
+  └─ HTTP 127.0.0.1:17374（大图 in/ out/ 落盘共享）
+        └─ 扩展 background → content → 试玩页 __cocosInspectorApi
 ```
 
-1. 在 Cursor 启用 `cocos-inspector` MCP（会自动监听 `17373`）
-2. **普通方式**打开 Chrome，打开 Cocos 试玩页
-3. 加载 **Cocos Inspector 3** 扩展（`npm run build` 后重载扩展）
+### 共享目录（解决「传数据」瓶颈）
 
-扩展后台每 2.5s 重连桥接；打开试玩页后即可用 MCP 工具。
+| 方向 | 做法 |
+|------|------|
+| **上传替换** | MCP 把 PNG 写入 `tmp/mcp-share/in/`，信道只传 `in/xxx.png`；页面 `fetch` HTTP 拉图 |
+| **下载纹理** | 页面仍生成像素一次；桥接写入 `out/xxx.png`，工具返回 **路径 + URL**，可选再拷到 `outPath` |
+
+环境变量：`COCOS_MCP_SHARE_DIR`、`COCOS_SHARE_HTTP_PORT`（默认 17374）
+
+`cocos_replace_texture` 优先用 **`imagePath`**（本地文件），避免 WebSocket 塞满 base64。
+
+1. 项目根目录启动**常驻桥接**（保持终端不关）：
+
+```powershell
+cd D:\UGit\CososInspector
+npm run cocos-bridge
+```
+
+2. 在 Cursor 启用 `cocos-inspector` MCP（作为客户端连 `17373`）
+3. **普通方式**打开 Chrome，打开 Cocos 试玩页
+4. 加载 **Cocos Inspector 3** 扩展（`npm run build` 后重载扩展），试玩页 **F5 刷新**
+
+扩展连上桥接后，面板右上角 MCP 应为绿色「已连接」。
+
+### 自动化冒烟
+
+```powershell
+npm run cocos-bridge    # 终端 1，保持运行
+# Chrome 试玩页 F5，MCP 绿点
+npm run build           # 改过 src 后重载扩展
+npm run cocos-autotest  # 列 Sprite / 截屏 / 分片导出替换包
+```
 
 ### 可选：CDP 模式（需调试端口）
 

@@ -1,4 +1,8 @@
-import { exportReplacementPackData } from './replacementExport';
+import {
+  beginReplacementPackExport,
+  exportReplacementPackData,
+  readReplacementPackFile,
+} from './replacementExport';
 import { listReplacementPairs } from './replacementStore';
 import { findNodeById, getSceneRoot } from './sceneTree';
 import { exportSpritePngBase64 } from './spriteDownload';
@@ -150,6 +154,56 @@ export const cocosInspectorMcpApi = {
     return replaceSpriteWithImageBase64(nodeId, imageBase64, options);
   },
 
+  /**
+   * 从桥接 HTTP 共享目录拉取图片再替换（WebSocket 只传相对路径，如 in/xxx.png）
+   */
+  async replaceTextureFromShare(
+    nodeId: string,
+    shareRelPath: string,
+    options?: {
+      mime?: string;
+      filename?: string;
+      /** 默认 http://127.0.0.1:17374 */
+      shareBaseUrl?: string;
+    }
+  ): Promise<
+    | { ok: true; sharePath: string; shareUrl: string }
+    | { ok: false; error: string }
+  > {
+    const base = (options?.shareBaseUrl ?? 'http://127.0.0.1:17374').replace(
+      /\/$/,
+      ''
+    );
+    const rel = shareRelPath.replace(/^\//, '');
+    const url = `${base}/${rel}`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        return { ok: false, error: `拉取共享文件失败 ${res.status}: ${url}` };
+      }
+      const blob = await res.blob();
+      const mime = options?.mime ?? blob.type ?? 'image/png';
+      const filename =
+        options?.filename ?? rel.split('/').pop() ?? 'share-upload.png';
+      const buf = await blob.arrayBuffer();
+      const bytes = new Uint8Array(buf);
+      let bin = '';
+      for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i]!);
+      const b64 = btoa(bin);
+      const applied = await replaceSpriteWithImageBase64(nodeId, b64, {
+        mime,
+        filename,
+      });
+      if (!applied.ok) return applied;
+      return { ok: true, sharePath: rel, shareUrl: url };
+    } catch (e) {
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : String(e),
+      };
+    }
+  },
+
   revertTexture(
     nodeId: string
   ): Promise<{ ok: true } | { ok: false; error: string }> {
@@ -183,6 +237,14 @@ export const cocosInspectorMcpApi = {
 
   exportReplacementPack() {
     return exportReplacementPackData();
+  },
+
+  beginReplacementPackExport() {
+    return beginReplacementPackExport();
+  },
+
+  readReplacementPackFile(relativePath: string) {
+    return readReplacementPackFile(relativePath);
   },
 
   /** 游戏主 Canvas 截图（整屏游戏区） */

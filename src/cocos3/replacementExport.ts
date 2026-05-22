@@ -82,6 +82,149 @@ export interface ReplacementPackExportData {
   files: Array<{ path: string; base64: string; mimeType: string }>;
 }
 
+export interface ReplacementPackBegin {
+  prefix: string;
+  pageUrl: string;
+  repackCommand: string;
+  paths: string[];
+  replacementCount: number;
+}
+
+/** 分片导出：先取文件列表（避免单次 JSON 过大撑爆扩展消息通道） */
+export async function beginReplacementPackExport(): Promise<
+  | { ok: true; data: ReplacementPackBegin }
+  | { ok: false; error: string }
+> {
+  try {
+    const pairs = await listReplacementPairs();
+    if (pairs.length === 0) {
+      return { ok: false, error: '当前页面没有已记录的替换对' };
+    }
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const prefix = `cocos-replacements_${stamp}`;
+    const pageUrl = window.location.href;
+    const packDirHint = `./${prefix}`;
+    const repackCmd = buildRepackCommand({ pageUrl, packDir: packDirHint });
+    const paths = [
+      'manifest.json',
+      'page-resources.json',
+      'README.txt',
+      'repack-command.txt',
+      ...pairs.map((p) => `images/${p.replacement.exportFileName}`),
+    ];
+    return {
+      ok: true,
+      data: {
+        prefix,
+        pageUrl,
+        repackCommand: repackCmd,
+        paths,
+        replacementCount: pairs.length,
+      },
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
+/** 分片导出：按相对路径读取单个文件（base64） */
+export async function readReplacementPackFile(
+  relativePath: string
+): Promise<
+  | { ok: true; path: string; base64: string; mimeType: string }
+  | { ok: false; error: string }
+> {
+  try {
+    const path = relativePath.replace(/\\/g, '/').replace(/^\/+/, '');
+    const pairs = await listReplacementPairs();
+    if (pairs.length === 0) {
+      return { ok: false, error: '当前页面没有已记录的替换对' };
+    }
+
+    const pageUrl = window.location.href;
+    const manifest = await exportReplacementManifest();
+    const pageResources = collectPageResources();
+    const packDirHint = './cocos-replacements_export';
+    const repackCmd = buildRepackCommand({ pageUrl, packDir: packDirHint });
+    const readme = [
+      'Cocos Inspector 3 — 替换包',
+      '',
+      `页面: ${pageUrl}`,
+      `导出时间: ${manifest.exportedAt}`,
+      `替换对数量: ${pairs.length}`,
+      '',
+      ...manifest.applyInstructions,
+      '',
+      ...buildRepackReadmeSection({
+        pageUrl,
+        packDir: packDirHint,
+        count: pairs.length,
+      }),
+    ].join('\n');
+
+    if (path === 'manifest.json') {
+      return {
+        ok: true,
+        path,
+        base64: btoa(unescape(encodeURIComponent(JSON.stringify(manifest, null, 2)))),
+        mimeType: 'application/json',
+      };
+    }
+    if (path === 'page-resources.json') {
+      return {
+        ok: true,
+        path,
+        base64: btoa(
+          unescape(encodeURIComponent(JSON.stringify(pageResources, null, 2)))
+        ),
+        mimeType: 'application/json',
+      };
+    }
+    if (path === 'README.txt') {
+      return {
+        ok: true,
+        path,
+        base64: btoa(unescape(encodeURIComponent(readme))),
+        mimeType: 'text/plain',
+      };
+    }
+    if (path === 'repack-command.txt') {
+      return {
+        ok: true,
+        path,
+        base64: btoa(unescape(encodeURIComponent(repackCmd + '\n'))),
+        mimeType: 'text/plain',
+      };
+    }
+    if (path.startsWith('images/')) {
+      const fileName = path.slice('images/'.length);
+      const pair = pairs.find((p) => p.replacement.exportFileName === fileName);
+      if (!pair) {
+        return { ok: false, error: `未找到替换图: ${fileName}` };
+      }
+      const blob = await getReplacementBlob(pair.id);
+      if (!blob) {
+        return { ok: false, error: `替换图数据缺失: ${pair.id}` };
+      }
+      return {
+        ok: true,
+        path,
+        base64: await blobToBase64(blob),
+        mimeType: blob.type || 'image/png',
+      };
+    }
+    return { ok: false, error: `未知路径: ${path}` };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
 /** 返回替换包数据（供 MCP 写入磁盘，不触发浏览器下载） */
 export async function exportReplacementPackData(): Promise<
   | { ok: true; data: ReplacementPackExportData }

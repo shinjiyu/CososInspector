@@ -11,6 +11,8 @@ let wss = null;
 let extensionWs = null;
 /** @type {import('ws').WebSocket | null} */
 let mcpClientWs = null;
+/** @type {Set<import('ws').WebSocket>} */
+const mcpClients = new Set();
 /** @type {Map<number, { resolve: Function; reject: Function; timer: ReturnType<typeof setTimeout>; relayTo?: import('ws').WebSocket }>} */
 const pending = new Map();
 let seq = 0;
@@ -45,7 +47,18 @@ function relayCallFromMcpClient(msg, mcpWs) {
     return;
   }
 
-  const timer = setTimeout(() => pending.delete(msg.id), CALL_TIMEOUT_MS);
+  const timer = setTimeout(() => {
+    pending.delete(msg.id);
+    if (mcpWs.readyState === WebSocket.OPEN) {
+      mcpWs.send(
+        JSON.stringify({
+          type: 'response',
+          id: msg.id,
+          error: `桥接调用超时 (${msg.method ?? 'call'})`,
+        })
+      );
+    }
+  }, CALL_TIMEOUT_MS);
   pending.set(msg.id, {
     resolve: () => {},
     reject: () => {},
@@ -70,8 +83,23 @@ function relayCallFromMcpClient(msg, mcpWs) {
  */
 function onSocketMessage(ws, msg) {
   if (msg.role === 'extension') {
+    if (extensionWs && extensionWs !== ws && extensionWs.readyState === WebSocket.OPEN) {
+      try {
+        extensionWs.close();
+      } catch {
+        /* ignore */
+      }
+    }
     extensionWs = ws;
     if (Array.isArray(msg.tabs)) lastTabs = msg.tabs;
+    return;
+  }
+
+  if (msg.role === 'mcp') {
+    mcpClients.add(ws);
+    if (!mcpClientWs || mcpClientWs.readyState !== WebSocket.OPEN) {
+      mcpClientWs = ws;
+    }
     return;
   }
 
@@ -80,12 +108,13 @@ function onSocketMessage(ws, msg) {
     return;
   }
 
-  if (msg.type === 'status') {
+  if (msg.type === 'status' || msg.type === 'ping') {
     ws.send(
       JSON.stringify({
         type: 'status',
         extensionConnected: extensionWs?.readyState === WebSocket.OPEN,
         tabs: lastTabs,
+        mode,
       })
     );
     return;
@@ -102,6 +131,9 @@ function onSocketMessage(ws, msg) {
 }
 
 function wireConnection(ws) {
+  ws.on('error', () => {
+    /* 避免未捕获 error 导致守护进程退出 */
+  });
   ws.on('message', (raw) => {
     try {
       onSocketMessage(ws, JSON.parse(String(raw)));
@@ -111,7 +143,16 @@ function wireConnection(ws) {
   });
   ws.on('close', () => {
     if (extensionWs === ws) extensionWs = null;
-    if (mcpClientWs === ws) mcpClientWs = null;
+    mcpClients.delete(ws);
+    if (mcpClientWs === ws) {
+      mcpClientWs = null;
+      for (const c of mcpClients) {
+        if (c.readyState === WebSocket.OPEN) {
+          mcpClientWs = c;
+          break;
+        }
+      }
+    }
   });
 }
 
@@ -126,6 +167,7 @@ function connectBridgeClient(port) {
     ws.on('open', () => {
       clearTimeout(timer);
       mcpClientWs = ws;
+      mcpClients.add(ws);
       mode = 'client';
       wireConnection(ws);
       ws.send(JSON.stringify({ role: 'mcp' }));
@@ -189,6 +231,47 @@ export async function bridgeGetStatus() {
     extensionConnected: extensionWs?.readyState === WebSocket.OPEN,
     tabs: lastTabs,
   };
+}
+
+/** 关闭 MCP 客户端连接，便于 CLI 脚本正常退出 */
+export function closeBridgeClient() {
+  if (mcpClientWs) {
+    try {
+      mcpClientWs.close();
+    } catch {
+      /* ignore */
+    }
+  }
+  mcpClientWs = null;
+  mcpClients.clear();
+  if (mode === 'client') mode = 'none';
+}
+
+/** 仅连接已有桥接（供 Cursor MCP 使用，不抢占端口） */
+export async function connectBridgeClientOnly(port = DEFAULT_PORT) {
+  if (mcpClientWs?.readyState === WebSocket.OPEN) return;
+  mcpClientWs = null;
+  return connectBridgeClient(port);
+}
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
+/** 轮询直到扩展连上桥接 */
+export async function waitForExtension(maxMs = 60_000) {
+  const deadline = Date.now() + maxMs;
+  while (Date.now() < deadline) {
+    try {
+      await connectBridgeClientOnly(DEFAULT_PORT);
+      const st = await bridgeGetStatus();
+      if (st.extensionConnected) return st;
+    } catch {
+      /* retry */
+    }
+    await sleep(500);
+  }
+  throw new Error(
+    `扩展未在 ${maxMs}ms 内连接桥接。请打开试玩页并确认 Inspector 面板 MCP 为已连接。`
+  );
 }
 
 /** @returns {Promise<void>} */

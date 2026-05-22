@@ -5,6 +5,9 @@
   "main": "dist/content.js",
   "scripts": {
     "repack": "node tools/repack-super-html.mjs",
+    "cocos-bridge": "node tools/mcp-cocos-inspector/bridge-daemon.mjs",
+    "cocos-autotest": "node tools/mcp-cocos-inspector/autotest.mjs",
+    "cocos-export-pack": "node tools/mcp-cocos-inspector/export-pack.mjs",
     "build": "node scripts/build.mjs",
     "watch": "node scripts/build.mjs --watch",
     "dev": "node scripts/build.mjs",

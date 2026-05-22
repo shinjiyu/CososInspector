@@ -56,6 +56,7 @@ class CocosInspector3 {
   private spriteListHash = '';
   private updateTimer: number | null = null;
   private stopThumbPoller: (() => void) | null = null;
+  private mcpStatusEl: HTMLElement | null = null;
 
   constructor() {
     if (isCocos3()) {
@@ -109,14 +110,36 @@ class CocosInspector3 {
     const header = document.createElement('div');
     header.className = 'cocos-inspector-header';
 
+    const headerTop = document.createElement('div');
+    headerTop.className = 'inspector-header-top';
+
+    const titleBlock = document.createElement('div');
+    titleBlock.className = 'inspector-header-title-block';
+
     const title = document.createElement('h3');
     title.textContent = 'Cocos Inspector 3';
-    header.appendChild(title);
+    titleBlock.appendChild(title);
 
     const version = document.createElement('span');
     version.className = 'engine-version';
     version.textContent = `引擎 ${window.cc.ENGINE_VERSION ?? '3.x'}`;
-    header.appendChild(version);
+    titleBlock.appendChild(version);
+
+    headerTop.appendChild(titleBlock);
+
+    this.mcpStatusEl = document.createElement('div');
+    this.mcpStatusEl.className = 'mcp-status mcp-status--disconnected';
+    this.mcpStatusEl.innerHTML =
+      '<span class="mcp-status-dot" aria-hidden="true"></span><span class="mcp-status-label">MCP</span>';
+    this.updateMcpStatus('disconnected', 17373);
+    headerTop.appendChild(this.mcpStatusEl);
+
+    header.appendChild(headerTop);
+
+    window.addEventListener('message', (ev) => {
+      if (ev.source !== window || ev.data?.type !== 'cocos-mcp-status') return;
+      this.updateMcpStatus(ev.data.status ?? 'disconnected', ev.data.port ?? 17373);
+    });
 
     const controls = document.createElement('div');
     controls.className = 'inspector-controls';
@@ -250,6 +273,30 @@ class CocosInspector3 {
       this.currentTab === 'sprite'
         ? '搜索 Sprite 节点 / 贴图名…'
         : '搜索节点名称…';
+  }
+
+  private updateMcpStatus(
+    status: 'connecting' | 'connected' | 'disconnected',
+    port: number
+  ): void {
+    if (!this.mcpStatusEl) return;
+
+    const labels: Record<typeof status, string> = {
+      connecting: '连接中',
+      connected: '已连接',
+      disconnected: '未连接',
+    };
+
+    this.mcpStatusEl.className = `mcp-status mcp-status--${status}`;
+    const label = this.mcpStatusEl.querySelector('.mcp-status-label');
+    if (label) label.textContent = `MCP · ${labels[status]}`;
+
+    const hints: Record<typeof status, string> = {
+      connecting: `正在连接本机桥接 ws://127.0.0.1:${port} …`,
+      connected: `已连接 Cursor MCP 桥接（端口 ${port}）。Agent 可调用纹理/替换/导出工具。`,
+      disconnected: `未连接 MCP。请在 Cursor 启用 cocos-inspector MCP，并确认端口 ${port} 可用。`,
+    };
+    this.mcpStatusEl.title = hints[status];
   }
 
   private toggleCollapse(): void {

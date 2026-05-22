@@ -1,6 +1,11 @@
 /// <reference path="./types/chrome.d.ts" />
 
 const API_CALL_TIMEOUT_MS = 90_000;
+let pageApiReady = false;
+
+function markPageApiReady(): void {
+    pageApiReady = true;
+}
 
 // 注入资源到页面
 function injectResources(): void {
@@ -23,6 +28,16 @@ function notifyExtensionActive(): void {
     } catch {
         /* ignore */
     }
+}
+
+async function waitForPageApi(maxMs = 30_000): Promise<void> {
+    if (pageApiReady) return;
+    const deadline = Date.now() + maxMs;
+    while (Date.now() < deadline) {
+        if (pageApiReady) return;
+        await new Promise((r) => setTimeout(r, 250));
+    }
+    throw new Error('页面 Inspector API 未就绪，请刷新试玩页');
 }
 
 function callPageApi(method: string, args: unknown[]): Promise<unknown> {
@@ -52,7 +67,8 @@ function callPageApi(method: string, args: unknown[]): Promise<unknown> {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     if (message?.type === 'cocos-api-call') {
-        void callPageApi(message.method, message.args ?? [])
+        void waitForPageApi()
+            .then(() => callPageApi(message.method, message.args ?? []))
             .then((result) => sendResponse({ ok: true, result }))
             .catch((e) =>
                 sendResponse({
@@ -64,7 +80,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     }
 
     if (message?.type === 'cocos-api-ping') {
-        void callPageApi('getPageInfo', [])
+        void waitForPageApi()
+            .then(() => callPageApi('getPageInfo', []))
             .then((result) => sendResponse({ ok: true, result }))
             .catch((e) =>
                 sendResponse({
@@ -115,6 +132,7 @@ if (document.readyState === 'complete') {
 
 window.addEventListener('message', (ev) => {
     if (ev.data?.type === 'cocos-inspector-ready') {
+        markPageApiReady();
         notifyExtensionActive();
     }
 });
