@@ -1,16 +1,14 @@
-import { mkdirSync, writeFileSync } from 'fs';
-import { dirname, join, resolve } from 'path';
-import { fileURLToPath } from 'url';
 import {
   bridgeApiCall,
   connectBridgeClientOnly,
   waitForExtension,
+  closeBridgeClient,
 } from './bridge-server.mjs';
-
-const repoRoot = resolve(join(dirname(fileURLToPath(import.meta.url)), '../..'));
+import { exportPackViaBridge } from './export-pack-server.mjs';
+import { isShareHttpRunning } from './share-http.mjs';
 
 /**
- * 分片拉取替换包并写入磁盘（单文件 JSON，避免扩展消息通道撑爆）
+ * 导出替换包：优先走本地 HTTP 服务（同进程直接写盘）；否则经 WS 客户端调桥接。
  * @param {{ pageUrlMatch?: string; outDir?: string; waitMs?: number }} opts
  */
 export async function writeReplacementPackToDisk(opts = {}) {
@@ -18,48 +16,35 @@ export async function writeReplacementPackToDisk(opts = {}) {
   const waitMs = opts.waitMs ?? 60_000;
 
   await waitForExtension(waitMs);
-  await connectBridgeClientOnly();
 
-  let begin;
-  try {
-    begin = await bridgeApiCall('beginReplacementPackExport', [], {
-      pageUrlMatch: match,
-    });
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (/未知 API|not a function/i.test(msg)) {
-      throw new Error(
-        `${msg} — 请在 chrome://extensions 重载 Cocos Inspector 后 F5 试玩页`
-      );
+  let result;
+  if (isShareHttpRunning()) {
+    result = await exportPackViaBridge({ pageUrlMatch: match });
+  } else {
+    await connectBridgeClientOnly();
+    try {
+      result = await exportPackViaBridge({ pageUrlMatch: match });
+    } finally {
+      closeBridgeClient();
     }
-    throw e;
-  }
-  if (!begin?.ok) {
-    throw new Error(begin?.error ?? 'beginReplacementPackExport 失败');
   }
 
-  const { prefix, paths, repackCommand, pageUrl, replacementCount } = begin.data;
-  const outDir = resolve(opts.outDir ?? join(repoRoot, 'tmp', prefix));
-  mkdirSync(outDir, { recursive: true });
-
-  for (const relPath of paths) {
-    const chunk = await bridgeApiCall('readReplacementPackFile', [relPath], {
-      pageUrlMatch: match,
-    });
-    if (!chunk?.ok) {
-      throw new Error(chunk?.error ?? `readReplacementPackFile(${relPath}) 失败`);
-    }
-    const dest = join(outDir, relPath);
-    mkdirSync(dirname(dest), { recursive: true });
-    writeFileSync(dest, Buffer.from(chunk.base64, 'base64'));
+  if (!result?.ok) {
+    throw new Error(result?.error ?? 'exportPackViaBridge 失败');
   }
 
+  const d = result.data;
   return {
-    outDir,
-    prefix,
-    pageUrl,
-    repackCommand,
-    replacementCount,
-    fileCount: paths.length,
+    outDir: d.packDirAbs,
+    shareDir: d.shareDir,
+    packRoot: d.packRoot,
+    prefix: d.prefix,
+    packDir: d.packDir,
+    pageUrl: d.pageUrl,
+    repackCommand: d.repackCommand,
+    replacementCount: d.replacementCount,
+    fileCount: d.fileCount,
+    nextStep: d.nextStep,
+    mode: 'local-server',
   };
 }

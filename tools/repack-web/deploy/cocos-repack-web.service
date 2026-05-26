@@ -1,0 +1,18 @@
+[Unit]
+Description=Cocos Inspector Repack Web (8787)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/cocos-repack-web
+Environment=NODE_ENV=production
+Environment=REPACK_WEB_PORT=8787
+Environment=REPACK_WEB_HOST=127.0.0.1
+Environment=REPACK_WEB_BASE_PATH=/cocos-repack
+Environment=REPACK_WEB_MAX_MB=80
+ExecStart=/usr/bin/node tools/repack-web/server.mjs
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

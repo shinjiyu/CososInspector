@@ -1,4 +1,7 @@
-import { exportPageResourcesOnly, exportReplacementPack } from './replacementExport';
+import {
+  exportPageResourcesOnly,
+  exportReplacementPack,
+} from './replacementExport';
 import {
   clearReplacementPairsForPage,
   deleteReplacementPair,
@@ -15,7 +18,7 @@ export function createReplacementPanelElement(): HTMLElement {
   panel.dataset.tabPanel = 'replacements';
   panel.innerHTML = `
     <div class="replacement-pack-toolbar">
-      <button type="button" class="replacement-export-btn">导出替换包</button>
+      <button type="button" class="replacement-export-btn">导出 zip</button>
       <button type="button" class="replacement-copy-repack-btn" title="复制 Node 重打包命令" disabled>复制重打包命令</button>
       <button type="button" class="replacement-resources-btn">资源 URL</button>
       <button type="button" class="replacement-clear-btn">清空</button>
@@ -23,8 +26,9 @@ export function createReplacementPanelElement(): HTMLElement {
     <p class="replacement-export-status" hidden></p>
     <pre class="replacement-repack-cmd" hidden spellcheck="false"></pre>
     <p class="replacement-pack-hint">
-      <strong>仅本次会话有效</strong>：上传替换用于试玩页内预览；导出替换包后在本机用 Node 重打包（见 repack-command.txt 或下方命令）。
-      浏览器内无法直接生成试玩 HTML，需 <code>npm install</code> 后运行命令。
+      <strong>仅本次会话有效</strong>。点<strong>导出 zip</strong> 后，打开
+      <a href="http://127.0.0.1:8787" target="_blank" rel="noopener">换皮打包站</a>
+      （<code>npm run repack-web</code>）上传 zip + 试玩 html/URL → 下载试玩 HTML。
     </p>
     <div class="replacement-list"></div>
   `;
@@ -49,20 +53,20 @@ export function createReplacementPanelElement(): HTMLElement {
   exportBtn.addEventListener('click', async () => {
     exportBtn.disabled = true;
     exportBtn.textContent = '导出中…';
-    setStatus('正在生成替换包…');
+    setStatus('正在生成 zip…');
     const result = await exportReplacementPack();
     exportBtn.disabled = false;
-    exportBtn.textContent = '导出替换包';
+    exportBtn.textContent = '导出 zip';
     if (result.ok) {
       lastRepackCommand = result.repackCommand;
       copyRepackBtn.disabled = false;
       repackCmdEl.hidden = false;
       repackCmdEl.textContent = result.repackCommand;
       setStatus(
-        `已下载 ${result.count} 条替换 + manifest + repack-command.txt`,
+        `已下载 ${result.zipName}（${result.count} 条）→ 上传到换皮打包站`,
         true
       );
-      exportBtn.title = `包目录建议: ${result.prefix}/`;
+      exportBtn.title = result.zipName;
     } else {
       setStatus(result.error, true);
       exportBtn.title = result.error;

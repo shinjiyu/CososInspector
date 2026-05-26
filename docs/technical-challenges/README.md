@@ -85,7 +85,7 @@
 - 扩展本身不能当 MCP Server，需 Node 伴生进程
 - `executeScript` 易卡死 → **content 脚本中继** + `postMessage`
 - MCP 进程退出会带走桥 → 先运行 **`npm run cocos-bridge`**
-- **大图不走 WebSocket**：`tmp/mcp-share/` + HTTP `17374`，信道只传 `in/xxx.png` 等路径
+- **大图不走 WebSocket**：`tmp/mcp-share/` + HTTP `17374`；上传 `in/`、导出 `out/{prefix}/`、替换/下载只传路径
 
 ```powershell
 npm run cocos-bridge   # 常驻桥接 127.0.0.1:17373

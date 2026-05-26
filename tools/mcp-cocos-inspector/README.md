@@ -2,21 +2,29 @@
 
 Cursor 通过 MCP 控制试玩页上的 Inspector：**无需 Chrome 调试模式**。
 
-## 连接方式（默认：桥接）
+## 连接方式：本地服务（`npm run cocos-bridge`）
 
 ```text
-Cursor MCP 进程
-  └─ WebSocket 127.0.0.1:17373（只传 JSON / 路径）
-  └─ HTTP 127.0.0.1:17374（大图 in/ out/ 落盘共享）
-        └─ 扩展 background → content → 试玩页 __cocosInspectorApi
+npm run cocos-bridge  （一个 Node 进程 = 本地服务）
+  ├─ WebSocket :17373  ← 扩展 background 常驻连接
+  └─ HTTP      :17374  ← 文件共享 + REST API
+        └─ 扩展试玩页 __cocosInspectorApi（经 WS 被服务调用）
+
+导出并打包：试玩页 POST /api/export-pack → 服务拉数据 → 写替换包 → **自动 repack** 生成 `repacked_*.html`
+（默认 `repack: true`；仅导出可传 `{ "repack": false }`）
 ```
 
-### 共享目录（解决「传数据」瓶颈）
+| API | 作用 |
+|-----|------|
+| `GET /api/status` | 扩展是否已连 WS、共享目录路径 |
+| `POST /api/export-pack` | **在本地服务上执行导出**（body: `{ "pageUrlMatch": "applovin" }`） |
+
+### 共享目录（大图上传/下载）
 
 | 方向 | 做法 |
 |------|------|
-| **上传替换** | MCP 把 PNG 写入 `tmp/mcp-share/in/`，信道只传 `in/xxx.png`；页面 `fetch` HTTP 拉图 |
-| **下载纹理** | 页面仍生成像素一次；桥接写入 `out/xxx.png`，工具返回 **路径 + URL**，可选再拷到 `outPath` |
+| **上传替换** | MCP 写入 `tmp/mcp-share/in/`；页面 HTTP 拉图 |
+| **下载纹理** | 桥接写入 `out/xxx.png`，返回路径 |
 
 环境变量：`COCOS_MCP_SHARE_DIR`、`COCOS_SHARE_HTTP_PORT`（默认 17374）
 

@@ -15,15 +15,30 @@
 - Sprite 预览、下载 PNG、运行时上传替换
 - **替换包**：记录「原贴图线索 → 新图」，导出后在下载的试玩页源码中批量替换资源文件
 
-### 试玩广告换皮流程（如 AppLovin / super-html）
+### 试玩广告换皮流程（推荐：Web 重打包）
 
-1. 打开试玩页（例如 `applovin2103.html`），在 **Sprite** 树中选中节点并 **上传替换**（仅当前会话预览）
-2. 打开 **替换包** Tab → **导出替换包**（`manifest.json`、`images/`、`page-resources.json`）
-3. **super-html 重打包**（推荐）：
+1. Chrome 扩展：试玩页换皮 → **替换包** 导出 zip（或把导出的文件打成 zip，含 `manifest.json`）
+2. 启动 Web 服务并上传（**zip + 原版试玩 html 文件或 URL**，无默认模板）：
 
 ```bash
-# 将 tmp 内 manifest + 扁平图片放在同一目录，或标准 images/ 子目录
-node tools/repack-super-html.mjs --html path/to/applovin2103.html --pack tmp --out tmp/repacked.html
+cd tools/repack-web && npm install && npm start
+# 本地 http://127.0.0.1:8787
+# 线上 https://kuroneko.chat/cocos-repack/
+# 上传：替换包 zip + 试玩 .html（或试玩页 URL）
+```
+
+3. 解压后 `npx serve .` 预览试玩 HTML
+
+详见 [tools/repack-web/README.md](tools/repack-web/README.md)。
+
+### 可选：本地桥接 / MCP
+
+`npm run cocos-bridge` + 扩展「导出并打包」适合 Cursor 自动化；日常手工换皮用 **repack-web** 更简单。
+
+手动命令（与自动等价）：
+
+```bash
+node tools/repack-super-html.mjs --html tools/_probe/applovin2103.html --pack tmp/mcp-share/out/cocos-replacements_<时间> --out tmp/mcp-share/out/cocos-replacements_<时间>/repacked_applovin2103.html
 ```
 
 重打包默认会把 `cc` 的 import map 改成 `about:cocos-js/cc.js`，便于 `npx serve` 单目录预览；部署到含 `../cocos-js/` 的线上目录时加 `--keep-import-map`。

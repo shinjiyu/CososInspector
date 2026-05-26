@@ -1,6 +1,7 @@
 import {
   beginReplacementPackExport,
-  exportReplacementPackData,
+  exportReplacementPackZipData,
+  exportReplacementPackToShare,
   readReplacementPackFile,
 } from './replacementExport';
 import { listReplacementPairs } from './replacementStore';
@@ -235,8 +236,14 @@ export const cocosInspectorMcpApi = {
     }));
   },
 
+  /** 替换包 zip（base64），结构同面板「导出 zip」 */
   exportReplacementPack() {
-    return exportReplacementPackData();
+    return exportReplacementPackZipData();
+  },
+
+  /** @deprecated 请用 exportReplacementPack（zip） */
+  exportReplacementPackLegacy() {
+    return exportReplacementPackZipData();
   },
 
   beginReplacementPackExport() {
@@ -245,6 +252,10 @@ export const cocosInspectorMcpApi = {
 
   readReplacementPackFile(relativePath: string) {
     return readReplacementPackFile(relativePath);
+  },
+
+  exportReplacementPackToShare(shareBaseUrl?: string) {
+    return exportReplacementPackToShare(shareBaseUrl);
   },
 
   /** 游戏主 Canvas 截图（整屏游戏区） */

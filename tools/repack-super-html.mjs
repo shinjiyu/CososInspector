@@ -10,7 +10,8 @@
  * --dry-run 只打印将修改的 __res 键
  *
  * 图集子帧：manifest 含 frameRect 时合成进 native PNG，不覆盖整张图集。
- * 所有写入 __res 的 data URL 会在第 27 字符插入 oasj 占位符（与 super-html getRes 一致）。
+ * zip 内联：部分 native（如 c1845490….jpg）仅在 zip 条目内为 data URL，不在 __res。
+ * 所有写入的 data URL 会在第 27 字符插入 oasj 占位符（与 super-html getRes 一致）。
  */
 
 import {
@@ -25,6 +26,7 @@ import {
   applySuperHtmlOasjPlaceholder,
   patchAtlasInRes,
 } from './repack-atlas-patch.mjs';
+import { patchZipInlineImages } from './repack-zip-inline.mjs';
 
 const require = createRequire(import.meta.url);
 const JSZip = require('jszip');
@@ -331,12 +333,42 @@ async function main() {
   for (const rep of manifest.replacements ?? []) {
     rep.pageUrl = pageUrl;
 
-    const atlas = await patchAtlasInRes(
+    /** 采集到的 assetUrls 若指向 __res 内独立 .jpg，优先整图覆盖（避免误匹配其它大图集 PNG） */
+    const wholeJpegKeys = findResImageKeys(resMap, rep, pageUrl).filter((k) =>
+      /\.jpe?g$/i.test(k)
+    );
+    if (wholeJpegKeys.length > 0) {
+      for (const key of wholeJpegKeys) {
+        const dataUrl = await encodeForResKey(
+          rep._imagePath,
+          key,
+          resMap[key],
+          rep
+        );
+        log.push(
+          `[整图·JPG] ${key} ← ${basename(rep._imagePath)} (${dataUrl.length} chars)`
+        );
+        if (!args.dryRun) {
+          resMap[key] = dataUrl;
+          applied++;
+        }
+      }
+      continue;
+    }
+
+    let atlas = await patchAtlasInRes(
       resMap,
       rep,
       rep._imagePath,
       assetUrlToZipPath
     );
+
+    if (!atlas.ok && atlas.reason === 'too-large') {
+      console.warn(
+        `图集过大，改走整图匹配: ${rep.nodePath} (${rep.original?.frameName})`
+      );
+      atlas = { ok: false, reason: 'no-atlas' };
+    }
 
     if (atlas.ok) {
       const fr = atlas.frame ?? rep.original?.frameRect;
@@ -373,9 +405,27 @@ async function main() {
 
     const targets = findResImageKeys(resMap, rep, pageUrl);
 
+    const zipInline = await patchZipInlineImages(
+      zip,
+      rep,
+      rep._imagePath,
+      encodeForResKey,
+      { pageUrl, dryRun: args.dryRun, assetUrlToZipPath }
+    );
+    if (zipInline.length > 0) {
+      for (const r of zipInline) {
+        log.push(
+          `[zip内联] ${r.path} ← ${basename(rep._imagePath)} ` +
+            `(${r.dataUrl.length}/${r.originalLen} chars)`
+        );
+        if (!args.dryRun) applied++;
+      }
+      continue;
+    }
+
     if (targets.length === 0) {
       console.warn(
-        `未匹配 __res 纹理: ${rep.nodePath} (${rep.original?.frameName})` +
+        `未匹配 __res / zip 内联纹理: ${rep.nodePath} (${rep.original?.frameName})` +
           (atlas.reason ? ` [图集:${atlas.reason}]` : '')
       );
       continue;

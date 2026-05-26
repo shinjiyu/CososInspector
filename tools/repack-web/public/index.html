@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Cocos 试玩换皮 · 重打包</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #0f1419;
+        --card: #1a2332;
+        --accent: #3d8bfd;
+        --text: #e7ecf3;
+        --muted: #8b9cb3;
+        --border: #2a3648;
+        --ok: #3dd68c;
+        --err: #f07178;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        min-height: 100vh;
+        font-family: 'Segoe UI', system-ui, sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        line-height: 1.5;
+      }
+      .wrap {
+        max-width: 640px;
+        margin: 0 auto;
+        padding: 2rem 1.25rem 3rem;
+      }
+      h1 {
+        font-size: 1.35rem;
+        font-weight: 600;
+        margin: 0 0 0.35rem;
+      }
+      .sub {
+        color: var(--muted);
+        font-size: 0.9rem;
+        margin-bottom: 1.5rem;
+      }
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 1.25rem;
+        margin-bottom: 1rem;
+      }
+      label {
+        display: block;
+        font-size: 0.85rem;
+        font-weight: 600;
+        margin-bottom: 0.35rem;
+      }
+      .hint {
+        font-size: 0.8rem;
+        color: var(--muted);
+        margin: 0.25rem 0 0.75rem;
+      }
+      .drop {
+        border: 2px dashed var(--border);
+        border-radius: 10px;
+        padding: 2rem 1rem;
+        text-align: center;
+        cursor: pointer;
+        transition: border-color 0.15s, background 0.15s;
+      }
+      .drop:hover,
+      .drop.dragover {
+        border-color: var(--accent);
+        background: rgba(61, 139, 253, 0.06);
+      }
+      .drop strong {
+        display: block;
+        margin-bottom: 0.25rem;
+      }
+      input[type='file'] {
+        display: none;
+      }
+      input[type='url'],
+      input[type='text'] {
+        width: 100%;
+        padding: 0.6rem 0.75rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: var(--bg);
+        color: var(--text);
+        font-size: 0.9rem;
+      }
+      .tabs {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 0.75rem;
+      }
+      .tabs button {
+        flex: 1;
+        padding: 0.45rem;
+        border-radius: 8px;
+        border: 1px solid var(--border);
+        background: transparent;
+        color: var(--muted);
+        cursor: pointer;
+        font-size: 0.85rem;
+      }
+      .tabs button.active {
+        border-color: var(--accent);
+        color: var(--text);
+        background: rgba(61, 139, 253, 0.12);
+      }
+      .html-panel {
+        display: none;
+      }
+      .html-panel.active {
+        display: block;
+      }
+      .file-list {
+        margin-top: 0.75rem;
+        font-size: 0.85rem;
+        color: var(--muted);
+      }
+      button.primary {
+        width: 100%;
+        margin-top: 1rem;
+        padding: 0.75rem 1rem;
+        font-size: 1rem;
+        font-weight: 600;
+        border: none;
+        border-radius: 8px;
+        background: var(--accent);
+        color: #fff;
+        cursor: pointer;
+      }
+      button.primary:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .status {
+        margin-top: 1rem;
+        font-size: 0.9rem;
+        min-height: 1.25rem;
+      }
+      .status.err {
+        color: var(--err);
+      }
+      .status.ok {
+        color: var(--ok);
+      }
+      .downloads {
+        display: flex;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-top: 0.75rem;
+      }
+      .downloads a {
+        display: inline-block;
+        padding: 0.5rem 1rem;
+        background: var(--border);
+        color: var(--text);
+        text-decoration: none;
+        border-radius: 8px;
+        font-size: 0.9rem;
+      }
+      .downloads a:hover {
+        background: var(--accent);
+      }
+      ol.steps {
+        margin: 0;
+        padding-left: 1.2rem;
+        color: var(--muted);
+        font-size: 0.85rem;
+      }
+      ol.steps li {
+        margin-bottom: 0.35rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <h1>Cocos 试玩换皮 · 重打包</h1>
+      <p class="sub">
+        上传替换包 zip + 原版试玩 HTML（文件或 URL），生成可预览的试玩页。
+      </p>
+
+      <div class="card">
+        <ol class="steps">
+          <li>扩展试玩页换皮 → 导出 <strong>zip</strong></li>
+          <li>提供<strong>同一套试玩</strong>的原版 .html（上传或粘贴地址）</li>
+          <li>下载 repacked zip → 解压 → <code>npx serve .</code> 预览</li>
+        </ol>
+      </div>
+
+      <form id="form">
+        <div class="card">
+          <label for="pack">替换包 zip（必填）</label>
+          <p class="hint">须含 manifest.json 与 images/</p>
+          <div class="drop" id="drop" tabindex="0">
+            <strong>点击或拖拽 zip 到此处</strong>
+            <span id="packName">未选择文件</span>
+          </div>
+          <input type="file" id="pack" name="pack" accept=".zip,application/zip" />
+        </div>
+
+        <div class="card">
+          <label>原版试玩 HTML（必填，二选一）</label>
+          <p class="hint">须与换皮时同一试玩；服务不会使用任何内置默认页</p>
+          <div class="tabs">
+            <button type="button" class="tab active" data-tab="file">上传文件</button>
+            <button type="button" class="tab" data-tab="url">试玩 URL</button>
+          </div>
+          <div class="html-panel active" id="panel-file">
+            <input type="file" id="html" name="html" accept=".html,text/html" />
+            <div class="file-list" id="htmlName">未选择 .html 文件</div>
+          </div>
+          <div class="html-panel" id="panel-url">
+            <input
+              type="url"
+              id="htmlUrl"
+              name="htmlUrl"
+              placeholder="https://example.com/playable/applovin2103.html"
+              autocomplete="off"
+            />
+          </div>
+        </div>
+
+        <button type="submit" class="primary" id="submit" disabled>开始打包</button>
+        <div class="status" id="status"></div>
+        <div class="downloads" id="downloads" hidden></div>
+      </form>
+    </div>
+
+    <script>
+      const API_BASE = (() => {
+        const m = location.pathname.match(/^(.*\/cocos-repack)/);
+        return m ? m[1] : '';
+      })();
+
+      const packInput = document.getElementById('pack');
+      const htmlInput = document.getElementById('html');
+      const htmlUrlInput = document.getElementById('htmlUrl');
+      const drop = document.getElementById('drop');
+      const packName = document.getElementById('packName');
+      const htmlName = document.getElementById('htmlName');
+      const submit = document.getElementById('submit');
+      const status = document.getElementById('status');
+      const downloads = document.getElementById('downloads');
+      const form = document.getElementById('form');
+
+      let packFile = null;
+      let htmlMode = 'file';
+
+      function hasPlayableHtml() {
+        if (htmlMode === 'file') {
+          return !!htmlInput.files?.[0];
+        }
+        return htmlUrlInput.value.trim().length > 8;
+      }
+
+      function updateSubmit() {
+        submit.disabled = !packFile || !hasPlayableHtml();
+      }
+
+      function setPack(file) {
+        packFile = file;
+        packName.textContent = file ? file.name : '未选择文件';
+        updateSubmit();
+      }
+
+      document.querySelectorAll('.tab').forEach((btn) => {
+        btn.addEventListener('click', () => {
+          htmlMode = btn.dataset.tab;
+          document.querySelectorAll('.tab').forEach((b) => b.classList.remove('active'));
+          btn.classList.add('active');
+          document.querySelectorAll('.html-panel').forEach((p) => p.classList.remove('active'));
+          document.getElementById(`panel-${htmlMode}`).classList.add('active');
+          updateSubmit();
+        });
+      });
+
+      drop.addEventListener('click', () => packInput.click());
+      drop.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        drop.classList.add('dragover');
+      });
+      drop.addEventListener('dragleave', () => drop.classList.remove('dragover'));
+      drop.addEventListener('drop', (e) => {
+        e.preventDefault();
+        drop.classList.remove('dragover');
+        const f = e.dataTransfer.files?.[0];
+        if (f) setPack(f);
+      });
+      packInput.addEventListener('change', () => setPack(packInput.files?.[0] ?? null));
+      htmlInput.addEventListener('change', () => {
+        const f = htmlInput.files?.[0];
+        htmlName.textContent = f ? f.name : '未选择 .html 文件';
+        updateSubmit();
+      });
+      htmlUrlInput.addEventListener('input', updateSubmit);
+
+      form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        if (!packFile || !hasPlayableHtml()) return;
+        submit.disabled = true;
+        status.className = 'status';
+        status.textContent = '正在上传并打包，请稍候（约 10–30 秒）…';
+        downloads.hidden = true;
+        downloads.innerHTML = '';
+
+        const fd = new FormData();
+        fd.append('pack', packFile);
+        if (htmlMode === 'file') {
+          const htmlF = htmlInput.files?.[0];
+          if (htmlF) fd.append('html', htmlF);
+        } else {
+          fd.append('htmlUrl', htmlUrlInput.value.trim());
+        }
+
+        try {
+          const res = await fetch(`${API_BASE}/api/repack`, {
+            method: 'POST',
+            body: fd,
+          });
+          const data = await res.json();
+          if (!data.ok) {
+            throw new Error(data.error || '打包失败');
+          }
+          status.className = 'status ok';
+          status.textContent = `完成：${data.replacementCount} 条替换 → ${data.fileName}`;
+          downloads.hidden = false;
+          downloads.innerHTML = `
+            <a href="${data.downloads.zip}" download>下载 ZIP</a>
+            <a href="${data.downloads.html}" download>仅下载 HTML</a>
+          `;
+        } catch (err) {
+          status.className = 'status err';
+          status.textContent = err.message || String(err);
+        } finally {
+          updateSubmit();
+        }
+      });
+    </script>
+  </body>
+</html>

@@ -18,6 +18,7 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import {
   connectBridgeClientOnly,
+  startBridge,
   bridgeApiCall,
   bridgeCaptureVisibleTab,
   isExtensionConnected,
@@ -192,11 +193,13 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
     },
     {
       name: 'cocos_export_replacement_pack',
-      description: '导出替换包到目录（manifest + images + README + repack 命令）',
+      description:
+        '从试玩页导出替换包 zip（与扩展面板一致）；可写 outZip 路径，或落盘 tmp 后由 repack-web 上传',
       inputSchema: {
         type: 'object',
         properties: {
-          outDir: { type: 'string', description: '输出目录，默认 tmp/' },
+          outDir: { type: 'string', description: '输出目录（解压写入，可选）' },
+          outZip: { type: 'string', description: '直接保存 .zip 路径' },
           pageUrlMatch: { type: 'string' },
           cdpPort: { type: 'number' },
         },
@@ -422,12 +425,38 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
     if (name === 'cocos_export_replacement_pack') {
       if (!useCdp) await waitForExtension(60_000);
-      const pack = await writeReplacementPackToDisk({
-        pageUrlMatch: connOpts(args).pageUrlMatch,
-        outDir: args?.outDir ? resolve(args.outDir) : undefined,
-      });
+      const opts = connOpts(args);
+      const zipRes = await apiCall('exportReplacementPack', [], opts);
+      if (!zipRes?.ok) {
+        return {
+          content: [{ type: 'text', text: JSON.stringify(zipRes, null, 2) }],
+          isError: true,
+        };
+      }
+      const outZip = args?.outZip
+        ? resolve(args.outZip)
+        : resolve(
+            repoRoot,
+            'tmp',
+            zipRes.data.zipName ?? `cocos-replacements.zip`
+          );
+      writeBase64File(outZip, zipRes.data.zipBase64);
+      const summary = {
+        savedZip: outZip,
+        zipName: zipRes.data.zipName,
+        replacementCount: zipRes.data.replacementCount,
+        repackCommand: zipRes.data.repackCommand,
+        repackWeb: 'http://127.0.0.1:8787 — 上传该 zip 打包',
+      };
+      if (args?.outDir) {
+        const pack = await writeReplacementPackToDisk({
+          pageUrlMatch: opts.pageUrlMatch,
+          outDir: resolve(args.outDir),
+        });
+        Object.assign(summary, { unpackedDir: pack.outDir });
+      }
       return {
-        content: [{ type: 'text', text: JSON.stringify(pack, null, 2) }],
+        content: [{ type: 'text', text: JSON.stringify(summary, null, 2) }],
       };
     }
 
@@ -543,14 +572,37 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-// 共享文件 HTTP（与 WebSocket 分离，大图只落盘 + 传路径）
-try {
-  await startShareHttp(getShareHttpPort());
-} catch (e) {
-  if (e?.code !== 'EADDRINUSE') throw e;
+const bridgePort = Number(process.env.COCOS_BRIDGE_PORT ?? 17373);
+
+async function ensureBridgeReady() {
+  try {
+    await startShareHttp(getShareHttpPort());
+  } catch (e) {
+    if (e?.code !== 'EADDRINUSE') throw e;
+  }
+
+  try {
+    await connectBridgeClientOnly(bridgePort);
+    console.error(
+      `[cocos-inspector] 已连接常驻桥接 ws://127.0.0.1:${bridgePort}（推荐另开终端: npm run cocos-bridge）`
+    );
+    return;
+  } catch {
+    /* 无守护进程时由本 MCP 进程托管桥接 */
+  }
+
+  await startBridge(bridgePort);
+  try {
+    await startShareHttp(getShareHttpPort());
+  } catch (e) {
+    if (e?.code !== 'EADDRINUSE') throw e;
+  }
+  console.error(
+    `[cocos-inspector] 本进程已监听桥接 ws://127.0.0.1:${bridgePort}；请重载扩展并 F5 试玩页`
+  );
 }
-// 连接常驻桥接（请先运行 npm run cocos-bridge）
-await connectBridgeClientOnly(Number(process.env.COCOS_BRIDGE_PORT ?? 17373));
+
+await ensureBridgeReady();
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

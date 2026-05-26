@@ -278,9 +278,24 @@ export async function encodeBufferAsResDataUrl(buffer, mime, originalValue) {
     }
   }
 
+  let outMime = mime;
   let dataUrl = applySuperHtmlOasjPlaceholder(
-    `data:${mime};base64,${out.toString('base64')}`
+    `data:${outMime};base64,${out.toString('base64')}`
   );
+
+  if (maxLen > 0 && dataUrl.length > maxLen && mime === 'image/png') {
+    let q = 82;
+    while (q >= 28) {
+      out = await sharp(buffer).jpeg({ quality: q, mozjpeg: true }).toBuffer();
+      outMime = 'image/jpeg';
+      dataUrl = applySuperHtmlOasjPlaceholder(
+        `data:${outMime};base64,${out.toString('base64')}`
+      );
+      if (dataUrl.length <= maxLen) break;
+      q -= 6;
+    }
+  }
+
   if (maxLen > 0 && dataUrl.length > maxLen) {
     throw new Error(
       `图集 data URL ${dataUrl.length} 超过原版 ${maxLen}，请缩小替换图或降低图集 PNG 体积`
@@ -311,11 +326,20 @@ export async function patchAtlasInRes(resMap, rep, imagePath, assetUrlToZipPath)
     imagePath,
     repForPatch
   );
-  const dataUrl = await encodeBufferAsResDataUrl(
-    patched,
-    parsed.mime,
-    originalValue
-  );
+  let dataUrl;
+  try {
+    dataUrl = await encodeBufferAsResDataUrl(
+      patched,
+      parsed.mime,
+      originalValue
+    );
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (/超过原版|too large/i.test(msg)) {
+      return { ok: false, reason: 'too-large', key: bestKey };
+    }
+    throw e;
+  }
 
   return {
     ok: true,

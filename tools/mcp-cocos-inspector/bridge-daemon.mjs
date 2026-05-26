@@ -15,9 +15,12 @@ const httpPort = getShareHttpPort();
 
 await startBridge(port);
 await startShareHttp(httpPort);
-console.error(`[cocos-inspector] 桥接 ws://127.0.0.1:${port}`);
-console.error(`[cocos-inspector] 共享目录 ${getShareDir()}`);
-console.error(`[cocos-inspector] 文件 HTTP http://127.0.0.1:${httpPort}/in|out/...`);
-console.error('[cocos-inspector] 请保持本进程运行；Cursor 中启用 cocos-inspector MCP。');
+console.error(`[cocos-inspector] 本地服务已启动`);
+console.error(`  WebSocket  ws://127.0.0.1:${port}   （扩展 / MCP 连接）`);
+console.error(`  HTTP       http://127.0.0.1:${httpPort}  （文件 + API）`);
+console.error(`  导出+打包   POST http://127.0.0.1:${httpPort}/api/export-pack  （默认含重打包）`);
+console.error(`  状态       GET  http://127.0.0.1:${httpPort}/api/status`);
+console.error(`  共享目录   ${getShareDir()}`);
+console.error('[cocos-inspector] 请保持本进程运行；试玩页扩展连 WS，导出由 HTTP 在本地执行。');
 
 process.stdin.resume();

@@ -7,3 +7,6 @@
 - `design/` — 旧架构设计，不再适用
 
 当前实现见项目根目录 `README.md` 与 `src/cocos3/`。
+
+- **换风格流程（Agent Skill）**：`.cursor/skills/cocos-style-replace/SKILL.md`
+- **Slots 开发循环图**：`slots-dev-loop.md`

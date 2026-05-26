@@ -1,3 +1,4 @@
+import JSZip from 'jszip';
 import { collectPageResources } from './pageResources';
 import { buildRepackCommand, buildRepackReadmeSection } from './repackHints';
 import {
@@ -5,6 +6,29 @@ import {
   listReplacementPairs,
   type StoredReplacementPair,
 } from './replacementStore';
+
+/** 与 tools/mcp-cocos-inspector/shared-fs 默认一致 */
+export const DEFAULT_SHARE_HTTP_PORT = 17374;
+
+/** 项目内固定导出目录（相对仓库根） */
+export function projectPackDir(prefix: string): string {
+  return `tmp/mcp-share/out/${prefix}`;
+}
+
+let activeExportPrefix: string | null = null;
+
+async function isShareHttpAvailable(
+  shareBaseUrl = `http://127.0.0.1:${DEFAULT_SHARE_HTTP_PORT}`
+): Promise<boolean> {
+  try {
+    const r = await fetch(`${shareBaseUrl.replace(/\/$/, '')}/`, {
+      method: 'OPTIONS',
+    });
+    return r.ok || r.status === 204 || r.status === 404;
+  } catch {
+    return false;
+  }
+}
 
 function triggerDownload(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
@@ -51,11 +75,10 @@ export async function exportReplacementManifest(): Promise<ExportManifest> {
     pageUrl: window.location.href,
     replacements,
     applyInstructions: [
-      '试玩页内上传替换仅用于预览；换皮请用本地重打包。',
-      '1. 将 manifest 与 images 放在同一目录（或保持浏览器扁平下载到同一文件夹）',
-      '2. super-html: node tools/repack-super-html.mjs --html <原版试玩.html> --pack <本包目录>',
-      '   图集子帧：manifest 含 frameRect 时自动合成进 native PNG；整图则覆盖对应 jpg/png',
-      '3. 整站目录: node tools/apply-replacements.mjs --source <下载目录> --pack <本包目录>',
+      '试玩页内上传替换仅用于预览；换皮请用 Web 打包站或 Node 重打包。',
+      '1. 本文件为 zip 内的 manifest.json；整包为 cocos-replacements_*.zip',
+      '2. 打开换皮打包站 http://127.0.0.1:8787 上传 zip + 原版试玩 html（或试玩 URL）',
+      '3. 下载 repacked_*.zip，解压后 npx serve . 预览（勿用 file://）',
     ],
   };
 }
@@ -102,9 +125,12 @@ export async function beginReplacementPackExport(): Promise<
     }
     const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
     const prefix = `cocos-replacements_${stamp}`;
+    activeExportPrefix = prefix;
     const pageUrl = window.location.href;
-    const packDirHint = `./${prefix}`;
-    const repackCmd = buildRepackCommand({ pageUrl, packDir: packDirHint });
+    const repackCmd = buildRepackCommand({
+      pageUrl,
+      packDir: projectPackDir(prefix),
+    });
     const paths = [
       'manifest.json',
       'page-resources.json',
@@ -120,6 +146,88 @@ export async function beginReplacementPackExport(): Promise<
         repackCommand: repackCmd,
         paths,
         replacementCount: pairs.length,
+      },
+    };
+  } catch (e) {
+    return {
+      ok: false,
+      error: e instanceof Error ? e.message : String(e),
+    };
+  }
+}
+
+async function readReplacementPackFileBlob(
+  relativePath: string
+): Promise<
+  | { ok: true; path: string; blob: Blob; mimeType: string }
+  | { ok: false; error: string }
+> {
+  const chunk = await readReplacementPackFile(relativePath);
+  if (!chunk.ok) return chunk;
+  const bin = atob(chunk.base64);
+  const arr = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) arr[i] = bin.charCodeAt(i);
+  return {
+    ok: true,
+    path: chunk.path,
+    blob: new Blob([arr], { type: chunk.mimeType }),
+    mimeType: chunk.mimeType,
+  };
+}
+
+/**
+ * 导出替换包到桥接共享目录（HTTP PUT），WebSocket 只返回路径元数据。
+ * 文件落在 shareRoot/out/{prefix}/...
+ */
+export async function exportReplacementPackToShare(
+  shareBaseUrl = 'http://127.0.0.1:17374'
+): Promise<
+  | {
+      ok: true;
+      data: ReplacementPackBegin & {
+        packRoot: string;
+        shareBaseUrl: string;
+      };
+    }
+  | { ok: false; error: string }
+> {
+  try {
+    const begin = await beginReplacementPackExport();
+    if (!begin.ok) return begin;
+
+    const base = shareBaseUrl.replace(/\/$/, '');
+    const { prefix, paths, repackCommand, pageUrl, replacementCount } =
+      begin.data;
+    const packRoot = `out/${prefix}`;
+
+    for (const rel of paths) {
+      const file = await readReplacementPackFileBlob(rel);
+      if (!file.ok) return file;
+
+      const url = `${base}/${packRoot}/${rel}`;
+      const put = await fetch(url, {
+        method: 'PUT',
+        body: file.blob,
+        headers: file.mimeType ? { 'Content-Type': file.mimeType } : undefined,
+      });
+      if (!put.ok) {
+        return {
+          ok: false,
+          error: `写入共享目录失败 ${rel}: HTTP ${put.status}`,
+        };
+      }
+    }
+
+    return {
+      ok: true,
+      data: {
+        prefix,
+        pageUrl,
+        repackCommand,
+        paths,
+        replacementCount,
+        packRoot,
+        shareBaseUrl: base,
       },
     };
   } catch (e) {
@@ -147,7 +255,9 @@ export async function readReplacementPackFile(
     const pageUrl = window.location.href;
     const manifest = await exportReplacementManifest();
     const pageResources = collectPageResources();
-    const packDirHint = './cocos-replacements_export';
+    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
+    const prefix = activeExportPrefix ?? `cocos-replacements_${stamp}`;
+    const packDirHint = projectPackDir(prefix);
     const repackCmd = buildRepackCommand({ pageUrl, packDir: packDirHint });
     const readme = [
       'Cocos Inspector 3 — 替换包',
@@ -315,75 +425,112 @@ export async function exportReplacementPackData(): Promise<
   }
 }
 
-/** 依次下载 manifest、page-resources、每张替换图（浏览器会多次保存对话框） */
-export async function exportReplacementPack(): Promise<
-  | { ok: true; count: number; prefix: string; repackCommand: string }
+/** 生成替换包 zip（根目录含 manifest.json、images/、README.txt 等） */
+export async function buildReplacementPackZip(): Promise<
+  | {
+      ok: true;
+      zipBlob: Blob;
+      zipName: string;
+      prefix: string;
+      count: number;
+      repackCommand: string;
+    }
   | { ok: false; error: string }
 > {
   try {
-    const pairs = await listReplacementPairs();
-    if (pairs.length === 0) {
-      return { ok: false, error: '当前页面没有已记录的替换对' };
+    const begin = await beginReplacementPackExport();
+    if (!begin.ok) return begin;
+
+    const { prefix, paths, pageUrl } = begin.data;
+    const packDir = projectPackDir(prefix);
+    const repackCmd = buildRepackCommand({ pageUrl, packDir });
+    const zip = new JSZip();
+
+    for (const rel of paths) {
+      const file = await readReplacementPackFileBlob(rel);
+      if (!file.ok) return file;
+      zip.file(rel, file.blob);
     }
 
-    const stamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19);
-    const prefix = `cocos-replacements_${stamp}`;
-    const pageUrl = window.location.href;
-
-    const manifest = await exportReplacementManifest();
-    triggerDownloadJson(manifest, `${prefix}/manifest.json`);
-
-    const pageRes = collectPageResources();
-    triggerDownloadJson(pageRes, `${prefix}/page-resources.json`);
-
-    const packDirHint = `./${prefix}`;
-    const repackCmd = buildRepackCommand({
-      pageUrl,
-      packDir: packDirHint,
+    const zipBlob = await zip.generateAsync({
+      type: 'blob',
+      compression: 'DEFLATE',
+      compressionOptions: { level: 6 },
     });
+    const zipName = `${prefix}.zip`;
 
-    const readme = [
-      'Cocos Inspector 3 — 替换包',
-      '',
-      `页面: ${pageUrl}`,
-      `导出时间: ${manifest.exportedAt}`,
-      `替换对数量: ${pairs.length}`,
-      '',
-      '将本批下载文件放在同一文件夹（扁平即可），例如项目内 tmp/',
-      '',
-      ...manifest.applyInstructions,
-      '',
-      ...buildRepackReadmeSection({
-        pageUrl,
-        packDir: packDirHint,
-        count: pairs.length,
-      }),
-      '--- page-resources 下载提示 ---',
-      ...pageRes.wgetHints,
-    ].join('\n');
-    triggerDownload(
-      new Blob([readme], { type: 'text/plain;charset=utf-8' }),
-      `${prefix}/README.txt`
-    );
-
-    for (const pair of pairs) {
-      const blob = await getReplacementBlob(pair.id);
-      if (!blob) continue;
-      triggerDownload(blob, `${prefix}/images/${pair.replacement.exportFileName}`);
-    }
-
-    triggerDownload(
-      new Blob([repackCmd + '\n'], { type: 'text/plain;charset=utf-8' }),
-      `${prefix}/repack-command.txt`
-    );
-
-    return { ok: true, count: pairs.length, prefix, repackCommand: repackCmd };
+    return {
+      ok: true,
+      zipBlob,
+      zipName,
+      prefix,
+      count: begin.data.replacementCount,
+      repackCommand: repackCmd,
+    };
   } catch (e) {
     return {
       ok: false,
       error: e instanceof Error ? e.message : String(e),
     };
   }
+}
+
+export type ReplacementPackZipResult =
+  | {
+      ok: true;
+      count: number;
+      prefix: string;
+      zipName: string;
+      repackCommand: string;
+    }
+  | { ok: false; error: string };
+
+/** 下载替换包 zip（插件面板默认入口） */
+export async function exportReplacementPack(): Promise<ReplacementPackZipResult> {
+  const built = await buildReplacementPackZip();
+  if (!built.ok) return built;
+  triggerDownload(built.zipBlob, built.zipName);
+  return {
+    ok: true,
+    count: built.count,
+    prefix: built.prefix,
+    zipName: built.zipName,
+    repackCommand: built.repackCommand,
+  };
+}
+
+/** @alias exportReplacementPack */
+export const exportReplacementPackAsZip = exportReplacementPack;
+
+/** 供 MCP：返回 zip base64，不触发浏览器下载 */
+export async function exportReplacementPackZipData(): Promise<
+  | {
+      ok: true;
+      data: {
+        zipBase64: string;
+        zipName: string;
+        prefix: string;
+        replacementCount: number;
+        repackCommand: string;
+        mimeType: string;
+      };
+    }
+  | { ok: false; error: string }
+> {
+  const built = await buildReplacementPackZip();
+  if (!built.ok) return built;
+  const zipBase64 = await blobToBase64(built.zipBlob);
+  return {
+    ok: true,
+    data: {
+      zipBase64,
+      zipName: built.zipName,
+      prefix: built.prefix,
+      replacementCount: built.count,
+      repackCommand: built.repackCommand,
+      mimeType: 'application/zip',
+    },
+  };
 }
 
 export function exportPageResourcesOnly(): void {
