@@ -3,7 +3,11 @@ export interface TreeRenderOptions {
   selectedId: string | null;
   searchQuery: string;
   isRoot?: boolean;
-  showSpriteBadge?: boolean;
+  /** 场景根节点 id，不显示 active 勾选框 */
+  sceneRootId?: string;
+  /** 性能扫描：nodeId → 关子树 FPS 增益 */
+  perfGainByNodeId?: Map<string, number>;
+  perfGainMax?: number;
 }
 
 export function escapeHtml(text: string): string {
@@ -28,24 +32,29 @@ export function renderTreeHtml(
   const toggle = hasChildren ? (isExpanded ? '▼' : '▶') : '';
   const toggleClass = hasChildren ? 'node-toggle' : 'node-toggle-empty';
   const activeClass = node.active ? '' : ' node-inactive';
-  const spriteClass = node.hasSprite ? ' node-has-sprite' : '';
+  const isSceneRoot = !!opts.sceneRootId && node.id === opts.sceneRootId;
+  const activeToggle = isSceneRoot
+    ? ''
+    : `<input type="checkbox" class="node-active-toggle" data-uuid="${node.id}"${
+        node.active ? ' checked' : ''
+      } title="Active" aria-label="切换节点激活状态">`;
 
-  const badge =
-    opts.showSpriteBadge && node.hasSprite && node.spriteHint
-      ? `<span class="sprite-badge" title="${escapeHtml(node.spriteHint)}">${escapeHtml(
-          node.spriteHint
-        )}</span>`
+  const gain = opts.perfGainByNodeId?.get(node.id);
+  const perfBadge =
+    gain !== undefined && gain > 0
+      ? renderPerfBadge(gain, opts.perfGainMax ?? gain)
       : '';
 
-  let html = `<li data-uuid="${node.id}" class="${activeClass}${spriteClass}${
+  let html = `<li data-uuid="${node.id}" class="${activeClass.trim()}${
     isSelected ? ' selected' : ''
-  }">
+  }${gain !== undefined && gain > 0 ? ' node-perf-hot' : ''}">
       <div class="node-tree-item">
         <span class="${toggleClass}">${toggle}</span>
+        ${activeToggle}
         <span class="node-name${node.active ? '' : ' inactive-node'}">${escapeHtml(
           node.name
         )}</span>
-        ${badge}
+        ${perfBadge}
       </div>`;
 
   if (hasChildren) {
@@ -66,7 +75,6 @@ function nodeMatchesSearch(
   q: string
 ): boolean {
   if (node.name.toLowerCase().includes(q)) return true;
-  if (node.spriteHint?.toLowerCase().includes(q)) return true;
   return node.children.some((c) => nodeMatchesSearch(c, q));
 }
 
@@ -75,9 +83,7 @@ export function expandMatchingNodes(
   q: string,
   expanded: Set<string>
 ): boolean {
-  let matched =
-    node.name.toLowerCase().includes(q) ||
-    (node.spriteHint?.toLowerCase().includes(q) ?? false);
+  let matched = node.name.toLowerCase().includes(q);
 
   for (const child of node.children) {
     if (expandMatchingNodes(child, q, expanded)) {
@@ -96,4 +102,21 @@ export function countNodes(node: import('./sceneTree').TreeNodeInfo): number {
   return (
     1 + node.children.reduce((sum, child) => sum + countNodes(child), 0)
   );
+}
+
+function renderPerfBadge(gain: number, maxGain: number): string {
+  const ratio = maxGain > 0 ? gain / maxGain : 1;
+  const level =
+    ratio >= 0.66 ? 'high' : ratio >= 0.33 ? 'medium' : 'low';
+  const label = `+${gain.toFixed(1)}fps`;
+  return `<span class="perf-gain-badge perf-gain-${level}" title="关闭此子树 FPS 提升约 ${label}">${label}</span>`;
+}
+
+export function maxPerfGain(gainMap?: Map<string, number>): number {
+  if (!gainMap || gainMap.size === 0) return 0;
+  let max = 0;
+  for (const g of gainMap.values()) {
+    if (g > max) max = g;
+  }
+  return max;
 }

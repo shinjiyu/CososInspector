@@ -5,7 +5,7 @@ import {
   readReplacementPackFile,
 } from './replacementExport';
 import { listReplacementPairs } from './replacementStore';
-import { findNodeById, getSceneRoot } from './sceneTree';
+import { findNodeById, getSceneRoot, setNodeActive } from './sceneTree';
 import { exportSpritePngBase64 } from './spriteDownload';
 import {
   collectSpriteInspectData,
@@ -99,6 +99,20 @@ export const cocosInspectorMcpApi = {
       sceneName: scene?.name ?? '',
       hasCocos: !!window.cc,
     };
+  },
+
+  setNodeActive(
+    nodeId: string,
+    active: boolean
+  ): { ok: true } | { ok: false; error: string } {
+    const scene = getSceneRoot();
+    if (!scene) return { ok: false, error: '场景未就绪' };
+    const node = findNodeById(scene, nodeId);
+    if (!node) return { ok: false, error: `未找到节点 ${nodeId}` };
+    if (node === scene) return { ok: false, error: '不能修改场景根节点 active' };
+    const ok = setNodeActive(nodeId, active);
+    if (!ok) return { ok: false, error: '设置 active 失败' };
+    return { ok: true };
   },
 
   listSprites(): SpriteListItem[] {

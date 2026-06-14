@@ -1,62 +1,53 @@
 /// <reference path="./types/cocos.d.ts" />
 
 import { isCocos3, log, waitForCocos3 } from './cocos3/detect';
-import { getSceneRoot, hashTree, type TreeNodeInfo } from './cocos3/sceneTree';
-import { buildCompressedTreeInfo } from './cocos3/sprite';
+import { installMcpBridge } from './cocos3/mcpBridge';
 import {
-  collectSpriteList,
-  filterSpriteList,
-  hashSpriteList,
-  renderSpriteListHtml,
-} from './cocos3/spriteList';
+  expandSuspectPaths,
+  type PerfScanMode,
+  type PerfScanReport,
+  runPerfScan,
+} from './cocos3/perfScan';
 import {
-  applySpriteListThumbnails,
-  startSpriteThumbnailPoller,
-} from './cocos3/spriteListThumb';
+  buildTreeInfo,
+  findNodeById,
+  getNodeId,
+  getSceneRoot,
+  hashTree,
+  setNodeActive,
+} from './cocos3/sceneTree';
 import {
   countNodes,
   expandMatchingNodes,
+  maxPerfGain,
   renderTreeHtml,
 } from './cocos3/treeRender';
-import {
-  collectSpriteInspectData,
-  createSpriteInspectorElement,
-  enrichSpriteInspectData,
-  renderSpriteInspectorPanel,
-} from './cocos3/spriteInspector';
-import {
-  createReplacementPanelElement,
-  refreshReplacementList,
-} from './cocos3/replacementPanel';
-import { installMcpBridge } from './cocos3/mcpBridge';
 
 const REFRESH_MS = 500;
-type InspectorTab = 'scene' | 'sprite' | 'replacements';
 
 class CocosInspector3 {
   private root: HTMLElement | null = null;
   private panel: HTMLElement | null = null;
   private edgeTab: HTMLButtonElement | null = null;
   private sceneTreeContainer: HTMLElement | null = null;
-  private spriteTreeContainer: HTMLElement | null = null;
   private searchInput: HTMLInputElement | null = null;
   private statusEl: HTMLElement | null = null;
   private mainBody: HTMLElement | null = null;
-  private spriteInspectorEl: HTMLElement | null = null;
-  private replacementPanelEl: HTMLElement | null = null;
-  private replacementListEl: HTMLElement | null = null;
-  private spriteInspectSeq = 0;
+  private mcpStatusEl: HTMLElement | null = null;
+  private scanBtn: HTMLButtonElement | null = null;
+  private scanModeSelect: HTMLSelectElement | null = null;
+  private clearScanBtn: HTMLButtonElement | null = null;
 
-  private currentTab: InspectorTab = 'scene';
   private expandedScene = new Set<string>();
   private selectedId: string | null = null;
   private searchQuery = '';
   private isCollapsed = false;
   private sceneTreeHash = '';
-  private spriteListHash = '';
   private updateTimer: number | null = null;
-  private stopThumbPoller: (() => void) | null = null;
-  private mcpStatusEl: HTMLElement | null = null;
+
+  private scanRunning = false;
+  private scanCancel = false;
+  private perfReport: PerfScanReport | null = null;
 
   constructor() {
     if (isCocos3()) {
@@ -71,24 +62,9 @@ class CocosInspector3 {
     this.bindTreeEvents();
     this.refreshAll(true);
     this.startAutoRefresh();
-
-    const win = window as Window & {
-      CocosInspector3?: CocosInspector3;
-      __cocosInspectorTexTest?: (nodeId?: string) => Promise<unknown>;
-    };
-    win.CocosInspector3 = this;
-    win.__cocosInspectorTexTest = async (nodeId?: string) => {
-      const id = nodeId ?? this.selectedId;
-      const base = collectSpriteInspectData(id);
-      if (!base) return { ok: false, reason: 'no sprite data' };
-      return enrichSpriteInspectData(base, id);
-    };
     installMcpBridge();
     window.postMessage({ type: 'cocos-inspector-ready' }, '*');
-    this.stopThumbPoller = startSpriteThumbnailPoller(
-      () => this.spriteTreeContainer
-    );
-    log('已启动（场景压缩树 + Sprite 列表）');
+    log('已启动（全量场景树 + Active 编辑 + 性能扫描）');
   }
 
   private createUI(): void {
@@ -151,10 +127,42 @@ class CocosInspector3 {
     refreshBtn.addEventListener('click', () => this.refreshAll(true));
     controls.appendChild(refreshBtn);
 
+    this.scanModeSelect = document.createElement('select');
+    this.scanModeSelect.className = 'perf-scan-mode';
+    this.scanModeSelect.title = '性能扫描粒度';
+    [
+      ['quick', '快速'],
+      ['standard', '标准'],
+      ['fine', '精细'],
+    ].forEach(([value, label]) => {
+      const opt = document.createElement('option');
+      opt.value = value;
+      opt.textContent = label;
+      if (value === 'standard') opt.selected = true;
+      this.scanModeSelect!.appendChild(opt);
+    });
+    controls.appendChild(this.scanModeSelect);
+
+    this.scanBtn = document.createElement('button');
+    this.scanBtn.type = 'button';
+    this.scanBtn.className = 'perf-scan-btn';
+    this.scanBtn.textContent = '扫描性能';
+    this.scanBtn.title = '逐个关闭子树测量 FPS 增益，定位掉帧热点';
+    this.scanBtn.addEventListener('click', () => void this.startPerfScan());
+    controls.appendChild(this.scanBtn);
+
+    this.clearScanBtn = document.createElement('button');
+    this.clearScanBtn.type = 'button';
+    this.clearScanBtn.className = 'perf-clear-btn';
+    this.clearScanBtn.textContent = '清除';
+    this.clearScanBtn.title = '清除性能扫描结果';
+    this.clearScanBtn.addEventListener('click', () => this.clearPerfScan());
+    controls.appendChild(this.clearScanBtn);
+
     this.searchInput = document.createElement('input');
     this.searchInput.type = 'search';
     this.searchInput.className = 'search-input';
-    this.searchInput.placeholder = '搜索节点 / 贴图…';
+    this.searchInput.placeholder = '搜索节点名称…';
     this.searchInput.addEventListener('input', () => {
       this.searchQuery = this.searchInput?.value.trim().toLowerCase() ?? '';
       this.refreshAll(true);
@@ -172,35 +180,6 @@ class CocosInspector3 {
     header.appendChild(controls);
     this.panel.appendChild(header);
 
-    const tabs = document.createElement('div');
-    tabs.className = 'inspector-tabs';
-
-    const sceneTabBtn = document.createElement('button');
-    sceneTabBtn.type = 'button';
-    sceneTabBtn.className = 'inspector-tab active';
-    sceneTabBtn.dataset.tab = 'scene';
-    sceneTabBtn.textContent = '场景（压缩）';
-    sceneTabBtn.addEventListener('click', () => this.switchTab('scene'));
-
-    const spriteTabBtn = document.createElement('button');
-    spriteTabBtn.type = 'button';
-    spriteTabBtn.className = 'inspector-tab';
-    spriteTabBtn.dataset.tab = 'sprite';
-    spriteTabBtn.textContent = 'Sprite';
-    spriteTabBtn.addEventListener('click', () => this.switchTab('sprite'));
-
-    const replaceTabBtn = document.createElement('button');
-    replaceTabBtn.type = 'button';
-    replaceTabBtn.className = 'inspector-tab';
-    replaceTabBtn.dataset.tab = 'replacements';
-    replaceTabBtn.textContent = '替换包';
-    replaceTabBtn.addEventListener('click', () => this.switchTab('replacements'));
-
-    tabs.appendChild(sceneTabBtn);
-    tabs.appendChild(spriteTabBtn);
-    tabs.appendChild(replaceTabBtn);
-    this.panel.appendChild(tabs);
-
     this.statusEl = document.createElement('div');
     this.statusEl.className = 'inspector-status';
     this.panel.appendChild(this.statusEl);
@@ -213,73 +192,91 @@ class CocosInspector3 {
     this.sceneTreeContainer.dataset.tabPanel = 'scene';
     this.mainBody.appendChild(this.sceneTreeContainer);
 
-    this.spriteTreeContainer = document.createElement('div');
-    this.spriteTreeContainer.className = 'node-tree-panel';
-    this.spriteTreeContainer.dataset.tabPanel = 'sprite';
-    this.mainBody.appendChild(this.spriteTreeContainer);
-
-    this.replacementPanelEl = createReplacementPanelElement();
-    this.replacementListEl = this.replacementPanelEl.querySelector(
-      '.replacement-list'
-    );
-    this.mainBody.appendChild(this.replacementPanelEl);
-
     this.panel.appendChild(this.mainBody);
-
-    this.spriteInspectorEl = createSpriteInspectorElement({
-      getNodeId: () => this.selectedId,
-      onReplaced: () => this.refreshAll(true),
-      onPairSaved: () => void this.refreshReplacementPanel(),
-    });
-    this.panel.appendChild(this.spriteInspectorEl);
     this.root.appendChild(this.panel);
     document.body.appendChild(this.root);
   }
 
-  private switchTab(tab: InspectorTab): void {
-    this.currentTab = tab;
-    this.panel
-      ?.querySelectorAll('.inspector-tab')
-      .forEach((el) => {
-        el.classList.toggle(
-          'active',
-          (el as HTMLElement).dataset.tab === tab
-        );
-      });
-    this.sceneTreeContainer?.classList.toggle('active', tab === 'scene');
-    this.spriteTreeContainer?.classList.toggle('active', tab === 'sprite');
-    this.replacementPanelEl?.classList.toggle('active', tab === 'replacements');
-    this.updateSearchPlaceholder();
-    if (tab === 'replacements') {
-      void this.refreshReplacementPanel();
-    } else {
-      this.refreshAll(true);
+  private setScanUiRunning(running: boolean): void {
+    if (this.scanBtn) {
+      this.scanBtn.disabled = running;
+      this.scanBtn.textContent = running ? '扫描中…' : '扫描性能';
     }
+    if (this.scanModeSelect) this.scanModeSelect.disabled = running;
+    if (this.clearScanBtn) this.clearScanBtn.disabled = running;
   }
 
-  private async refreshReplacementPanel(): Promise<void> {
-    if (this.replacementListEl) {
-      await refreshReplacementList(this.replacementListEl);
-    }
+  private clearPerfScan(): void {
+    if (this.scanRunning) return;
+    this.perfReport = null;
+    this.refreshAll(true);
+    this.setStatus('已清除性能扫描结果');
   }
 
-  private updateSearchPlaceholder(): void {
-    if (!this.searchInput) return;
-    if (this.currentTab === 'replacements') {
-      this.searchInput.placeholder = '替换包页无需搜索';
+  private async startPerfScan(): Promise<void> {
+    if (this.scanRunning) {
+      this.scanCancel = true;
       return;
     }
-    this.searchInput.placeholder =
-      this.currentTab === 'sprite'
-        ? '搜索 Sprite 节点 / 贴图名…'
-        : '搜索节点名称…';
+
+    const scene = getSceneRoot();
+    if (!scene) {
+      this.setStatus('无法扫描：场景未就绪');
+      return;
+    }
+
+    const mode = (this.scanModeSelect?.value ?? 'standard') as PerfScanMode;
+    this.scanRunning = true;
+    this.scanCancel = false;
+    this.setScanUiRunning(true);
+    this.stopAutoRefresh();
+
+    const report = await runPerfScan(
+      mode,
+      (p) => {
+        if (p.phase === 'scanning' || p.phase === 'baseline') {
+          this.setStatus(
+            `${p.message} · ${p.testsDone}/${p.testsBudget}`
+          );
+        } else {
+          this.setStatus(p.message);
+        }
+      },
+      () => this.scanCancel
+    );
+
+    this.scanRunning = false;
+    this.scanCancel = false;
+    this.setScanUiRunning(false);
+    this.startAutoRefresh();
+
+    if (report) {
+      this.perfReport = report;
+      expandSuspectPaths(scene, report.gainByNodeId, this.expandedScene, 0.5);
+      const top = report.suspects[0];
+      if (top) {
+        this.selectedId = top.nodeId;
+        console.log(
+          `[性能扫描] Top ${top.nodeName}(${top.nodeId}) +${top.fpsGain.toFixed(1)}fps · ${top.path}`
+        );
+      }
+    }
+
+    this.refreshAll(true);
+  }
+
+  private stopAutoRefresh(): void {
+    if (this.updateTimer !== null) {
+      window.clearInterval(this.updateTimer);
+      this.updateTimer = null;
+    }
   }
 
   private updateMcpStatus(
     status: 'connecting' | 'connected' | 'disconnected',
     port: number
   ): void {
-    if (!this.mcpStatusEl) return;
+    if (this.isCollapsed || !this.mcpStatusEl) return;
 
     const labels: Record<typeof status, string> = {
       connecting: '连接中',
@@ -293,7 +290,7 @@ class CocosInspector3 {
 
     const hints: Record<typeof status, string> = {
       connecting: `正在连接本机桥接 ws://127.0.0.1:${port} …`,
-      connected: `已连接 Cursor MCP 桥接（端口 ${port}）。Agent 可调用纹理/替换/导出工具。`,
+      connected: `已连接 Cursor MCP 桥接（端口 ${port}）`,
       disconnected: `未连接 MCP。请在 Cursor 启用 cocos-inspector MCP，并确认端口 ${port} 可用。`,
     };
     this.mcpStatusEl.title = hints[status];
@@ -303,24 +300,54 @@ class CocosInspector3 {
     this.setCollapsed(!this.isCollapsed);
   }
 
+  /** 收起：从 DOM 移除面板、清空树、停止定时刷新，仅保留边缘标签 */
+  private detachPanel(): void {
+    if (this.sceneTreeContainer) {
+      this.sceneTreeContainer.innerHTML = '';
+    }
+    if (this.statusEl) {
+      this.statusEl.textContent = '';
+    }
+    this.sceneTreeHash = '';
+    this.panel?.remove();
+  }
+
   private setCollapsed(collapsed: boolean): void {
-    if (!this.root) return;
+    if (!this.root || this.isCollapsed === collapsed) return;
+
     this.isCollapsed = collapsed;
     this.root.classList.toggle('is-collapsed', collapsed);
+
+    if (collapsed) {
+      if (this.scanRunning) {
+        this.scanCancel = true;
+      }
+      this.stopAutoRefresh();
+      this.detachPanel();
+      log('面板已收起，停止渲染');
+      return;
+    }
+
+    if (this.panel && !this.root.contains(this.panel)) {
+      this.root.appendChild(this.panel);
+    }
 
     const headerBtn = this.panel?.querySelector(
       '.header-toggle-btn'
     ) as HTMLButtonElement | null;
     if (headerBtn) {
-      headerBtn.textContent = collapsed ? '展开' : '收起';
-      headerBtn.title = collapsed ? '展开面板' : '收起面板';
+      headerBtn.textContent = '收起';
+      headerBtn.title = '收起面板';
     }
+
+    this.refreshAll(true);
+    this.startAutoRefresh();
+    log('面板已展开，恢复渲染');
   }
 
   private startAutoRefresh(): void {
-    if (this.updateTimer !== null) {
-      window.clearInterval(this.updateTimer);
-    }
+    if (this.isCollapsed || this.scanRunning) return;
+    this.stopAutoRefresh();
     this.updateTimer = window.setInterval(
       () => this.refreshAll(false),
       REFRESH_MS
@@ -328,20 +355,46 @@ class CocosInspector3 {
   }
 
   private bindTreeEvents(): void {
-    const onClick = (container: HTMLElement) => (event: Event) => {
+    this.sceneTreeContainer?.addEventListener('change', (event: Event) => {
       const target = event.target as HTMLElement;
+      const toggle = target.closest('.node-active-toggle') as HTMLInputElement | null;
+      if (!toggle || toggle.type !== 'checkbox') return;
+
+      event.stopPropagation();
+      const nodeId = toggle.dataset.uuid;
+      if (!nodeId) return;
+
+      const active = toggle.checked;
+      const ok = setNodeActive(nodeId, active);
+      if (!ok) {
+        toggle.checked = !active;
+        console.warn(`[Active编辑] 切换失败 nodeId=${nodeId}`);
+        return;
+      }
+
+      const scene = getSceneRoot();
+      const node = scene ? findNodeById(scene, nodeId) : null;
+      const nodeName = node?.name ?? '(unknown)';
+      console.log(`[Active编辑] ${nodeName}(${nodeId}) active=${active}`);
+      this.refreshAll(true);
+    });
+
+    this.sceneTreeContainer?.addEventListener('click', (event: Event) => {
+      const target = event.target as HTMLElement;
+      if (target.closest('.node-active-toggle')) return;
+
       const toggle = target.closest('.node-toggle');
       const row = target.closest('.node-tree-item');
+
       if (toggle) {
-        const expanded = this.expandedScene;
         const li = toggle.closest('li');
         const id = li?.dataset.uuid;
         if (!id) return;
 
-        if (expanded.has(id)) {
-          expanded.delete(id);
+        if (this.expandedScene.has(id)) {
+          this.expandedScene.delete(id);
         } else {
-          expanded.add(id);
+          this.expandedScene.add(id);
         }
         this.refreshAll(true);
         return;
@@ -354,125 +407,72 @@ class CocosInspector3 {
         this.selectedId = id;
         this.refreshAll(true);
       }
-    };
-
-    this.sceneTreeContainer?.addEventListener(
-      'click',
-      onClick(this.sceneTreeContainer)
-    );
-    this.spriteTreeContainer?.addEventListener('click', (event: Event) => {
-      const row = (event.target as HTMLElement).closest('.sprite-list-item');
-      if (!row) return;
-      const id = (row as HTMLElement).dataset.uuid;
-      if (!id) return;
-      this.selectedId = id;
-      this.refreshAll(true);
     });
   }
 
   private refreshAll(force: boolean): void {
+    if (this.isCollapsed) return;
+
     const scene = getSceneRoot();
     if (!scene) {
       this.setStatus('未找到场景（cc.director.getScene 为空）');
-      const empty = '<div class="empty-scene">等待场景加载…</div>';
-      if (this.sceneTreeContainer) this.sceneTreeContainer.innerHTML = empty;
-      if (this.spriteTreeContainer) this.spriteTreeContainer.innerHTML = empty;
-      this.updateSpriteInspector();
+      if (this.sceneTreeContainer) {
+        this.sceneTreeContainer.innerHTML =
+          '<div class="empty-scene">等待场景加载…</div>';
+      }
       return;
     }
 
-    const compressed = buildCompressedTreeInfo(scene);
-    const allSprites = collectSpriteList(scene);
-    const filteredSprites = filterSpriteList(allSprites, this.searchQuery);
+    const treeInfo = buildTreeInfo(scene);
+    const perfGain = this.perfReport?.gainByNodeId;
+    const perfHash = perfGain
+      ? [...perfGain.entries()].map(([k, v]) => `${k}:${v.toFixed(1)}`).join(',')
+      : '';
+    const nextSceneHash = `${hashTree(treeInfo)}|perf:${perfHash}`;
 
-    const nextSceneHash = hashTree(compressed);
-    const nextSpriteHash = hashSpriteList(allSprites);
-
-    if (
-      !force &&
-      nextSceneHash === this.sceneTreeHash &&
-      nextSpriteHash === this.spriteListHash
-    ) {
-      this.updateSpriteInspector();
+    if (!force && nextSceneHash === this.sceneTreeHash) {
       return;
     }
 
     this.sceneTreeHash = nextSceneHash;
-    this.spriteListHash = nextSpriteHash;
 
-    if (this.searchQuery && this.currentTab === 'scene') {
-      expandMatchingNodes(compressed, this.searchQuery, this.expandedScene);
+    if (this.searchQuery) {
+      expandMatchingNodes(treeInfo, this.searchQuery, this.expandedScene);
     }
 
-    const baseRenderOpts = {
-      selectedId: this.selectedId,
-      searchQuery: this.searchQuery,
-      isRoot: true,
-      showSpriteBadge: true,
-    };
+    const sceneRootId = getNodeId(scene);
+    const perfGainMax = maxPerfGain(perfGain);
 
     if (this.sceneTreeContainer) {
       this.sceneTreeContainer.innerHTML = `<ul class="node-tree">${renderTreeHtml(
-        compressed,
-        { ...baseRenderOpts, expanded: this.expandedScene }
+        treeInfo,
+        {
+          expanded: this.expandedScene,
+          selectedId: this.selectedId,
+          searchQuery: this.searchQuery,
+          isRoot: true,
+          sceneRootId,
+          perfGainByNodeId: perfGain,
+          perfGainMax,
+        }
       )}</ul>`;
     }
 
-    if (this.spriteTreeContainer) {
-      this.spriteTreeContainer.innerHTML = renderSpriteListHtml(
-        filteredSprites,
-        this.selectedId
-      );
-      applySpriteListThumbnails(this.spriteTreeContainer);
-    }
+    const nodeCount = countNodes(treeInfo);
+    if (this.scanRunning) return;
 
-    const sceneCount = countNodes(compressed);
-    const spriteCount = allSprites.length;
-    const spriteVisible = filteredSprites.length;
-    if (this.currentTab === 'replacements') {
-      void this.refreshReplacementPanel();
-      this.setStatus(`替换包 · Sprite ${spriteCount} 个 · ${scene.name || 'Scene'}`);
-      this.updateSpriteInspector();
+    if (this.perfReport) {
+      const top = this.perfReport.suspects[0];
+      const topText = top
+        ? ` · Top ${top.nodeName} +${top.fpsGain.toFixed(1)}fps`
+        : '';
+      this.setStatus(
+        `场景树 · ${nodeCount} 节点 · 基准 ${this.perfReport.baselineFps.toFixed(0)}fps${topText}`
+      );
       return;
     }
 
-    const tabLabel = this.currentTab === 'scene' ? '场景（压缩）' : 'Sprite';
-    const visible =
-      this.currentTab === 'scene' ? sceneCount : spriteVisible;
-    const spriteStatus =
-      this.currentTab === 'sprite' && this.searchQuery && spriteVisible !== spriteCount
-        ? ` · 共 ${spriteCount} 个`
-        : '';
-    this.setStatus(
-      `${tabLabel} · 列表 ${visible} 项${spriteStatus} · Sprite ${spriteCount} 个 · ${scene.name || 'Scene'}`
-    );
-    this.updateSpriteInspector();
-  }
-
-  private updateSpriteInspector(): void {
-    if (!this.spriteInspectorEl) return;
-
-    const seq = ++this.spriteInspectSeq;
-    const base = collectSpriteInspectData(this.selectedId);
-
-    renderSpriteInspectorPanel(
-      this.spriteInspectorEl,
-      base,
-      this.selectedId,
-      !!base
-    );
-
-    if (!base) return;
-
-    enrichSpriteInspectData(base, this.selectedId).then((enriched) => {
-      if (seq !== this.spriteInspectSeq) return;
-      renderSpriteInspectorPanel(
-        this.spriteInspectorEl!,
-        enriched,
-        this.selectedId,
-        false
-      );
-    });
+    this.setStatus(`场景树 · ${nodeCount} 个节点 · ${scene.name || 'Scene'}`);
   }
 
   private setStatus(text: string): void {

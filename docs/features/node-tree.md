@@ -31,46 +31,67 @@
 - **实时过滤**: 在输入搜索内容时实时过滤节点树
 - **搜索结果高亮**: 高亮显示匹配的搜索结果
 
-### 5. 节点状态指示
+### 5. 节点状态指示与 Active 编辑
 
-- **激活状态指示**: 显示节点的激活/非激活状态
-- **可见性指示**: 显示节点的可见/隐藏状态
-- **组件数量指示**: 显示节点拥有的组件数量
+- **激活状态指示**: 非激活节点名称显示删除线并降低透明度
+- **行内 Active 勾选**: 每个节点行前有 checkbox，可直接切换 `node.active`（场景根除外）
+- **即时生效**: 勾选后立即写入引擎并刷新树视图
+
+### 6. 全量场景树
+
+- **完整层级**: 显示场景下所有节点，不做 Sprite 过滤或路径压缩
+- **子节点排序**: 按名称字母序排列
+
+### 7. 收起后零渲染
+
+- **收起面板**时从 DOM 移除主面板、清空节点树 HTML、停止 500ms 自动刷新
+- 页面仅保留右侧 **「节点树」** 边缘标签，不影响游戏性能
+- **点击标签**重新挂载面板并刷新场景树
+
+### 8. 性能扫描（子树 FPS 实测）
+
+通过逐个关闭子树并测量 FPS 变化，定位导致掉帧的节点路径（比 Hook `update` 更贴近真实渲染/系统开销）。
+
+- **一键扫描**: 工具栏「扫描性能」+ 粒度下拉（快速 / 标准 / 精细）
+- **算法**: 逐子节点 `active=false` → 采样 FPS → 按增益 Top-K 下钻
+- **粒度控制**: `minFpsGain`、`maxDepth`、`maxTests` 等由模式预设
+- **结果展示**: 节点行旁注 `+X.Xfps`，自动展开嫌疑路径并选中 Top1
+- **清除**: 「清除」按钮移除旁注，恢复纯树视图
+
+| 模式 | minFpsGain | maxDepth | maxTests |
+|------|------------|----------|----------|
+| 快速 | 2.0 fps | 4 | 20 |
+| 标准 | 1.0 fps | 8 | 40 |
+| 精细 | 0.5 fps | 12 | 80 |
 
 ## 技术实现
 
 ### 节点树生成
 
 ```typescript
-private generateNodeTree(scene: cc.Node): string {
-  // 生成节点树HTML结构
-  let html = '<div class="node-tree">';
+// src/cocos3/sceneTree.ts — 全量树数据
+const treeInfo = buildTreeInfo(scene);
 
-  // 递归生成节点项
-  const buildNodeTree = (node: cc.Node, depth: number = 0): void => {
-    const nodeItem = this.generateNodeItem(node);
-    html += nodeItem;
+// src/cocos3/treeRender.ts — 渲染 HTML（含 active checkbox）
+renderTreeHtml(treeInfo, {
+  expanded: expandedScene,
+  selectedId,
+  searchQuery,
+  isRoot: true,
+  sceneRootId: getNodeId(scene),
+});
+```
 
-    // 处理子节点
-    if (node.children && node.children.length > 0) {
-      const isExpanded = this.expandedNodes.has(node.uuid);
-      html += `<div class="node-children ${isExpanded ? 'expanded' : 'collapsed'}" data-parent="${node.uuid}">`;
+Active 切换：
 
-      // 按照名称排序子节点
-      const sortedChildren = [...node.children].sort((a, b) =>
-        (a.name || '').localeCompare(b.name || '')
-      );
-
-      sortedChildren.forEach(child => buildNodeTree(child, depth + 1));
-      html += '</div>';
-    }
-  };
-
-  // 从场景根节点开始构建树
-  buildNodeTree(scene);
-  html += '</div>';
-
-  return html;
+```typescript
+// src/cocos3/sceneTree.ts
+export function setNodeActive(nodeId: string, active: boolean): boolean {
+  const scene = getSceneRoot();
+  const node = scene && findNodeById(scene, nodeId);
+  if (!node || node === scene) return false;
+  node.active = active;
+  return true;
 }
 ```
 

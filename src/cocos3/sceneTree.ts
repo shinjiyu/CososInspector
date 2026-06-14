@@ -54,13 +54,29 @@ export function buildTreeInfo(root: cc.Node): TreeNodeInfo {
   };
 }
 
+/** 切换节点 active（场景根不可改） */
+export function setNodeActive(nodeId: string, active: boolean): boolean {
+  try {
+    const scene = getSceneRoot();
+    if (!scene) return false;
+    const node = findNodeById(scene, nodeId);
+    if (!node || node === scene) return false;
+    node.active = active;
+    return true;
+  } catch (error) {
+    console.error(
+      `[Active编辑] setNodeActive 失败 nodeId=${nodeId} active=${active}`,
+      error
+    );
+    return false;
+  }
+}
+
 export function hashTree(node: TreeNodeInfo): string {
   const parts: string[] = [
     node.id,
     node.name,
     node.active ? '1' : '0',
-    node.hasSprite ? '1' : '0',
-    node.spriteHint ?? '',
     String(node.children.length),
   ];
 
