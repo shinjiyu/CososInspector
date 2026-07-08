@@ -7,7 +7,7 @@
  */
 
 import { spawn } from 'child_process';
-import { mkdirSync, writeFileSync } from 'fs';
+import { mkdirSync, writeFileSync, copyFileSync } from 'fs';
 import { dirname, join, resolve } from 'path';
 import { fileURLToPath } from 'url';
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
@@ -20,18 +20,25 @@ import {
   connectBridgeClientOnly,
   startBridge,
   bridgeApiCall,
+  callBridgeAtPort,
   bridgeCaptureVisibleTab,
-  isExtensionConnected,
   bridgeGetStatus,
-  getLastTabs,
   waitForExtension,
+  isBridgeRunning,
+  getDaemonMeta,
 } from './bridge-server.mjs';
 import { writeReplacementPackToDisk } from './export-pack-lib.mjs';
 import { startShareHttp } from './share-http.mjs';
 import {
+  listBridgesWithHealth,
+  resolveBridgeTarget,
+} from './bridge-resolve.mjs';
+import { bridgeRegistryPath } from './bridge-registry.mjs';
+import {
   stageInputFile,
   shareFileUrl,
   writeShareOutput,
+  resolveSharePath,
   getShareHttpPort,
   getShareDir,
 } from './shared-fs.mjs';
@@ -47,9 +54,27 @@ const useCdp = process.env.COCOS_USE_CDP === '1';
 
 function connOpts(args) {
   return {
-    port: args?.cdpPort ? Number(args.cdpPort) : undefined,
+    domain: args?.domain,
     pageUrlMatch: args?.pageUrlMatch ?? process.env.COCOS_PAGE_URL_MATCH,
+    wsPort: args?.wsPort != null ? Number(args.wsPort) : undefined,
+    port: args?.cdpPort ? Number(args.cdpPort) : undefined,
   };
+}
+
+async function fetchBridgeStatus(target) {
+  if (isBridgeRunning() && getDaemonMeta()?.wsPort === target.wsPort) {
+    return bridgeGetStatus();
+  }
+  const httpPort = target.httpPort ?? target.wsPort + 1;
+  const res = await fetch(`http://127.0.0.1:${httpPort}/api/status`);
+  if (!res.ok) throw new Error(`status HTTP ${res.status}`);
+  return res.json();
+}
+
+async function waitExt(opts, maxMs = 60_000) {
+  const target = await resolveBridgeTarget(connOpts(opts ?? {}));
+  await waitForExtension(maxMs, target.wsPort);
+  return target;
 }
 
 async function cdpApiCall(method, argList, opts) {
@@ -66,7 +91,14 @@ async function cdpApiCall(method, argList, opts) {
 
 async function apiCall(method, argList, opts) {
   if (useCdp) return cdpApiCall(method, argList, opts);
-  return bridgeApiCall(method, argList, connOpts(opts));
+  const target = await resolveBridgeTarget(connOpts(opts ?? {}));
+  const callOpts = {
+    pageUrlMatch: opts?.pageUrlMatch ?? target.pageUrlMatch ?? '',
+  };
+  if (isBridgeRunning() && getDaemonMeta()?.wsPort === target.wsPort) {
+    return bridgeApiCall(method, argList, callOpts);
+  }
+  return callBridgeAtPort(target.wsPort, method, argList, callOpts);
 }
 
 function writeBase64File(outPath, base64) {
@@ -86,6 +118,24 @@ const server = new Server(
 server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [
     {
+      name: 'cocos_inspector_list_bridges',
+      description:
+        '列出本机 Inspector 桥接实例（registry 主键=试玩 URL 域名）。多开时先调用此工具',
+      inputSchema: { type: 'object', properties: {} },
+    },
+    {
+      name: 'cocos_inspector_health',
+      description: '指定域名的 Inspector 桥接健康检查',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          domain: { type: 'string', description: '如 play.godeebxp.com' },
+          pageUrlMatch: { type: 'string' },
+          wsPort: { type: 'number' },
+        },
+      },
+    },
+    {
       name: 'cocos_list_tabs',
       description:
         '桥接模式：扩展是否已连接 + 浏览器 http 标签；CDP 模式需 COCOS_USE_CDP=1',
@@ -103,6 +153,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         type: 'object',
         properties: {
           pageUrlMatch: { type: 'string' },
+          domain: { type: 'string', description: '试玩页域名，如 play.godeebxp.com' },
+          wsPort: { type: 'number' },
           cdpPort: { type: 'number' },
         },
       },
@@ -115,6 +167,42 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         type: 'object',
         properties: {
           pageUrlMatch: { type: 'string' },
+          domain: { type: 'string', description: '试玩页域名，如 play.godeebxp.com' },
+          wsPort: { type: 'number' },
+          cdpPort: { type: 'number' },
+        },
+      },
+    },
+    {
+      name: 'cocos_get_scene_tree',
+      description:
+        '轻量场景树（id/name/active/children），不含组件详情。需试玩页扩展已连桥接',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          pageUrlMatch: { type: 'string' },
+          domain: { type: 'string', description: '试玩页域名，如 play.godeebxp.com' },
+          wsPort: { type: 'number' },
+          cdpPort: { type: 'number' },
+        },
+      },
+    },
+    {
+      name: 'cocos_export_scene_snapshot',
+      description:
+        '导出完整场景快照 JSON（节点树+Transform+组件摘要）。可写 outPath 落盘，供 Creator 重建',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          outPath: { type: 'string', description: '保存 .json 路径（可选）' },
+          maxNodes: { type: 'number', description: '最大节点数，默认 3000' },
+          includeComponents: {
+            type: 'boolean',
+            description: '是否含组件详情，默认 true',
+          },
+          pageUrlMatch: { type: 'string' },
+          domain: { type: 'string', description: '试玩页域名，如 play.godeebxp.com' },
+          wsPort: { type: 'number' },
           cdpPort: { type: 'number' },
         },
       },
@@ -127,6 +215,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           nodeId: { type: 'string' },
           pageUrlMatch: { type: 'string' },
+          domain: { type: 'string', description: '试玩页域名，如 play.godeebxp.com' },
+          wsPort: { type: 'number' },
           cdpPort: { type: 'number' },
         },
         required: ['nodeId'],
@@ -141,7 +231,21 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           nodeId: { type: 'string' },
           outPath: { type: 'string', description: '输出 .png 路径' },
           pageUrlMatch: { type: 'string' },
+          domain: { type: 'string', description: '试玩页域名，如 play.godeebxp.com' },
+          wsPort: { type: 'number' },
           cdpPort: { type: 'number' },
+          mode: {
+            type: 'string',
+            enum: ['originalCanvas', 'frame', 'scale'],
+            description:
+              '导出模式：originalCanvas（trim 默认）、frame（仅帧像素）、scale（拉伸遗留）',
+          },
+          delivery: {
+            type: 'string',
+            enum: ['share', 'inline'],
+            description:
+              'share（默认）：试玩页 PUT 到共享 out/，WS 只返 sharePath；inline：WS 返 base64',
+          },
         },
         required: ['nodeId', 'outPath'],
       },
@@ -162,9 +266,35 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           mime: { type: 'string' },
           filename: { type: 'string' },
           pageUrlMatch: { type: 'string' },
+          domain: { type: 'string', description: '试玩页域名，如 play.godeebxp.com' },
+          wsPort: { type: 'number' },
           cdpPort: { type: 'number' },
         },
         required: ['nodeId'],
+      },
+    },
+    {
+      name: 'cocos_texture_extract_logs',
+      description:
+        '读取试玩页纹理提取诊断日志（localStorage 环形缓冲，不经浏览器 console）',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          limit: { type: 'number', description: '最多返回条数，默认 100' },
+          since: {
+            type: 'number',
+            description: '仅返回该 Unix 毫秒时间戳之后的日志',
+          },
+          nodeUUID: { type: 'string', description: '按节点 UUID 过滤' },
+          clear: {
+            type: 'boolean',
+            description: '为 true 时先清空再返回（默认 false）',
+          },
+          pageUrlMatch: { type: 'string' },
+          domain: { type: 'string', description: '试玩页域名，如 play.godeebxp.com' },
+          wsPort: { type: 'number' },
+          cdpPort: { type: 'number' },
+        },
       },
     },
     {
@@ -175,6 +305,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         properties: {
           nodeId: { type: 'string' },
           pageUrlMatch: { type: 'string' },
+          domain: { type: 'string', description: '试玩页域名，如 play.godeebxp.com' },
+          wsPort: { type: 'number' },
           cdpPort: { type: 'number' },
         },
         required: ['nodeId'],
@@ -187,6 +319,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
         type: 'object',
         properties: {
           pageUrlMatch: { type: 'string' },
+          domain: { type: 'string', description: '试玩页域名，如 play.godeebxp.com' },
+          wsPort: { type: 'number' },
           cdpPort: { type: 'number' },
         },
       },
@@ -201,6 +335,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           outDir: { type: 'string', description: '输出目录（解压写入，可选）' },
           outZip: { type: 'string', description: '直接保存 .zip 路径' },
           pageUrlMatch: { type: 'string' },
+          domain: { type: 'string', description: '试玩页域名，如 play.godeebxp.com' },
+          wsPort: { type: 'number' },
           cdpPort: { type: 'number' },
         },
       },
@@ -235,6 +371,8 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
           outPath: { type: 'string', description: '保存 png 路径' },
           maxSize: { type: 'number', description: 'node 模式最大边' },
           pageUrlMatch: { type: 'string' },
+          domain: { type: 'string', description: '试玩页域名，如 play.godeebxp.com' },
+          wsPort: { type: 'number' },
           cdpPort: { type: 'number' },
         },
         required: ['outPath'],
@@ -248,6 +386,57 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   const opts = connOpts(args ?? {});
 
   try {
+    if (name === 'cocos_inspector_list_bridges') {
+      const listed = await listBridgesWithHealth();
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                registryPath: bridgeRegistryPath(),
+                onlineCount: listed.onlineCount,
+                instances: listed.instances,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
+    if (name === 'cocos_inspector_health') {
+      const target = await resolveBridgeTarget(connOpts(args ?? {}));
+      let status = null;
+      try {
+        status = await fetchBridgeStatus(target);
+      } catch (e) {
+        status = { error: e instanceof Error ? e.message : String(e) };
+      }
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify(
+              {
+                resolvedBy: target.resolvedBy,
+                domain: target.domain,
+                wsPort: target.wsPort,
+                httpPort: target.httpPort,
+                pageUrlMatch: target.pageUrlMatch,
+                online: target.online,
+                extensionConnected: target.extensionConnected,
+                status,
+              },
+              null,
+              2
+            ),
+          },
+        ],
+      };
+    }
+
     if (name === 'cocos_list_tabs') {
       if (useCdp) {
         const CDP = (await import('chrome-remote-interface')).default;
@@ -262,7 +451,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           ],
         };
       }
-      const st = useCdp ? null : await bridgeGetStatus().catch(() => ({}));
+      const target = await resolveBridgeTarget(opts);
+      const st = await fetchBridgeStatus(target).catch(() => ({}));
       return {
         content: [
           {
@@ -270,9 +460,12 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: JSON.stringify(
               {
                 mode: 'bridge',
-                bridgePort: Number(process.env.COCOS_BRIDGE_PORT ?? 17373),
-                extensionConnected: st?.extensionConnected ?? (await isExtensionConnected()),
-                tabs: st?.tabs ?? getLastTabs(),
+                resolvedBy: target.resolvedBy,
+                domain: target.domain,
+                wsPort: target.wsPort,
+                httpPort: target.httpPort,
+                extensionConnected: st?.extensionConnected ?? false,
+                tabs: st?.tabs ?? [],
               },
               null,
               2
@@ -285,7 +478,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     if (name === 'cocos_page_info') {
       if (useCdp) await ensureConnected(opts);
       const info = await apiCall('getPageInfo', [], opts);
-      const st = useCdp ? null : await bridgeGetStatus().catch(() => ({}));
+      let st = null;
+      if (!useCdp) {
+        const target = await resolveBridgeTarget(opts);
+        st = await fetchBridgeStatus(target).catch(() => ({}));
+      }
       const connectedPage = useCdp
         ? getConnectedPageUrl()
         : info?.pageUrl ?? st?.tabs?.find((t) => t.url)?.url;
@@ -296,8 +493,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             text: JSON.stringify(
               {
                 mode: useCdp ? 'cdp' : 'bridge',
-                extensionConnected:
-                  st?.extensionConnected ?? (await isExtensionConnected()),
+                extensionConnected: st?.extensionConnected ?? false,
                 connectedPage,
                 ...info,
               },
@@ -316,6 +512,49 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
+    if (name === 'cocos_get_scene_tree') {
+      await waitExt(opts);
+      const tree = await apiCall('getSceneTree', [], opts);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(tree, null, 2) }],
+      };
+    }
+
+    if (name === 'cocos_export_scene_snapshot') {
+      await waitExt(opts);
+      const snapOpts = {
+        maxNodes: args?.maxNodes != null ? Number(args.maxNodes) : undefined,
+        includeComponents: args?.includeComponents !== false,
+      };
+      const snapshot = await apiCall('exportSceneSnapshot', [snapOpts], opts);
+      if (!snapshot) {
+        return {
+          content: [{ type: 'text', text: '场景未就绪或 exportSceneSnapshot 返回空' }],
+          isError: true,
+        };
+      }
+      if (args?.outPath) {
+        const outPath = resolve(args.outPath);
+        mkdirSync(dirname(outPath), { recursive: true });
+        writeFileSync(outPath, JSON.stringify(snapshot, null, 2), 'utf8');
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify(
+                { saved: outPath, stats: snapshot.stats, sceneName: snapshot.sceneName },
+                null,
+                2
+              ),
+            },
+          ],
+        };
+      }
+      return {
+        content: [{ type: 'text', text: JSON.stringify(snapshot, null, 2) }],
+      };
+    }
+
     if (name === 'cocos_get_sprite') {
       const res = await apiCall('getSpriteDetail', [args.nodeId], opts);
       return {
@@ -324,34 +563,58 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === 'cocos_download_texture') {
-      const res = await apiCall('downloadTexture', [args.nodeId], opts);
+      const target = await resolveBridgeTarget(connOpts(opts ?? {}));
+      const delivery = args.delivery ?? 'share';
+      const dlOpts = {
+        ...(args.mode ? { mode: args.mode } : {}),
+        delivery,
+        wsPort: target.wsPort,
+      };
+      const res = await apiCall('downloadTexture', [args.nodeId, dlOpts], opts);
       if (!res?.ok) {
         return {
           content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
           isError: true,
         };
       }
-      const shareRel = writeShareOutput(
-        res.filename ?? `${args.nodeId}.png`,
-        res.base64
-      );
       const outPath = args.outPath ? resolve(args.outPath) : null;
-      if (outPath) {
-        writeBase64File(outPath, res.base64);
+      let shareRel = res.sharePath ?? null;
+
+      if (res.delivery === 'share' && res.sharePath) {
+        if (outPath) {
+          mkdirSync(dirname(outPath), { recursive: true });
+          copyFileSync(resolveSharePath(res.sharePath), outPath);
+        }
+      } else if (res.base64) {
+        shareRel = writeShareOutput(res.filename ?? `${args.nodeId}.png`, res.base64);
+        if (outPath) writeBase64File(outPath, res.base64);
+      } else {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({ ok: false, error: '响应无 sharePath/base64' }, null, 2),
+            },
+          ],
+          isError: true,
+        };
       }
+
       return {
         content: [
           {
             type: 'text',
             text: JSON.stringify(
               {
+                delivery: res.delivery ?? delivery,
                 shareDir: getShareDir(),
                 sharePath: shareRel,
-                shareUrl: shareFileUrl(shareRel),
+                shareUrl: res.shareUrl ?? (shareRel ? shareFileUrl(shareRel) : undefined),
                 saved: outPath ?? undefined,
                 width: res.width,
                 height: res.height,
                 filename: res.filename,
+                extractMethod: res.detail?.extractMethod,
               },
               null,
               2
@@ -408,6 +671,21 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
       };
     }
 
+    if (name === 'cocos_texture_extract_logs') {
+      if (args?.clear) {
+        await apiCall('clearTextureExtractLogs', [], opts);
+      }
+      const logOpts = {
+        limit: args?.limit != null ? Number(args.limit) : undefined,
+        since: args?.since != null ? Number(args.since) : undefined,
+        nodeUUID: args?.nodeUUID ?? undefined,
+      };
+      const res = await apiCall('getTextureExtractLogs', [logOpts], opts);
+      return {
+        content: [{ type: 'text', text: JSON.stringify(res, null, 2) }],
+      };
+    }
+
     if (name === 'cocos_revert_texture') {
       const res = await apiCall('revertTexture', [args.nodeId], opts);
       return {
@@ -424,7 +702,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     if (name === 'cocos_export_replacement_pack') {
-      if (!useCdp) await waitForExtension(60_000);
+      if (!useCdp) await waitExt(opts);
       const opts = connOpts(args);
       const zipRes = await apiCall('exportReplacementPack', [], opts);
       if (!zipRes?.ok) {
@@ -572,33 +850,68 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   }
 });
 
-const bridgePort = Number(process.env.COCOS_BRIDGE_PORT ?? 17373);
-
 async function ensureBridgeReady() {
+  if (useCdp) return;
+
+  const defaultPort = Number(process.env.COCOS_BRIDGE_PORT ?? 17373);
+  let target = null;
   try {
-    await startShareHttp(getShareHttpPort());
+    target = await resolveBridgeTarget({});
+  } catch (e) {
+    console.error(
+      `[cocos-inspector] 实例解析: ${e instanceof Error ? e.message : String(e)}`
+    );
+  }
+
+  const wsPort = target?.wsPort ?? defaultPort;
+  const httpPort = target?.httpPort ?? getShareHttpPort();
+
+  try {
+    await startShareHttp(httpPort);
   } catch (e) {
     if (e?.code !== 'EADDRINUSE') throw e;
   }
 
   try {
-    await connectBridgeClientOnly(bridgePort);
+    await connectBridgeClientOnly(wsPort);
     console.error(
-      `[cocos-inspector] 已连接常驻桥接 ws://127.0.0.1:${bridgePort}（推荐另开终端: npm run cocos-bridge）`
+      `[cocos-inspector] 已连接桥接 ws://127.0.0.1:${wsPort}` +
+        (target
+          ? ` (${target.resolvedBy}${target.domain ? `, ${target.domain}` : ''})`
+          : '')
     );
     return;
   } catch {
-    /* 无守护进程时由本 MCP 进程托管桥接 */
+    /* 该端口无守护进程 */
   }
 
-  await startBridge(bridgePort);
+  if (
+    target?.resolvedBy === 'registry-offline' ||
+    (target?.domain && target.resolvedBy !== 'env-wsPort')
+  ) {
+    console.error(
+      `[cocos-inspector] 请先启动守护进程: npm run cocos-bridge -- --domain ${target.domain}` +
+        (target.pageUrlMatch ? ` --page-url-match ${target.pageUrlMatch}` : '')
+    );
+    return;
+  }
+
+  await startBridge(wsPort, target
+    ? {
+        domain: target.domain,
+        pageUrlMatch: target.pageUrlMatch,
+        wsPort,
+        httpPort,
+        shareDir: target.shareDir,
+      }
+    : undefined);
   try {
-    await startShareHttp(getShareHttpPort());
+    await startShareHttp(httpPort);
   } catch (e) {
     if (e?.code !== 'EADDRINUSE') throw e;
   }
   console.error(
-    `[cocos-inspector] 本进程已监听桥接 ws://127.0.0.1:${bridgePort}；请重载扩展并 F5 试玩页`
+    `[cocos-inspector] 本进程已监听桥接 ws://127.0.0.1:${wsPort}；请重载扩展并 F5 试玩页`
   );
 }
 

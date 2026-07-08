@@ -1,0 +1,5 @@
+// 源模块: chunks:///_virtual/GameDataBase.ts
+// 来自 HAR: https://play.godeebxp.com/egames/cc497f08a3f9943e8d426d034df6261a1330fd17/game/assets/main/index.js
+// 注意：这是编译后 JS（非原始 TS），变量名可能被压缩
+
+System.register("chunks:///_virtual/GameDataBase.ts",["./rollupPluginModLoBabelHelpers.js","cc","./Macros.ts","./CmmGameData.ts"],(function(t){"use strict";var a,n,e,o;return{setters:[function(t){a=t.inheritsLoose},function(t){n=t.cclegacy},function(t){e=t.Macro},function(t){o=t.CmmGameData}],execute:function(){n._RF.push({},"59e54Kr71xFKJqo32ioELaM","GameDataBase",void 0),t("GameDataBase",function(t){function n(){for(var a,n=arguments.length,e=new Array(n),o=0;o<n;o++)e[o]=arguments[o];return(a=t.call.apply(t,[this].concat(e))||this).module="",a.data=void 0,a}a(n,t);var e=n.prototype;return e.setData=function(t){this.data=t},e.getData=function(){return this.data},e.init=function(){this.addEvents()},e.onDestory=function(){},e.clear=function(){},e.debug=function(){Log.d(""+this.module)},n}(o)).module=e.UNKNOWN,n._RF.pop()}}}));

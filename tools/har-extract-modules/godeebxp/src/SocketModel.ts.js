@@ -1,0 +1,5 @@
+// 源模块: chunks:///_virtual/SocketModel.ts
+// 来自 HAR: https://play.godeebxp.com/slotFramework/47d7e0eea5a14878191d7ca05d30b6929274cd9a/index.js
+// 注意：这是编译后 JS（非原始 TS），变量名可能被压缩
+
+System.register("chunks:///_virtual/SocketModel.ts",["./rollupPluginModLoBabelHelpers.js","cc","./UrlUtils2.ts","./BaseModel.ts"],(function(e){"use strict";var t,n,s,r,i;return{setters:[function(e){t=e.inheritsLoose,n=e.createClass},function(e){s=e.cclegacy},function(e){r=e.default},function(e){i=e.BaseModel}],execute:function(){s._RF.push({},"6b746A9Z8xPWZ/f8FryHmMi","SocketModel",void 0);var a=function(e){function s(){var t;return(t=e.call(this)||this).data={currentToken:"",preToken:"",requestVO:null,resendTimes:0,resendMaximumTimes:3,hasInitRes:!1,waitInitRes:!1,showLoading:!1,pauseGame:!1,reqTime:null},t}return t(s,e),s.Instance=function(){return this._instance||(this._instance=new s)},n(s,[{key:"currentToken",get:function(){return this.data.currentToken},set:function(e){var t=r.getParam("t");localStorage.setItem(t,e),this.data.currentToken=e}}]),s}(i);a._instance=null;e("default",a.Instance());s._RF.pop()}}}));

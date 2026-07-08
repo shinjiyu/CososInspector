@@ -1,0 +1,5 @@
+// 源模块: chunks:///_virtual/Logic.ts
+// 来自 HAR: https://play.godeebxp.com/egames/cc497f08a3f9943e8d426d034df6261a1330fd17/game/assets/main/index.js
+// 注意：这是编译后 JS（非原始 TS），变量名可能被压缩
+
+System.register("chunks:///_virtual/Logic.ts",["./rollupPluginModLoBabelHelpers.js","cc","./EventProcessor.ts","./Macros.ts"],(function(t){"use strict";var e,o,n,i,s,c;return{setters:[function(t){e=t.inheritsLoose,o=t.createClass},function(t){n=t.cclegacy,i=t.js},function(t){s=t.EventProcessor},function(t){c=t.Macro}],execute:function(){n._RF.push({},"4b9a0iaVZFD/KeijOJgJv2B","Logic",void 0),t("Logic",function(t){function n(){for(var e,o=arguments.length,n=new Array(o),i=0;i<o;i++)n[i]=arguments[i];return(e=t.call.apply(t,[this].concat(n))||this).module=c.UNKNOWN,e.gameView=null,e}e(n,t);var s=n.prototype;return s.reset=function(t){},s.onLoad=function(e){this.gameView=e,t.prototype.onLoad.call(this,e)},s.update=function(t){},s.destory=function(){this.onDestroy()},s.debug=function(){Log.d(this.module+" : "+i.getClassName(this))},o(n,[{key:"bundle",get:function(){return this.module}}]),n}(s)).module=c.UNKNOWN,n._RF.pop()}}}));

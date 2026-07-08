@@ -1,0 +1,5 @@
+// 源模块: chunks:///_virtual/LanguageDelegate.ts
+// 来自 HAR: https://play.godeebxp.com/egames/cc497f08a3f9943e8d426d034df6261a1330fd17/game/assets/main/index.js
+// 注意：这是编译后 JS（非原始 TS），变量名可能被压缩
+
+System.register("chunks:///_virtual/LanguageDelegate.ts",["./rollupPluginModLoBabelHelpers.js","cc"],(function(t){"use strict";var e,a;return{setters:[function(t){e=t.createClass},function(t){a=t.cclegacy}],execute:function(){t("injectLanguageData",(function(t){})),a._RF.push({},"de77dZMRVZDYY4iKST+8vLn","LanguageDelegate",void 0);t("LanguageDelegate",function(){function t(){this.bundle=void 0,this.datas=new Map,this._arrLanguages=[],this.init()}var a=t.prototype;return a.add=function(t){this.datas.set(t.language,t),this._arrLanguages.push(t.language)},a.merge=function(t,e){var a=this.datas.get(t);return a&&(e[this.bundle]=a.data),e},a.importLanguages=function(t){for(var e in t)if(Object.prototype.hasOwnProperty.call(t,e)){var a=t[e];this.add(a)}},e(t,[{key:"supportLanguages",get:function(){return this._arrLanguages.slice()}}]),t}());a._RF.pop()}}}));

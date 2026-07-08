@@ -1,0 +1,5 @@
+// 源模块: chunks:///_virtual/ButtonFactory.ts
+// 来自 HAR: https://play.godeebxp.com/slotFramework/47d7e0eea5a14878191d7ca05d30b6929274cd9a/index.js
+// 注意：这是编译后 JS（非原始 TS），变量名可能被压缩
+
+System.register("chunks:///_virtual/ButtonFactory.ts",["./rollupPluginModLoBabelHelpers.js","cc","./Bundles.ts","./SingletonExtends.ts","./ImageButton.ts"],(function(t){"use strict";var n,o,e,u,r,i,a;return{setters:[function(t){n=t.inheritsLoose},function(t){o=t.cclegacy,e=t._decorator,u=t.instantiate},function(t){r=t.EBundles},function(t){i=t.SingletonExtends},function(t){a=t.ImageButton}],execute:function(){t("EButtonFactory",void 0),o._RF.push({},"32f75tOIwZEZoJuTqY4XViL","ButtonFactory",void 0);var c;e.ccclass,e.property;!function(t){t.ImageButton="ImageButton",t.SpineButton="SpineButton"}(c||(c=t("EButtonFactory",{})));t("default",function(t){function o(){return t.apply(this,arguments)||this}return n(o,t),o.prototype.createButton=function(t,n){if(t===c.ImageButton){var o=App.cache.get(r[r.slotFramework],"prefabs/ui/button/ImageButton").data,e=u(o);return e.name=n,e.addComponent(a)}if(t!==c.SpineButton)throw new Error("无法创建该类型的按钮")},o}(i).instance());o._RF.pop()}}}));

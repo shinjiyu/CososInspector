@@ -2,10 +2,10 @@
   "mcpServers": {
     "cocos-inspector": {
       "command": "node",
-      "args": ["D:/UGit/CososInspector/tools/mcp-cocos-inspector/index.mjs"],
+      "args": ["D:/UGit/CososInspectorNew/tools/mcp-cocos-inspector/index.mjs"],
       "env": {
-        "COCOS_PAGE_URL_MATCH": "applovin",
-        "COCOS_BRIDGE_PORT": "17373"
+        "COCOS_INSPECTOR_DOMAIN": "play.godeebxp.com",
+        "COCOS_PAGE_URL_MATCH": "godeebxp"
       }
     }
   }

@@ -56,6 +56,31 @@ async function publishTabs(): Promise<void> {
   );
 }
 
+function domainFromUrl(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, '').toLowerCase();
+  } catch {
+    return '';
+  }
+}
+
+async function getExtensionHandshakePayload(): Promise<{
+  domain: string;
+  pageUrlMatch: string;
+}> {
+  const tabs = await chrome.tabs.query({ url: ['http://*/*', 'https://*/*'] });
+  for (const tab of tabs) {
+    if (!tab.id || !tab.url) continue;
+    if (!(await pingTab(tab.id))) continue;
+    const domain = domainFromUrl(tab.url);
+    return {
+      domain,
+      pageUrlMatch: domain.split('.')[0] || domain,
+    };
+  }
+  return { domain: '', pageUrlMatch: '' };
+}
+
 async function findCocosTab(
   pageUrlMatch: string
 ): Promise<chrome.tabs.Tab | null> {
@@ -168,6 +193,25 @@ async function handleBridgeCall(msg: {
   }
 }
 
+function sendExtensionRole(handshake?: {
+  domain: string;
+  pageUrlMatch: string;
+}): boolean {
+  if (!socket || socket.readyState !== WebSocket.OPEN) return false;
+  try {
+    socket.send(
+      JSON.stringify({
+        role: 'extension',
+        domain: handshake?.domain ?? '',
+        pageUrlMatch: handshake?.pageUrlMatch ?? '',
+      })
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function connectBridge(): void {
   if (socket?.readyState === WebSocket.OPEN) return;
 
@@ -182,9 +226,19 @@ function connectBridge(): void {
   }
 
   socket.onopen = () => {
-    setMcpStatus('connected');
-    socket?.send(JSON.stringify({ role: 'extension' }));
-    void publishTabs();
+    // 必须先注册 role，桥接才认 extensionConnected；勿等 ping 全标签后再发
+    if (sendExtensionRole()) {
+      setMcpStatus('connected');
+    } else {
+      setMcpStatus('disconnected');
+      socket?.close();
+      return;
+    }
+
+    void getExtensionHandshakePayload().then((handshake) => {
+      sendExtensionRole(handshake);
+      void publishTabs();
+    });
   };
 
   socket.onmessage = (ev) => {
@@ -227,7 +281,10 @@ function scheduleReconnect(): void {
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === 'cocos-page-active') {
-    void publishTabs();
+    void getExtensionHandshakePayload().then((handshake) => {
+      sendExtensionRole(handshake);
+      void publishTabs();
+    });
     sendResponse({ ok: true });
     return true;
   }

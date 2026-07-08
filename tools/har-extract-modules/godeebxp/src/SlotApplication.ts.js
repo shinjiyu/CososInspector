@@ -1,0 +1,5 @@
+// 源模块: chunks:///_virtual/SlotApplication.ts
+// 来自 HAR: https://play.godeebxp.com/slotFramework/47d7e0eea5a14878191d7ca05d30b6929274cd9a/index.js
+// 注意：这是编译后 JS（非原始 TS），变量名可能被压缩
+
+System.register("chunks:///_virtual/SlotApplication.ts",["./rollupPluginModLoBabelHelpers.js","cc","./Singleton.ts","./GameLoading.ts","./GameLoadingP.ts","./CmmSlotUtils.ts"],(function(t){"use strict";var n,e,o,i,r,c;return{setters:[function(t){n=t.createClass},function(t){e=t.cclegacy},function(t){o=t.default},function(t){i=t.default},function(t){r=t.default},function(t){c=t.CmmSlotUtils}],execute:function(){e._RF.push({},"f9595wjGYxOfLEFPrqx46Ro","SlotApplication",void 0);var a=t("SlotApplication",function(){function t(){}return n(t,[{key:"gameLoading",get:function(){var t=c.getOrientationTarget(i,r);return o.instance.get(t)}}]),t}()),u=new a;Object.getOwnPropertyNames(a.prototype).forEach((function(t){var n=Object.getOwnPropertyDescriptor(a.prototype,t);if(n&&n.get){var e=n.get.bind(u);void 0===window.App[""+t]&&(window.App[""+t]=e())}})),e._RF.pop()}}}));

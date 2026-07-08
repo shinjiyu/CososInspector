@@ -1,5 +1,6 @@
 import { bakeSpriteFrameViaEngine } from './textureBake';
 import { findNodeById, getSceneRoot } from './sceneTree';
+import { logTextureExtract } from './textureExtractLog';
 import {
   clearTextureExtractDebugLog,
   extractAtlasViaWebGL,
@@ -501,6 +502,22 @@ async function readFullAndCrop(
   return null;
 }
 
+const resolveLogContext = (
+  nodeId: string | null | undefined,
+  frame: SpriteFrameRuntime
+): { nodeName: string; nodeUUID: string; frameName: string } => {
+  const nodeUUID = nodeId ?? 'unknown';
+  let nodeName = 'unknown';
+  if (nodeId) {
+    const scene = getSceneRoot();
+    const node = scene ? findNodeById(scene, nodeId) : null;
+    if (node) nodeName = node.name ?? 'unknown';
+  }
+  const fr = frame as { name?: string; _name?: string };
+  const frameName = String(fr.name ?? fr._name ?? 'spriteFrame');
+  return { nodeName, nodeUUID, frameName };
+};
+
 /**
  * 提取图集帧像素：URL/缓冲/DOM → readPixels → 引擎离屏渲染
  */
@@ -518,9 +535,21 @@ export async function extractAtlasFramePixels(
   const rect = resolveFrameRect(frame, texW, texH);
   if (rect.w <= 0 || rect.h <= 0) return null;
 
+  const logCtx = resolveLogContext(nodeId, frame);
   const cacheKey = `${getAtlasCacheKey(texture, rect)}_${nodeId ?? ''}`;
   const cached = pixelCache.get(cacheKey);
-  if (cached) return cached;
+  if (cached) {
+    logTextureExtract(logCtx, '缓存命中', {
+      method: cached.method,
+      cacheHit: true,
+      frameRect: rect,
+      pixelSize: {
+        w: cached.imageData.width,
+        h: cached.imageData.height,
+      },
+    });
+    return cached;
+  }
 
   const pending = pendingReads.get(cacheKey);
   if (pending) return pending;
@@ -530,51 +559,127 @@ export async function extractAtlasFramePixels(
 
   const task = (async (): Promise<TextureExtractResult | null> => {
     clearTextureExtractDebugLog();
+    logTextureExtract(logCtx, '开始提取', {
+      frameRect: rect,
+      pixelSize: { w: outW, h: outH },
+      detail: { texW, texH, cacheKey },
+    });
     await waitFrames(2);
 
     if (nodeId) {
       const scene = getSceneRoot();
       const node = scene ? findNodeById(scene, nodeId) : null;
       if (node) {
+        logTextureExtract(logCtx, '尝试 screen-fbo', { method: 'screen-fbo' });
         const screen = readVisibleSpriteFromScreen(node, outW, outH);
         if (screen) {
+          logTextureExtract(logCtx, 'screen-fbo 成功', {
+            method: 'screen-fbo',
+            pixelSize: { w: screen.width, h: screen.height },
+          });
           return { imageData: screen, method: 'screen-fbo' };
         }
+        logTextureExtract(logCtx, 'screen-fbo 跳过', {
+          level: 'warn',
+          method: 'screen-fbo',
+          detail: { steps: getTextureExtractDebugLog() },
+        });
       }
     }
 
+    logTextureExtract(logCtx, '尝试 webgl-fbo/device-copy', { method: 'webgl-fbo' });
     const webgl = extractAtlasViaWebGL(texture, rect);
     if (webgl) {
+      logTextureExtract(logCtx, `${webgl.method} 成功`, {
+        method: webgl.method,
+        pixelSize: {
+          w: webgl.imageData.width,
+          h: webgl.imageData.height,
+        },
+      });
       return { imageData: webgl.imageData, method: webgl.method };
     }
 
+    logTextureExtract(logCtx, '尝试 dom-atlas', { method: 'dom-atlas' });
     const dom = resolveDomImage(texture);
     if (dom) {
       const fromDom = extractFromDomAtlas(dom, rect, 'dom-atlas');
-      if (fromDom) return fromDom;
+      if (fromDom) {
+        logTextureExtract(logCtx, 'dom-atlas 成功', {
+          method: 'dom-atlas',
+          pixelSize: {
+            w: fromDom.imageData.width,
+            h: fromDom.imageData.height,
+          },
+        });
+        return fromDom;
+      }
     }
 
+    logTextureExtract(logCtx, '尝试 url-atlas', { method: 'url-atlas' });
     const fromUrl = await extractViaUrls(texture, rect);
-    if (fromUrl) return fromUrl;
+    if (fromUrl) {
+      logTextureExtract(logCtx, 'url-atlas 成功', {
+        method: fromUrl.method,
+        pixelSize: {
+          w: fromUrl.imageData.width,
+          h: fromUrl.imageData.height,
+        },
+      });
+      return fromUrl;
+    }
 
+    logTextureExtract(logCtx, '尝试 buffer-atlas', { method: 'buffer-atlas' });
     const fromBuf = extractViaRawBuffer(texture, rect);
-    if (fromBuf) return fromBuf;
+    if (fromBuf) {
+      logTextureExtract(logCtx, 'buffer-atlas 成功', {
+        method: fromBuf.method,
+        pixelSize: {
+          w: fromBuf.imageData.width,
+          h: fromBuf.imageData.height,
+        },
+      });
+      return fromBuf;
+    }
 
+    logTextureExtract(logCtx, '尝试 readPixels-region', {
+      method: 'readPixels-region',
+    });
     const region = await readRegionPixels(texture, rect, texH);
     if (region) {
+      logTextureExtract(logCtx, 'readPixels-region 成功', {
+        method: 'readPixels-region',
+        pixelSize: { w: region.width, h: region.height },
+      });
       return { imageData: region, method: 'readPixels-region' };
     }
 
+    logTextureExtract(logCtx, '尝试 readPixels-full', {
+      method: 'readPixels-full',
+    });
     const full = await readFullAndCrop(texture, rect);
     if (full) {
+      logTextureExtract(logCtx, 'readPixels-full 成功', {
+        method: 'readPixels-full',
+        pixelSize: { w: full.width, h: full.height },
+      });
       return { imageData: full, method: 'readPixels-full' };
     }
 
+    logTextureExtract(logCtx, '尝试 engine-bake', { method: 'engine-bake' });
     const baked = await bakeSpriteFrameViaEngine(frame, { w: outW, h: outH });
     if (baked && hasVisiblePixels(baked)) {
+      logTextureExtract(logCtx, 'engine-bake 成功', {
+        method: 'engine-bake',
+        pixelSize: { w: baked.width, h: baked.height },
+      });
       return { imageData: baked, method: 'engine-bake' };
     }
 
+    logTextureExtract(logCtx, '全部路径失败', {
+      level: 'error',
+      detail: { steps: getTextureExtractDebugLog() },
+    });
     return null;
   })();
 
@@ -598,6 +703,40 @@ function waitFrames(n: number): Promise<void> {
     };
     requestAnimationFrame(step);
   });
+}
+
+/** Spine 等整图纹理导出（与 sprite 帧读取分离） */
+export async function extractFullTexturePixels(
+  texture: TextureRuntime
+): Promise<TextureExtractResult | null> {
+  const texW = Math.floor(texture.width ?? 0);
+  const texH = Math.floor(texture.height ?? 0);
+  if (texW <= 0 || texH <= 0) return null;
+
+  const rect: AtlasFrameRect = { x: 0, y: 0, w: texW, h: texH };
+  const webgl = extractAtlasViaWebGL(texture, rect);
+  if (webgl?.imageData && hasVisiblePixels(webgl.imageData)) {
+    return { imageData: webgl.imageData, method: webgl.method };
+  }
+
+  const dom = resolveDomImage(texture);
+  if (dom) {
+    const fromDom = extractFromDomAtlas(dom, rect, 'dom-atlas');
+    if (fromDom) return fromDom;
+  }
+
+  const fromUrl = await extractViaUrls(texture, rect);
+  if (fromUrl) return fromUrl;
+
+  const fromBuf = extractViaRawBuffer(texture, rect);
+  if (fromBuf) return fromBuf;
+
+  const full = await readFullAndCrop(texture, rect);
+  if (full) {
+    return { imageData: full, method: 'readPixels-full' };
+  }
+
+  return null;
 }
 
 export function clearTexturePixelCache(): void {

@@ -1,0 +1,5 @@
+// 源模块: chunks:///_virtual/Bundles.ts
+// 来自 HAR: https://play.godeebxp.com/egames/cc497f08a3f9943e8d426d034df6261a1330fd17/game/assets/main/index.js
+// 注意：这是编译后 JS（非原始 TS），变量名可能被压缩
+
+System.register("chunks:///_virtual/Bundles.ts",["cc"],(function(e){"use strict";var g;return{setters:[function(e){g=e.cclegacy}],execute:function(){var n;e("EBundles",void 0),g._RF.push({},"3d1a3os25ROeo0YTS1i+Vgc","Bundles",void 0),function(e){e[e.resources=0]="resources",e[e.hall=1]="hall",e[e.template=2]="template",e[e.g1001=3]="g1001",e[e.g9999=4]="g9999",e[e.wrapper=5]="wrapper",e[e.slotFramework=6]="slotFramework",e[e.unknown=7]="unknown",e[e.g1002=8]="g1002",e[e.g1003=9]="g1003",e[e.g1004=10]="g1004",e[e.g1005=11]="g1005",e[e.g1006=12]="g1006",e[e.g1007=13]="g1007",e[e.g1008=14]="g1008",e[e.g1009=15]="g1009",e[e.g1010=16]="g1010",e[e.g1011=17]="g1011",e[e.g1012=18]="g1012",e[e.g1013=19]="g1013"}(n||(n=e("EBundles",{})));var s=e("Bundles",{bundles:{}});Object.values(n).forEach((function(e,g){var n;"number"!=typeof e&&Object.assign(s.bundles,((n={})[e]={name:e,sort:g},n))})),g._RF.pop()}}}));

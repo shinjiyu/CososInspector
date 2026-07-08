@@ -1,0 +1,5 @@
+// 源模块: chunks:///_virtual/EntryDelegate.ts
+// 来自 HAR: https://play.godeebxp.com/egames/cc497f08a3f9943e8d426d034df6261a1330fd17/game/assets/main/index.js
+// 注意：这是编译后 JS（非原始 TS），变量名可能被压缩
+
+System.register("chunks:///_virtual/EntryDelegate.ts",["cc","./Macros.ts"],(function(e){"use strict";var n,t;return{setters:[function(e){n=e.cclegacy},function(e){t=e.Macro}],execute:function(){n._RF.push({},"7195eD0dxVOmIS0HcmWhEaq","EntryDelegate",void 0);e("EntryDelegate",function(){function e(){}var n=e.prototype;return n.onEnterGameView=function(e,n){var t=this.getPersistBundle();e&&t.push(e.bundle),App.gameView&&App.gameView.close(),App.gameView=n,App.bundleManager.removeLoadedBundle(t)},n.onShowGameView=function(e,n){},n.onCheckUpdate=function(){Log.d("主包檢測更新");var e=this.getEntryConfig(t.BUNDLE_RESOURCES);App.bundleManager.enterBundle(e)},n.getPersistBundle=function(){return[t.BUNDLE_RESOURCES]},n.onEnterMain=function(e,n){e&&(App.gameView&&App.gameView.close(),e.onEnter(n))},n.getEntryConfig=function(e){return null},e}());n._RF.pop()}}}));

@@ -1,0 +1,5 @@
+// 源模块: chunks:///_virtual/LobbyService.ts
+// 来自 HAR: https://play.godeebxp.com/egames/cc497f08a3f9943e8d426d034df6261a1330fd17/game/assets/main/index.js
+// 注意：这是编译后 JS（非原始 TS），变量名可能被压缩
+
+System.register("chunks:///_virtual/LobbyService.ts",["./rollupPluginModLoBabelHelpers.js","cc","./Config.ts","./CommonEvent.ts","./CommonService.ts"],(function(t){"use strict";var e,o,n,i,c;return{setters:[function(t){e=t.inheritsLoose},function(t){o=t.cclegacy},function(t){n=t.NetPriority},function(t){i=t.CommonEvent},function(t){c=t.CommonService}],execute:function(){o._RF.push({},"e28f7LLLVVJaYjQl5+dh0Ue","LobbyService",void 0),t("LobbyService",function(t){function o(){var e;return(e=t.call(this)||this).priority=n.Lobby,e.clientType="socketIO",e.url="",Log.d("[LobbyService] this.clientType",e.clientType),e.init(),e}e(o,t);var c=o.prototype;return c.onOpen=function(e){t.prototype.onOpen.call(this,e),dispatch(i.LOBBY_SERVICE_CONNECTED,this)},c.onClose=function(e){t.prototype.onClose.call(this,e),dispatch(i.LOBBY_SERVICE_CLOSE,this)},o}(c)).module="大廳",o._RF.pop()}}}));

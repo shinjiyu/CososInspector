@@ -102,8 +102,11 @@ npm install
 | `cocos_list_sprites` | 列 UI Sprite（供 Agent 筛选） |
 | `cocos_screenshot` | `game` / `node` / `tab`（tab 用扩展截屏，无需 CDP） |
 | `cocos_download_texture` | 导出 PNG |
+| `cocos_texture_extract_logs` | 纹理提取诊断日志（localStorage，可 `nodeUUID` 过滤） |
 | `cocos_replace_texture` | base64 替换预览 |
 | `cocos_export_replacement_pack` | 写出替换包 |
+| `cocos_get_scene_tree` | 轻量场景树 |
+| `cocos_export_scene_snapshot` | 完整场景快照 JSON |
 | `cocos_repack_super_html` | 本机重打包 |
 
 风格替换流程：截屏 → 列 Sprite → 下载 → GenerateImage → `cocos_replace_texture` → 导出 → 重打包。

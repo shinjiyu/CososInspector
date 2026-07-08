@@ -1,0 +1,5 @@
+// 源模块: chunks:///_virtual/ProtoMessage.ts
+// 来自 HAR: https://play.godeebxp.com/egames/cc497f08a3f9943e8d426d034df6261a1330fd17/game/assets/main/index.js
+// 注意：这是编译后 JS（非原始 TS），变量名可能被压缩
+
+System.register("chunks:///_virtual/ProtoMessage.ts",["./rollupPluginModLoBabelHelpers.js","cc","./Net.ts","./Message.ts"],(function(t){"use strict";var e,n,r,o,s;return{setters:[function(t){e=t.inheritsLoose},function(t){n=t.cclegacy},function(t){r=t.Net},function(t){o=t.Message,s=t.Codec}],execute:function(){n._RF.push({},"2a060dCqolHUa5KS4cGgWCi","ProtoMessage",void 0);t("ProtoMessage",function(t){function n(e){var n;return(n=t.call(this)||this).buffer=null,n.type=null,n.data=null,n.type=e,n}e(n,t);var r=n.prototype;return r.encode=function(){return this.buffer=this.type.encode(this.data).finish(),!!this.buffer},r.decode=function(t){return!!t&&(this.buffer=t,this.data=this.type.decode(this.buffer),!0)},n}(o)),t("ProtoCodec",function(t){function n(){return t.apply(this,arguments)||this}return e(n,t),n}(s));t("ProtoMessageHeartbeat",function(t){function n(){return t.apply(this,arguments)||this}return e(n,t),n}(o)).type=r.ServiceType.Proto,n._RF.pop()}}}));

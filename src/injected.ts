@@ -1,13 +1,31 @@
 /// <reference path="./types/cocos.d.ts" />
 
+import { AssetFloatingPanel } from './cocos3/assetPanel';
 import { isCocos3, log, waitForCocos3 } from './cocos3/detect';
 import { installMcpBridge } from './cocos3/mcpBridge';
+import {
+  collectNodeInspectorData,
+  createNodeInspectorElement,
+  hashNodeInspectorData,
+  renderNodeInspectorHtml,
+} from './cocos3/renderableInspector';
 import {
   expandSuspectPaths,
   type PerfScanMode,
   type PerfScanReport,
   runPerfScan,
 } from './cocos3/perfScan';
+import {
+  copyRecoveredScript,
+  downloadRecoveredScript,
+  recoverComponentScript,
+} from './cocos3/scriptRecover';
+import { downloadSpineExport } from './cocos3/spineExport';
+import {
+  collectSpriteInspectData,
+  drawSpriteTexture,
+  enrichSpriteInspectData,
+} from './cocos3/spriteInspector';
 import {
   buildTreeInfo,
   findNodeById,
@@ -19,7 +37,7 @@ import {
 import {
   countNodes,
   expandMatchingNodes,
-  maxPerfGain,
+  maxPerfDc,
   renderTreeHtml,
 } from './cocos3/treeRender';
 
@@ -30,6 +48,7 @@ class CocosInspector3 {
   private panel: HTMLElement | null = null;
   private edgeTab: HTMLButtonElement | null = null;
   private sceneTreeContainer: HTMLElement | null = null;
+  private nodeInspectorContainer: HTMLElement | null = null;
   private searchInput: HTMLInputElement | null = null;
   private statusEl: HTMLElement | null = null;
   private mainBody: HTMLElement | null = null;
@@ -37,17 +56,21 @@ class CocosInspector3 {
   private scanBtn: HTMLButtonElement | null = null;
   private scanModeSelect: HTMLSelectElement | null = null;
   private clearScanBtn: HTMLButtonElement | null = null;
+  private assetBtn: HTMLButtonElement | null = null;
 
   private expandedScene = new Set<string>();
   private selectedId: string | null = null;
   private searchQuery = '';
   private isCollapsed = false;
   private sceneTreeHash = '';
+  private inspectorHash = '';
+  private spritePreviewToken = 0;
   private updateTimer: number | null = null;
 
   private scanRunning = false;
   private scanCancel = false;
   private perfReport: PerfScanReport | null = null;
+  private assetPanel = new AssetFloatingPanel();
 
   constructor() {
     if (isCocos3()) {
@@ -60,11 +83,12 @@ class CocosInspector3 {
   private init(): void {
     this.createUI();
     this.bindTreeEvents();
+    this.bindInspectorEvents();
     this.refreshAll(true);
     this.startAutoRefresh();
     installMcpBridge();
     window.postMessage({ type: 'cocos-inspector-ready' }, '*');
-    log('已启动（全量场景树 + Active 编辑 + 性能扫描）');
+    log('已启动（全量场景树 + Inspector + DC 扫描 + 资源面板）');
   }
 
   private createUI(): void {
@@ -129,7 +153,7 @@ class CocosInspector3 {
 
     this.scanModeSelect = document.createElement('select');
     this.scanModeSelect.className = 'perf-scan-mode';
-    this.scanModeSelect.title = '性能扫描粒度';
+    this.scanModeSelect.title = 'DC 扫描粒度';
     [
       ['quick', '快速'],
       ['standard', '标准'],
@@ -146,8 +170,8 @@ class CocosInspector3 {
     this.scanBtn = document.createElement('button');
     this.scanBtn.type = 'button';
     this.scanBtn.className = 'perf-scan-btn';
-    this.scanBtn.textContent = '扫描性能';
-    this.scanBtn.title = '逐个关闭子树测量 FPS 增益，定位掉帧热点';
+    this.scanBtn.textContent = '扫描 DC';
+    this.scanBtn.title = '逐个关闭子树测量 DrawCall 减少量，定位高 DC 节点';
     this.scanBtn.addEventListener('click', () => void this.startPerfScan());
     controls.appendChild(this.scanBtn);
 
@@ -155,9 +179,17 @@ class CocosInspector3 {
     this.clearScanBtn.type = 'button';
     this.clearScanBtn.className = 'perf-clear-btn';
     this.clearScanBtn.textContent = '清除';
-    this.clearScanBtn.title = '清除性能扫描结果';
+    this.clearScanBtn.title = '清除 DC 扫描结果';
     this.clearScanBtn.addEventListener('click', () => this.clearPerfScan());
     controls.appendChild(this.clearScanBtn);
+
+    this.assetBtn = document.createElement('button');
+    this.assetBtn.type = 'button';
+    this.assetBtn.className = 'asset-panel-btn';
+    this.assetBtn.textContent = '资源';
+    this.assetBtn.title = '打开资源加载状态浮窗';
+    this.assetBtn.addEventListener('click', () => this.assetPanel.toggle());
+    controls.appendChild(this.assetBtn);
 
     this.searchInput = document.createElement('input');
     this.searchInput.type = 'search';
@@ -188,9 +220,11 @@ class CocosInspector3 {
     this.mainBody.className = 'inspector-main';
 
     this.sceneTreeContainer = document.createElement('div');
-    this.sceneTreeContainer.className = 'node-tree-panel active';
-    this.sceneTreeContainer.dataset.tabPanel = 'scene';
+    this.sceneTreeContainer.className = 'node-tree-panel';
     this.mainBody.appendChild(this.sceneTreeContainer);
+
+    this.nodeInspectorContainer = createNodeInspectorElement();
+    this.mainBody.appendChild(this.nodeInspectorContainer);
 
     this.panel.appendChild(this.mainBody);
     this.root.appendChild(this.panel);
@@ -200,7 +234,7 @@ class CocosInspector3 {
   private setScanUiRunning(running: boolean): void {
     if (this.scanBtn) {
       this.scanBtn.disabled = running;
-      this.scanBtn.textContent = running ? '扫描中…' : '扫描性能';
+      this.scanBtn.textContent = running ? '扫描中…' : '扫描 DC';
     }
     if (this.scanModeSelect) this.scanModeSelect.disabled = running;
     if (this.clearScanBtn) this.clearScanBtn.disabled = running;
@@ -210,7 +244,7 @@ class CocosInspector3 {
     if (this.scanRunning) return;
     this.perfReport = null;
     this.refreshAll(true);
-    this.setStatus('已清除性能扫描结果');
+    this.setStatus('已清除 DC 扫描结果');
   }
 
   private async startPerfScan(): Promise<void> {
@@ -252,12 +286,13 @@ class CocosInspector3 {
 
     if (report) {
       this.perfReport = report;
-      expandSuspectPaths(scene, report.gainByNodeId, this.expandedScene, 0.5);
+      expandSuspectPaths(scene, report.dcByNodeId, this.expandedScene, 1);
       const top = report.suspects[0];
       if (top) {
         this.selectedId = top.nodeId;
+        const unit = report.method === 'estimated' ? '渲染单元' : 'DC';
         console.log(
-          `[性能扫描] Top ${top.nodeName}(${top.nodeId}) +${top.fpsGain.toFixed(1)}fps · ${top.path}`
+          `[DC扫描] Top ${top.nodeName}(${top.nodeId}) -${top.dcDrop} ${unit} · ${top.path}`
         );
       }
     }
@@ -305,10 +340,22 @@ class CocosInspector3 {
     if (this.sceneTreeContainer) {
       this.sceneTreeContainer.innerHTML = '';
     }
+    if (this.nodeInspectorContainer) {
+      const body = this.nodeInspectorContainer.querySelector('.node-inspector-body');
+      if (body) {
+        body.innerHTML =
+          '<div class="node-inspector-empty">选中节点以查看 Inspector</div>';
+      }
+      const title = this.nodeInspectorContainer.querySelector('.node-inspector-title');
+      if (title) title.textContent = 'Inspector';
+    }
+    this.inspectorHash = '';
+    this.spritePreviewToken += 1;
     if (this.statusEl) {
       this.statusEl.textContent = '';
     }
     this.sceneTreeHash = '';
+    this.assetPanel.close();
     this.panel?.remove();
   }
 
@@ -410,6 +457,65 @@ class CocosInspector3 {
     });
   }
 
+  private bindInspectorEvents(): void {
+    this.nodeInspectorContainer?.addEventListener('click', (event: Event) => {
+      const target = event.target as HTMLElement;
+
+      const spineBtn = target.closest(
+        '.insp-export-spine-btn'
+      ) as HTMLButtonElement | null;
+      if (spineBtn) {
+        event.stopPropagation();
+        if (!this.selectedId) return;
+        const idx = Number(spineBtn.dataset.spineIdx ?? '0');
+        void this.exportSpine(idx);
+        return;
+      }
+
+      const btn = target.closest('.insp-recover-btn') as HTMLButtonElement | null;
+      if (!btn) return;
+
+      event.stopPropagation();
+      const className = btn.dataset.class;
+      if (!className || !this.selectedId) return;
+
+      const recovered = recoverComponentScript(this.selectedId, className);
+      if (!recovered) {
+        this.setStatus(`脚本还原失败: ${className}`);
+        console.warn(
+          `[脚本还原] 未找到 ${className} on node ${this.selectedId}`
+        );
+        return;
+      }
+
+      downloadRecoveredScript(recovered);
+      void copyRecoveredScript(recovered);
+      this.setStatus(
+        `已导出 ${className}.recovered.ts（并尝试复制到剪贴板）`
+      );
+    });
+  }
+
+  private async exportSpine(spineIndex: number): Promise<void> {
+    if (!this.selectedId) return;
+    this.setStatus('Spine 导出中（内存读纹理，文件名对齐 atlas）…');
+
+    const result = await downloadSpineExport(this.selectedId, spineIndex);
+    if (!result.ok) {
+      this.setStatus(`Spine 导出失败: ${result.error ?? '未知错误'}`);
+      console.warn('[Spine导出]', result.log.join('\n'));
+      return;
+    }
+
+    const texCount = result.files.filter((f) =>
+      /\.(png|jpe?g|webp)$/i.test(f.path)
+    ).length;
+    const pageHint =
+      texCount > 1 ? ` · ${texCount} 页纹理（见 IMPORT_README.txt）` : '';
+    this.setStatus(`已下载 ${result.zipName} · ${result.files.length} 个文件${pageHint}`);
+    console.log('[Spine导出]', result.log.join('\n'));
+  }
+
   private refreshAll(force: boolean): void {
     if (this.isCollapsed) return;
 
@@ -424,55 +530,129 @@ class CocosInspector3 {
     }
 
     const treeInfo = buildTreeInfo(scene);
-    const perfGain = this.perfReport?.gainByNodeId;
-    const perfHash = perfGain
-      ? [...perfGain.entries()].map(([k, v]) => `${k}:${v.toFixed(1)}`).join(',')
+    const perfDc = this.perfReport?.dcByNodeId;
+    const perfHash = perfDc
+      ? [...perfDc.entries()].map(([k, v]) => `${k}:${Math.round(v)}`).join(',')
       : '';
-    const nextSceneHash = `${hashTree(treeInfo)}|perf:${perfHash}`;
+    const nextSceneHash = `${hashTree(treeInfo)}|perf:${perfHash}|sel:${this.selectedId ?? ''}`;
 
-    if (!force && nextSceneHash === this.sceneTreeHash) {
-      return;
+    const treeOnlyHash = `${hashTree(treeInfo)}|perf:${perfHash}`;
+    const treeChanged = force || treeOnlyHash !== this.sceneTreeHash;
+
+    if (treeChanged) {
+      this.sceneTreeHash = treeOnlyHash;
+
+      if (this.searchQuery) {
+        expandMatchingNodes(treeInfo, this.searchQuery, this.expandedScene);
+      }
+
+      const sceneRootId = getNodeId(scene);
+      const perfDcMax = maxPerfDc(perfDc);
+
+      if (this.sceneTreeContainer) {
+        this.sceneTreeContainer.innerHTML = `<ul class="node-tree">${renderTreeHtml(
+          treeInfo,
+          {
+            expanded: this.expandedScene,
+            selectedId: this.selectedId,
+            searchQuery: this.searchQuery,
+            isRoot: true,
+            sceneRootId,
+            perfDcByNodeId: perfDc,
+            perfDcMax,
+          }
+        )}</ul>`;
+      }
     }
 
-    this.sceneTreeHash = nextSceneHash;
-
-    if (this.searchQuery) {
-      expandMatchingNodes(treeInfo, this.searchQuery, this.expandedScene);
-    }
-
-    const sceneRootId = getNodeId(scene);
-    const perfGainMax = maxPerfGain(perfGain);
-
-    if (this.sceneTreeContainer) {
-      this.sceneTreeContainer.innerHTML = `<ul class="node-tree">${renderTreeHtml(
-        treeInfo,
-        {
-          expanded: this.expandedScene,
-          selectedId: this.selectedId,
-          searchQuery: this.searchQuery,
-          isRoot: true,
-          sceneRootId,
-          perfGainByNodeId: perfGain,
-          perfGainMax,
-        }
-      )}</ul>`;
-    }
+    this.refreshInspector(force || treeChanged);
 
     const nodeCount = countNodes(treeInfo);
     if (this.scanRunning) return;
 
     if (this.perfReport) {
       const top = this.perfReport.suspects[0];
+      const unit = this.perfReport.method === 'estimated' ? '渲染单元' : 'DC';
       const topText = top
-        ? ` · Top ${top.nodeName} +${top.fpsGain.toFixed(1)}fps`
+        ? ` · Top ${top.nodeName} -${Math.round(top.dcDrop)} ${unit}`
         : '';
+      const baseline =
+        this.perfReport.method === 'measured'
+          ? `基准 ${Math.round(this.perfReport.baselineDc)} DC`
+          : '估算模式';
       this.setStatus(
-        `场景树 · ${nodeCount} 节点 · 基准 ${this.perfReport.baselineFps.toFixed(0)}fps${topText}`
+        `场景树 · ${nodeCount} 节点 · ${baseline}${topText}`
       );
       return;
     }
 
     this.setStatus(`场景树 · ${nodeCount} 个节点 · ${scene.name || 'Scene'}`);
+  }
+
+  private refreshInspector(force: boolean): void {
+    const data = collectNodeInspectorData(this.selectedId);
+    const nextHash = hashNodeInspectorData(data);
+    if (!force && nextHash === this.inspectorHash) return;
+    this.inspectorHash = nextHash;
+
+    const title = this.nodeInspectorContainer?.querySelector(
+      '.node-inspector-title'
+    );
+    if (title) {
+      title.textContent = data
+        ? `Inspector · ${data.nodeName}`
+        : 'Inspector';
+    }
+
+    const body = this.nodeInspectorContainer?.querySelector(
+      '.node-inspector-body'
+    );
+    if (!body) return;
+
+    body.innerHTML = renderNodeInspectorHtml(data);
+
+    const hasSprite = data?.components.some((c) => c.isSprite);
+    if (hasSprite && this.selectedId) {
+      const token = ++this.spritePreviewToken;
+      void this.loadSpritePreview(this.selectedId, token);
+    }
+  }
+
+  private async loadSpritePreview(
+    nodeId: string,
+    token: number
+  ): Promise<void> {
+    try {
+      const base = collectSpriteInspectData(nodeId);
+      if (!base || token !== this.spritePreviewToken) return;
+
+      const enriched = await enrichSpriteInspectData(base, nodeId);
+      if (token !== this.spritePreviewToken || this.selectedId !== nodeId) {
+        return;
+      }
+
+      const canvas = this.nodeInspectorContainer?.querySelector(
+        '.insp-sprite-canvas'
+      ) as HTMLCanvasElement | null;
+      const loading = this.nodeInspectorContainer?.querySelector(
+        '.insp-sprite-loading'
+      ) as HTMLElement | null;
+      if (!canvas) return;
+
+      const drawn = drawSpriteTexture(canvas, enriched);
+      if (drawn) {
+        canvas.style.display = 'block';
+        if (loading) loading.style.display = 'none';
+        return;
+      }
+
+      if (loading) loading.textContent = '预览不可用';
+    } catch (error) {
+      const scene = getSceneRoot();
+      const node = scene ? findNodeById(scene, nodeId) : null;
+      const nodeName = node?.name ?? nodeId;
+      console.warn(`[Inspector] ${nodeName}(${nodeId}) 贴图预览失败`, error);
+    }
   }
 
   private setStatus(text: string): void {

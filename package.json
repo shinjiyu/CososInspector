@@ -8,6 +8,8 @@
     "cocos-bridge": "node tools/mcp-cocos-inspector/bridge-daemon.mjs",
     "cocos-autotest": "node tools/mcp-cocos-inspector/autotest.mjs",
     "cocos-export-pack": "node tools/mcp-cocos-inspector/export-pack.mjs",
+    "cocos-scene-to-creator": "node tools/mcp-cocos-inspector/scene-to-creator.mjs",
+    "unpack-spine": "node tools/unpack-spine-export.mjs",
     "cocos-repack": "node tools/mcp-cocos-inspector/repack-latest.mjs",
     "repack-web": "npm run start --prefix tools/repack-web",
     "cocos-style-flow": "node tools/mcp-cocos-inspector/style-replace-flow.mjs",

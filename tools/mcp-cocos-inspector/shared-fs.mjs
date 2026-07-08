@@ -1,11 +1,28 @@
-import { mkdirSync, writeFileSync, readFileSync, copyFileSync } from 'fs';
-import { dirname, join, resolve } from 'path';
+import { resolve, join, dirname } from 'path';
 import { fileURLToPath } from 'url';
+import { mkdirSync, writeFileSync, readFileSync, copyFileSync } from 'fs';
 import { randomBytes } from 'crypto';
 
 const repoRoot = resolve(join(dirname(fileURLToPath(import.meta.url)), '../..'));
 
+/** @type {{ shareDir?: string; domain?: string; wsPort?: number; httpPort?: number } | null} */
+let shareCtx = null;
+
+export function setShareContext(ctx) {
+  shareCtx = ctx ? { ...ctx } : null;
+  if (ctx?.shareDir) {
+    process.env.COCOS_MCP_SHARE_DIR = ctx.shareDir;
+  }
+  if (ctx?.httpPort) {
+    process.env.COCOS_SHARE_HTTP_PORT = String(ctx.httpPort);
+  }
+  if (ctx?.wsPort) {
+    process.env.COCOS_BRIDGE_PORT = String(ctx.wsPort);
+  }
+}
+
 export function getShareDir() {
+  if (shareCtx?.shareDir) return resolve(shareCtx.shareDir);
   return resolve(process.env.COCOS_MCP_SHARE_DIR ?? join(repoRoot, 'tmp', 'mcp-share'));
 }
 

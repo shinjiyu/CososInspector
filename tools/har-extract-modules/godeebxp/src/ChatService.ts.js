@@ -1,0 +1,5 @@
+// 源模块: chunks:///_virtual/ChatService.ts
+// 来自 HAR: https://play.godeebxp.com/egames/cc497f08a3f9943e8d426d034df6261a1330fd17/game/assets/main/index.js
+// 注意：这是编译后 JS（非原始 TS），变量名可能被压缩
+
+System.register("chunks:///_virtual/ChatService.ts",["./rollupPluginModLoBabelHelpers.js","cc","./Config.ts","./CommonEvent.ts","./CommonService.ts"],(function(t){"use strict";var n,o,e,i,r;return{setters:[function(t){n=t.inheritsLoose},function(t){o=t.cclegacy},function(t){e=t.NetPriority},function(t){i=t.CommonEvent},function(t){r=t.CommonService}],execute:function(){o._RF.push({},"35307er0mdBR7bBHQJfElHc","ChatService",void 0),t("ChatService",function(t){function o(){for(var n,o=arguments.length,i=new Array(o),r=0;r<o;r++)i[r]=arguments[r];return(n=t.call.apply(t,[this].concat(i))||this).priority=e.Chat,n}n(o,t);var r=o.prototype;return r.onOpen=function(n){t.prototype.onOpen.call(this,n),dispatch(i.CHAT_SERVICE_CONNECTED,this)},r.onClose=function(n){t.prototype.onClose.call(this,n),dispatch(i.CHAT_SERVICE_CLOSE,this)},o}(r)).module="聊天",o._RF.pop()}}}));

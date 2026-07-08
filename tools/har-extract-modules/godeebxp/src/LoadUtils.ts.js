@@ -1,0 +1,5 @@
+// 源模块: chunks:///_virtual/LoadUtils.ts
+// 来自 HAR: https://play.godeebxp.com/slotFramework/47d7e0eea5a14878191d7ca05d30b6929274cd9a/index.js
+// 注意：这是编译后 JS（非原始 TS），变量名可能被压缩
+
+System.register("chunks:///_virtual/LoadUtils.ts",["cc"],(function(r){"use strict";var t;return{setters:[function(r){t=r.cclegacy}],execute:function(){t._RF.push({},"8c5cbVFIvRKYaV9Jau2YnXq","LoadUtils",void 0);r("LoadUtils",function(){function r(){}return r.getDirSp=function(r,t,e){var n=App.cache.get(r,t).data.find((function(r){return r.name===e}));if(!n)throw new Error("NOT FIND 所需SpriteFrame "+e);return n},r.getDirSkeleton=function(r,t,e){var n=App.cache.get(r,t).data.find((function(r){return r.name===e}));if(!n)throw new Error("NOT FIND 所需SpriteFrame "+e);return n},r.getDirPrefab=function(r,t,e){var n=App.cache.get(r,t).data.find((function(r){return r.name===e}));if(!n)throw new Error("NOT FIND 所需Prefab "+e);return n},r.getDirAtlas=function(r,t,e){var n=App.cache.get(r,t).data.getSpriteFrame(e);if(!n)throw new Error("Not Find 所需圖片 "+e);return n},r}());t._RF.pop()}}}));

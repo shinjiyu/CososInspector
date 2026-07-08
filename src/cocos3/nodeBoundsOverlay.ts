@@ -1,0 +1,441 @@
+import { findNodeById, getNodeId, getSceneRoot } from './sceneTree';
+
+export interface BoundsOverlayBox {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  label: string;
+  color: string;
+}
+
+export interface NodeBoundsOverlayState {
+  nodeId: string;
+  nodeName: string;
+  boxes: BoundsOverlayBox[];
+}
+
+let overlayRoot: HTMLDivElement | null = null;
+let rafId = 0;
+let activeNodeId: string | null = null;
+let activePathSuffix: string | null = null;
+let showFrameInner = true;
+
+const getGameCanvas = (): HTMLCanvasElement | null => {
+  const ccg = window.cc as {
+    game?: { canvas?: HTMLCanvasElement };
+  };
+  return (
+    ccg.game?.canvas ??
+    (document.getElementById('GameCanvas') as HTMLCanvasElement | null) ??
+    document.querySelector('canvas')
+  );
+};
+
+const normalizePath = (path: string): string =>
+  path
+    .replace(/^main\s*›\s*Canvas\s*›\s*/i, '')
+    .replace(/\s*›\s*/g, '/')
+    .replace(/^\/+/, '');
+
+/** 按路径后缀查找节点，如 SymbolView/0/symbolSprite */
+export const findNodeByPathSuffix = (suffix: string): cc.Node | null => {
+  const scene = getSceneRoot();
+  if (!scene) return null;
+  const target = normalizePath(suffix);
+  const walk = (node: cc.Node, parts: string[]): cc.Node | null => {
+    const path = parts.join('/');
+    if (path === target || path.endsWith(`/${target}`) || path.endsWith(target)) {
+      return node;
+    }
+    for (const child of node.children ?? []) {
+      if (!child) continue;
+      const hit = walk(child, [...parts, child.name || '']);
+      if (hit) return hit;
+    }
+    return null;
+  };
+  return walk(scene, [scene.name || 'main']);
+};
+
+/** 查找 UICamera（UI 世界坐标 → 屏幕） */
+const findUICamera = (): {
+  worldToScreen: (pos: { x: number; y: number; z?: number }, out?: { x: number; y: number; z: number }) => { x: number; y: number; z: number };
+} | null => {
+  const scene = getSceneRoot();
+  if (!scene) return null;
+  const Camera = (window.cc as { Camera?: unknown }).Camera;
+  if (!Camera) return null;
+
+  const walk = (node: cc.Node): unknown => {
+    if (typeof node.getComponent !== 'function') return null;
+    if (node.name === 'UICamera') {
+      const cam = node.getComponent(Camera as never);
+      if (cam) return cam;
+    }
+    for (const child of node.children ?? []) {
+      const hit = walk(child);
+      if (hit) return hit;
+    }
+    return null;
+  };
+  return walk(scene) as ReturnType<typeof findUICamera>;
+};
+
+const worldPointToClient = (
+  x: number,
+  y: number,
+  z = 0
+): { x: number; y: number } | null => {
+  const canvas = getGameCanvas();
+  if (!canvas) return null;
+  const cr = canvas.getBoundingClientRect();
+  const ccg = window.cc as Record<string, unknown>;
+  const Vec3 = ccg.Vec3 as new (x?: number, y?: number, z?: number) => {
+    x: number;
+    y: number;
+    z: number;
+  };
+
+  const cam = findUICamera();
+  if (cam?.worldToScreen && Vec3) {
+    const wp = new Vec3(x, y, z);
+    const out = new Vec3();
+    cam.worldToScreen(wp, out);
+    const sx = cr.width / canvas.width;
+    const sy = cr.height / canvas.height;
+    return {
+      x: cr.left + out.x * sx,
+      y: cr.top + (canvas.height - out.y) * sy,
+    };
+  }
+
+  const view = ccg.view as {
+    getScaleX?: () => number;
+    getScaleY?: () => number;
+  };
+  const scaleX = view?.getScaleX?.() ?? 1;
+  const scaleY = view?.getScaleY?.() ?? 1;
+  const sx = cr.width / canvas.width;
+  const sy = cr.height / canvas.height;
+  return {
+    x: cr.left + x * scaleX * sx,
+    y: cr.top + (canvas.height - y) * scaleY * sy,
+  };
+};
+
+/** UITransform 世界包围盒 → 页面 CSS 像素 */
+export const worldRectToScreenCss = (bbox: {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}): { left: number; top: number; width: number; height: number } | null => {
+  if (bbox.width <= 0 || bbox.height <= 0) return null;
+
+  const bl = worldPointToClient(bbox.x, bbox.y, 0);
+  const tr = worldPointToClient(bbox.x + bbox.width, bbox.y + bbox.height, 0);
+  if (!bl || !tr) return null;
+
+  const left = Math.min(bl.x, tr.x);
+  const top = Math.min(bl.y, tr.y);
+  const width = Math.max(Math.abs(tr.x - bl.x), 1);
+  const height = Math.max(Math.abs(tr.y - bl.y), 1);
+  return { left, top, width, height };
+};
+
+const getCompByClassPattern = (
+  node: cc.Node,
+  pattern: RegExp,
+  ccCtor?: unknown
+): unknown | null => {
+  if (ccCtor && typeof node.getComponent === 'function') {
+    try {
+      const hit = node.getComponent(ccCtor as never);
+      if (hit) return hit;
+    } catch {
+      /* 试玩页可能无 cc.UITransform 等导出 */
+    }
+  }
+  const comps = (node as cc.Node & { _components?: unknown[] })._components ?? [];
+  return (
+    comps.find((c) => {
+      const cn =
+        (c as { __classname__?: string }).__classname__ ??
+        (c as { constructor?: { name?: string } }).constructor?.name ??
+        '';
+      return pattern.test(cn);
+    }) ?? null
+  );
+};
+
+const getUiTransform = (node: cc.Node): UiLike | null =>
+  getCompByClassPattern(node, /UITransform/, (window.cc as { UITransform?: unknown }).UITransform) as UiLike | null;
+
+const getSprite = (node: cc.Node): SpriteLike | null =>
+  getCompByClassPattern(node, /Sprite/, (window.cc as { Sprite?: unknown }).Sprite) as SpriteLike | null;
+
+type UiLike = {
+  contentSize?: { width?: number; height?: number };
+  anchorPoint?: { x?: number; y?: number };
+  getBoundingBoxToWorld?: () => {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+  convertToWorldSpaceAR?: (v: { x: number; y: number; z?: number }) => {
+    x: number;
+    y: number;
+    z?: number;
+  };
+};
+
+type SpriteLike = {
+  spriteFrame?: {
+    rect?: { x?: number; y?: number; width?: number; height?: number };
+    originalSize?: { width?: number; height?: number; x?: number; y?: number };
+    offset?: { x?: number; y?: number };
+  };
+};
+
+const readVec2 = (v?: { x?: number; y?: number } | null) => ({
+  x: v?.x ?? 0,
+  y: v?.y ?? 0,
+});
+
+const collectOverlayBoxes = (node: cc.Node): BoundsOverlayBox[] => {
+  const boxes: BoundsOverlayBox[] = [];
+  const ui = getUiTransform(node);
+  if (!ui?.getBoundingBoxToWorld) return boxes;
+
+  const uiBbox = ui.getBoundingBoxToWorld();
+  const uiCss = worldRectToScreenCss(uiBbox);
+  const cw = ui.contentSize?.width ?? uiBbox.width;
+  const ch = ui.contentSize?.height ?? uiBbox.height;
+  if (uiCss) {
+    boxes.push({
+      ...uiCss,
+      color: '#ff2222',
+      label: `UITransform ${Math.round(cw)}×${Math.round(ch)}`,
+    });
+  }
+
+  if (!showFrameInner || !ui.convertToWorldSpaceAR) return boxes;
+
+  const sp = getSprite(node);
+  const frame = sp?.spriteFrame;
+  const rect = frame?.rect;
+  const os = frame?.originalSize;
+  if (!rect?.width || !rect?.height || !os) return boxes;
+
+  const ow = Math.round(os.width ?? (os as { x?: number }).x ?? cw);
+  const oh = Math.round(os.height ?? (os as { y?: number }).y ?? ch);
+  const fw = Math.round(rect.width ?? 0);
+  const fh = Math.round(rect.height ?? 0);
+  const offset = readVec2(frame.offset);
+  const anchor = readVec2(ui.anchorPoint);
+  const trimX = Math.round((ow - fw) / 2 + offset.x);
+  const trimY = Math.round((oh - fh) / 2 - offset.y);
+
+  const localLeft = -cw * anchor.x + trimX;
+  const localBottom = -ch * anchor.y + trimY;
+  const corners = [
+    { x: localLeft, y: localBottom },
+    { x: localLeft + fw, y: localBottom },
+    { x: localLeft + fw, y: localBottom + fh },
+    { x: localLeft, y: localBottom + fh },
+  ];
+
+  const worldPts = corners.map((p) => ui.convertToWorldSpaceAR!({ x: p.x, y: p.y, z: 0 }));
+  const xs = worldPts.map((p) => p.x);
+  const ys = worldPts.map((p) => p.y);
+  const innerBbox = {
+    x: Math.min(...xs),
+    y: Math.min(...ys),
+    width: Math.max(...xs) - Math.min(...xs),
+    height: Math.max(...ys) - Math.min(...ys),
+  };
+  const innerCss = worldRectToScreenCss(innerBbox);
+  if (innerCss) {
+    boxes.push({
+      ...innerCss,
+      color: '#00e676',
+      label: `frame ${fw}×${fh}`,
+    });
+  }
+
+  return boxes;
+};
+
+const ensureOverlayRoot = (): HTMLDivElement => {
+  if (overlayRoot?.isConnected) return overlayRoot;
+  overlayRoot = document.createElement('div');
+  overlayRoot.id = 'cocos-inspector-bounds-overlay';
+  overlayRoot.style.cssText = [
+    'position:fixed',
+    'inset:0',
+    'pointer-events:none',
+    'z-index:2147483646',
+    'overflow:hidden',
+  ].join(';');
+  document.body.appendChild(overlayRoot);
+  return overlayRoot;
+};
+
+const renderBoxes = (state: NodeBoundsOverlayState | null): void => {
+  const root = ensureOverlayRoot();
+  root.replaceChildren();
+  if (!state?.boxes.length) return;
+
+  for (const box of state.boxes) {
+    const el = document.createElement('div');
+    el.style.cssText = [
+      'position:fixed',
+      `left:${box.left}px`,
+      `top:${box.top}px`,
+      `width:${box.width}px`,
+      `height:${box.height}px`,
+      `border:3px solid ${box.color}`,
+      `box-shadow:0 0 0 1px rgba(0,0,0,0.85),0 0 12px ${box.color}`,
+      'box-sizing:border-box',
+      `background:${box.color}22`,
+    ].join(';');
+
+    const tag = document.createElement('div');
+    tag.textContent = `${state.nodeName} · ${box.label}`;
+    tag.style.cssText = [
+      'position:absolute',
+      'left:0',
+      'top:-20px',
+      `color:${box.color}`,
+      'font:12px/1.2 monospace',
+      'white-space:nowrap',
+      'text-shadow:0 0 4px #000,0 0 2px #000',
+      'background:rgba(0,0,0,0.55)',
+      'padding:1px 4px',
+      'border-radius:2px',
+    ].join(';');
+    el.appendChild(tag);
+    root.appendChild(el);
+  }
+};
+
+const resolveActiveNode = (): cc.Node | null => {
+  const scene = getSceneRoot();
+  if (!scene) return null;
+  if (activeNodeId) {
+    return findNodeById(scene, activeNodeId);
+  }
+  if (activePathSuffix) {
+    return findNodeByPathSuffix(activePathSuffix);
+  }
+  return null;
+};
+
+const tick = (): void => {
+  rafId = 0;
+  if (!activeNodeId && !activePathSuffix) {
+    renderBoxes(null);
+    return;
+  }
+
+  const node = resolveActiveNode();
+  if (!node) {
+    renderBoxes(null);
+    return;
+  }
+
+  const nodeId = getNodeId(node);
+  const nodeName = node.name || '(unnamed)';
+  const boxes = collectOverlayBoxes(node);
+  renderBoxes({ nodeId, nodeName, boxes });
+  rafId = requestAnimationFrame(tick);
+};
+
+const scheduleTick = (): void => {
+  if (!rafId) rafId = requestAnimationFrame(tick);
+};
+
+export const showNodeBoundsOverlay = (
+  nodeId: string,
+  options?: { showFrameInner?: boolean }
+): { ok: true; nodeId: string; nodeName: string } | { ok: false; error: string } => {
+  const scene = getSceneRoot();
+  if (!scene) return { ok: false, error: '场景未就绪' };
+  const node = findNodeById(scene, nodeId);
+  if (!node) return { ok: false, error: `未找到节点 ${nodeId}` };
+
+  activeNodeId = nodeId;
+  activePathSuffix = null;
+  if (options?.showFrameInner != null) showFrameInner = options.showFrameInner;
+  renderBoxes({
+    nodeId,
+    nodeName: node.name || '(unnamed)',
+    boxes: collectOverlayBoxes(node),
+  });
+  scheduleTick();
+  return { ok: true, nodeId, nodeName: node.name || '(unnamed)' };
+};
+
+export const showNodeBoundsByPath = (
+  pathSuffix: string,
+  options?: { showFrameInner?: boolean }
+): { ok: true; nodeId: string; nodeName: string; path: string } | { ok: false; error: string } => {
+  const node = findNodeByPathSuffix(pathSuffix);
+  if (!node) return { ok: false, error: `未找到路径 ${pathSuffix}` };
+
+  activeNodeId = null;
+  activePathSuffix = pathSuffix;
+  if (options?.showFrameInner != null) showFrameInner = options.showFrameInner;
+  renderBoxes({
+    nodeId: getNodeId(node),
+    nodeName: node.name || '(unnamed)',
+    boxes: collectOverlayBoxes(node),
+  });
+  scheduleTick();
+  return {
+    ok: true,
+    nodeId: getNodeId(node),
+    nodeName: node.name || '(unnamed)',
+    path: pathSuffix,
+  };
+};
+
+export const hideNodeBoundsOverlay = (): { ok: true } => {
+  activeNodeId = null;
+  activePathSuffix = null;
+  if (rafId) {
+    cancelAnimationFrame(rafId);
+    rafId = 0;
+  }
+  renderBoxes(null);
+  return { ok: true };
+};
+
+export const isNodeBoundsOverlayVisible = (): boolean =>
+  !!(activeNodeId || activePathSuffix);
+
+/** 调试：返回屏幕坐标，不依赖肉眼 */
+export const debugNodeBoundsByPath = (
+  pathSuffix: string
+):
+  | {
+      ok: true;
+      nodeId: string;
+      nodeName: string;
+      boxes: BoundsOverlayBox[];
+      canvasRect: DOMRect | null;
+    }
+  | { ok: false; error: string } => {
+  const node = findNodeByPathSuffix(pathSuffix);
+  if (!node) return { ok: false, error: `未找到路径 ${pathSuffix}` };
+  const canvas = getGameCanvas();
+  return {
+    ok: true,
+    nodeId: getNodeId(node),
+    nodeName: node.name || '(unnamed)',
+    boxes: collectOverlayBoxes(node),
+    canvasRect: canvas?.getBoundingClientRect() ?? null,
+  };
+};

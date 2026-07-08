@@ -5,9 +5,9 @@ export interface TreeRenderOptions {
   isRoot?: boolean;
   /** 场景根节点 id，不显示 active 勾选框 */
   sceneRootId?: string;
-  /** 性能扫描：nodeId → 关子树 FPS 增益 */
-  perfGainByNodeId?: Map<string, number>;
-  perfGainMax?: number;
+  /** DC 扫描：nodeId → 关子树减少的 DrawCall（或估算渲染单元） */
+  perfDcByNodeId?: Map<string, number>;
+  perfDcMax?: number;
 }
 
 export function escapeHtml(text: string): string {
@@ -39,15 +39,15 @@ export function renderTreeHtml(
         node.active ? ' checked' : ''
       } title="Active" aria-label="切换节点激活状态">`;
 
-  const gain = opts.perfGainByNodeId?.get(node.id);
+  const dcDrop = opts.perfDcByNodeId?.get(node.id);
   const perfBadge =
-    gain !== undefined && gain > 0
-      ? renderPerfBadge(gain, opts.perfGainMax ?? gain)
+    dcDrop !== undefined && dcDrop > 0
+      ? renderDcBadge(dcDrop, opts.perfDcMax ?? dcDrop)
       : '';
 
   let html = `<li data-uuid="${node.id}" class="${activeClass.trim()}${
     isSelected ? ' selected' : ''
-  }${gain !== undefined && gain > 0 ? ' node-perf-hot' : ''}">
+  }${dcDrop !== undefined && dcDrop > 0 ? ' node-perf-hot' : ''}">
       <div class="node-tree-item">
         <span class="${toggleClass}">${toggle}</span>
         ${activeToggle}
@@ -104,19 +104,19 @@ export function countNodes(node: import('./sceneTree').TreeNodeInfo): number {
   );
 }
 
-function renderPerfBadge(gain: number, maxGain: number): string {
-  const ratio = maxGain > 0 ? gain / maxGain : 1;
+function renderDcBadge(dcDrop: number, maxDrop: number): string {
+  const ratio = maxDrop > 0 ? dcDrop / maxDrop : 1;
   const level =
     ratio >= 0.66 ? 'high' : ratio >= 0.33 ? 'medium' : 'low';
-  const label = `+${gain.toFixed(1)}fps`;
-  return `<span class="perf-gain-badge perf-gain-${level}" title="关闭此子树 FPS 提升约 ${label}">${label}</span>`;
+  const label = `-${Math.round(dcDrop)}DC`;
+  return `<span class="perf-dc-badge perf-dc-${level}" title="关闭此子树约减少 ${label}">${label}</span>`;
 }
 
-export function maxPerfGain(gainMap?: Map<string, number>): number {
-  if (!gainMap || gainMap.size === 0) return 0;
+export function maxPerfDc(dcMap?: Map<string, number>): number {
+  if (!dcMap || dcMap.size === 0) return 0;
   let max = 0;
-  for (const g of gainMap.values()) {
-    if (g > max) max = g;
+  for (const v of dcMap.values()) {
+    if (v > max) max = v;
   }
   return max;
 }

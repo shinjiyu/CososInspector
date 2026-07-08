@@ -1,6 +1,6 @@
 /// <reference path="./types/chrome.d.ts" />
 
-const API_CALL_TIMEOUT_MS = 90_000;
+const API_CALL_TIMEOUT_MS = 120_000;
 let pageApiReady = false;
 
 function markPageApiReady(): void {

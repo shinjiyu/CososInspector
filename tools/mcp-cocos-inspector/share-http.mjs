@@ -2,7 +2,7 @@ import http from 'http';
 import { createReadStream, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { dirname, extname, resolve } from 'path';
 import { getShareDir, ensureShareDirs } from './shared-fs.mjs';
-import { bridgeGetStatus } from './bridge-server.mjs';
+import { bridgeGetStatus, getDaemonMeta } from './bridge-server.mjs';
 import { exportPackViaBridge } from './export-pack-server.mjs';
 
 const CORS = {
@@ -46,8 +46,9 @@ export function startShareHttp(port) {
     s.on('error', reject);
     s.listen(port, '127.0.0.1', () => {
       server = s;
-      listeningPort = port;
-      resolve(port);
+      const addr = s.address();
+      listeningPort = typeof addr === 'object' && addr ? addr.port : port;
+      resolve(listeningPort);
     });
   });
 }
@@ -80,13 +81,16 @@ async function handleApi(req, res, url) {
   if (url.pathname === '/api/status' && req.method === 'GET') {
     try {
       const st = await bridgeGetStatus();
+      const meta = getDaemonMeta();
       sendJson(res, 200, {
         ok: true,
         service: 'cocos-inspector-local',
         extensionConnected: !!st.extensionConnected,
         shareDir: getShareDir(),
         httpPort: listeningPort,
-        wsPort: Number(process.env.COCOS_BRIDGE_PORT ?? 17373),
+        wsPort: meta?.wsPort ?? Number(process.env.COCOS_BRIDGE_PORT ?? 17373),
+        domain: st.domain ?? meta?.domain ?? null,
+        pageUrlMatch: st.pageUrlMatch ?? meta?.pageUrlMatch ?? null,
         tabs: st.tabs ?? [],
       });
     } catch (e) {

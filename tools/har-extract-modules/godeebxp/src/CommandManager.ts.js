@@ -1,0 +1,5 @@
+// 源模块: chunks:///_virtual/CommandManager.ts
+// 来自 HAR: https://play.godeebxp.com/egames/cc497f08a3f9943e8d426d034df6261a1330fd17/game/assets/main/index.js
+// 注意：这是编译后 JS（非原始 TS），变量名可能被压缩
+
+System.register("chunks:///_virtual/CommandManager.ts",["./rollupPluginModLoBabelHelpers.js","cc","./EventProcessor.ts"],(function(n){"use strict";var o,t,e;return{setters:[function(n){o=n.inheritsLoose},function(n){t=n.cclegacy},function(n){e=n.EventProcessor}],execute:function(){t._RF.push({},"24e04JAXKRMNLoiugTF7LV6","CommandManager",void 0),n("default",function(n){function t(){for(var o,t=arguments.length,e=new Array(t),a=0;a<t;a++)e[a]=arguments[a];return(o=n.call.apply(n,[this].concat(e))||this).module=null,o.commandMap=new Map,o}o(t,n);var e=t.prototype;return e.addCommand=function(n,o){this.commandMap.has(n)||(this.on(n,(function(n){o.execute(n)})),this.commandMap.set(n,o))},e.removeCommand=function(n){this.off(n),this.commandMap.delete(n)},e.debug=function(){Log.d("-------command命令資訊-------"),this.commandMap.forEach((function(n,o){Log.d(o)}))},t}(e)).module="【command 命令管理】",t._RF.pop()}}}));

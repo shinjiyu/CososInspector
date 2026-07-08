@@ -1,0 +1,5 @@
+// 源模块: chunks:///_virtual/AutoPlayModel.ts
+// 来自 HAR: https://play.godeebxp.com/slotFramework/47d7e0eea5a14878191d7ca05d30b6929274cd9a/index.js
+// 注意：这是编译后 JS（非原始 TS），变量名可能被压缩
+
+System.register("chunks:///_virtual/AutoPlayModel.ts",["./rollupPluginModLoBabelHelpers.js","cc","./BaseModel.ts","./SlotFrameworkEvent.ts"],(function(t){"use strict";var n,e,i,s,a;return{setters:[function(t){n=t.inheritsLoose,e=t.createClass},function(t){i=t.cclegacy},function(t){s=t.BaseModel},function(t){a=t.SlotFrameworkEvent}],execute:function(){i._RF.push({},"6f832sx8eBFsZhkdE7kaAEA","AutoPlayModel",void 0);var c=function(t){function i(){var n;return(n=t.call(this)||this).data={active:!1,spinsRemaining:0},n}return n(i,t),i.Instance=function(){return this._instance||(this._instance=new i)},e(i,[{key:"active",get:function(){return this.data.active},set:function(t){this.data.active=t}},{key:"spinsRemaining",get:function(){return this.data.spinsRemaining},set:function(t){this.data.spinsRemaining=t,dispatch(a.SET_AUTO_SPIN_COUNT,{data:this.data.spinsRemaining})}}]),i}(s);c._instance=null;t("default",c.Instance());i._RF.pop()}}}));

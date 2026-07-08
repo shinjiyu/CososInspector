@@ -5,6 +5,11 @@ import {
   readReplacementPackFile,
 } from './replacementExport';
 import { listReplacementPairs } from './replacementStore';
+import {
+  exportSceneSnapshot,
+  getSceneTreeLite,
+  type SceneSnapshot,
+} from './sceneSnapshot';
 import { findNodeById, getSceneRoot, setNodeActive } from './sceneTree';
 import { exportSpritePngBase64 } from './spriteDownload';
 import {
@@ -17,6 +22,18 @@ import {
   replaceSpriteWithImageBase64,
   revertSpriteFrame,
 } from './spriteReplace';
+import {
+  debugNodeBoundsByPath,
+  hideNodeBoundsOverlay,
+  showNodeBoundsByPath,
+  showNodeBoundsOverlay,
+} from './nodeBoundsOverlay';
+import { uploadPngBase64ToShare } from './shareUpload';
+import {
+  clearTextureExtractLogs,
+  getTextureExtractLogs,
+  type TextureExtractLogEntry,
+} from './textureExtractLog';
 import { readVisibleSpriteFromScreen } from './textureWebGL';
 
 export interface SerializableSpriteDetail {
@@ -82,6 +99,79 @@ async function captureCanvasPng(
   }
 }
 
+export type TextureDownloadDelivery = 'share' | 'inline';
+
+export type TextureDownloadResult =
+  | {
+      ok: true;
+      delivery: 'share';
+      sharePath: string;
+      shareUrl: string;
+      width: number;
+      height: number;
+      filename: string;
+      detail: SerializableSpriteDetail;
+    }
+  | {
+      ok: true;
+      delivery: 'inline';
+      base64: string;
+      width: number;
+      height: number;
+      filename: string;
+      detail: SerializableSpriteDetail;
+    }
+  | { ok: false; error: string };
+
+async function buildTextureDownload(
+  nodeId: string,
+  options?: {
+    delivery?: TextureDownloadDelivery;
+    wsPort?: number;
+  }
+): Promise<TextureDownloadResult> {
+  const base = collectSpriteInspectData(nodeId);
+  if (!base) return { ok: false, error: '节点无 Sprite' };
+  const enriched = await enrichSpriteInspectData(base, nodeId);
+  const png = exportSpritePngBase64(enriched);
+  if (!png.ok) return { ok: false, error: png.error };
+
+  const delivery = options?.delivery ?? 'share';
+  const detail = toDetail(nodeId, enriched);
+
+  if (delivery === 'inline') {
+    return {
+      ok: true,
+      delivery: 'inline',
+      base64: png.base64,
+      width: png.width,
+      height: png.height,
+      filename: png.filename,
+      detail,
+    };
+  }
+
+  const uploaded = await uploadPngBase64ToShare(
+    png.base64,
+    png.filename,
+    options?.wsPort ?? 17373
+  );
+  if (!uploaded.ok) {
+    return { ok: false, error: uploaded.error };
+  }
+
+  return {
+    ok: true,
+    delivery: 'share',
+    sharePath: uploaded.sharePath,
+    shareUrl: uploaded.shareUrl,
+    width: png.width,
+    height: png.height,
+    filename: png.filename,
+    detail,
+  };
+}
+
 /** 供 Chrome CDP / MCP 调用的页面 API */
 export const cocosInspectorMcpApi = {
   version: 1 as const,
@@ -121,6 +211,54 @@ export const cocosInspectorMcpApi = {
     return collectSpriteList(scene);
   },
 
+  showNodeBounds(
+    nodeId: string,
+    options?: { showFrameInner?: boolean }
+  ): { ok: true; nodeId: string; nodeName: string } | { ok: false; error: string } {
+    return showNodeBoundsOverlay(nodeId, options);
+  },
+
+  showNodeBoundsByPath(
+    pathSuffix: string,
+    options?: { showFrameInner?: boolean }
+  ):
+    | { ok: true; nodeId: string; nodeName: string; path: string }
+    | { ok: false; error: string } {
+    return showNodeBoundsByPath(pathSuffix, options);
+  },
+
+  hideNodeBounds(): { ok: true } {
+    return hideNodeBoundsOverlay();
+  },
+
+  debugNodeBounds(pathSuffix: string) {
+    return debugNodeBoundsByPath(pathSuffix);
+  },
+
+  /** 开发用：在试玩页执行表达式（仅 MCP/脚本） */
+  evalPage(expr: string): { ok: true; result: unknown } | { ok: false; error: string } {
+    try {
+      const fn = new Function(`return (${expr});`);
+      return { ok: true, result: fn() };
+    } catch (e) {
+      return {
+        ok: false,
+        error: e instanceof Error ? e.message : String(e),
+      };
+    }
+  },
+
+  getSceneTree() {
+    return getSceneTreeLite();
+  },
+
+  exportSceneSnapshot(options?: {
+    maxNodes?: number;
+    includeComponents?: boolean;
+  }): SceneSnapshot | null {
+    return exportSceneSnapshot(options);
+  },
+
   async getSpriteDetail(
     nodeId: string
   ): Promise<
@@ -134,31 +272,31 @@ export const cocosInspectorMcpApi = {
   },
 
   async downloadTexture(
-    nodeId: string
-  ): Promise<
-    | {
-        ok: true;
-        base64: string;
-        width: number;
-        height: number;
-        filename: string;
-        detail: SerializableSpriteDetail;
-      }
-    | { ok: false; error: string }
-  > {
-    const base = collectSpriteInspectData(nodeId);
-    if (!base) return { ok: false, error: '节点无 Sprite' };
-    const enriched = await enrichSpriteInspectData(base, nodeId);
-    const png = exportSpritePngBase64(enriched);
-    if (!png.ok) return { ok: false, error: png.error };
-    return {
-      ok: true,
-      base64: png.base64,
-      width: png.width,
-      height: png.height,
-      filename: png.filename,
-      detail: toDetail(nodeId, enriched),
-    };
+    nodeId: string,
+    options?: {
+      delivery?: TextureDownloadDelivery;
+      wsPort?: number;
+      /** @deprecated 已回退 pre-trim 读纹理，忽略 mode/preferScreen */
+      mode?: string;
+      preferScreen?: boolean;
+      allowScreenFallback?: boolean;
+    }
+  ): Promise<TextureDownloadResult> {
+    return buildTextureDownload(nodeId, options);
+  },
+
+  getTextureExtractLogs(options?: {
+    limit?: number;
+    since?: number;
+    nodeUUID?: string;
+  }): { ok: true; logs: TextureExtractLogEntry[]; count: number } {
+    const logs = getTextureExtractLogs(options);
+    return { ok: true, logs, count: logs.length };
+  },
+
+  clearTextureExtractLogs(): { ok: true; cleared: number } {
+    const { cleared } = clearTextureExtractLogs();
+    return { ok: true, cleared };
   },
 
   async replaceTexture(

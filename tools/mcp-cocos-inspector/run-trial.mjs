@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 /** 一次跑通：列 Sprite → 截屏 → 下载 → 替换 → 导出 */
-import { mkdirSync, writeFileSync, readFileSync } from 'fs';
+import { mkdirSync, writeFileSync, readFileSync, copyFileSync } from 'fs';
 import { join, resolve } from 'path';
 import {
   closeBridgeClient,
   connectBridgeClientOnly,
   bridgeApiCall,
 } from './bridge-server.mjs';
+import { resolveSharePath } from './shared-fs.mjs';
 
 const OUT = resolve('tmp/mcp-trial');
 const MATCH = process.env.COCOS_PAGE_URL_MATCH ?? 'applovin';
@@ -42,13 +43,21 @@ const targets = [
 const unique = [...new Map(targets.map((t) => [t.id, t])).values()];
 
 for (const t of unique.slice(0, 2)) {
-  const dl = await bridgeApiCall('downloadTexture', [t.id], { pageUrlMatch: MATCH });
+  const dl = await bridgeApiCall(
+    'downloadTexture',
+    [t.id, { delivery: 'share' }],
+    { pageUrlMatch: MATCH }
+  );
   if (!dl?.ok) {
     console.log('download fail', t.frameName, dl);
     continue;
   }
   const p = join(OUT, dl.filename);
-  writeFileSync(p, Buffer.from(dl.base64, 'base64'));
+  if (dl.sharePath) {
+    copyFileSync(resolveSharePath(dl.sharePath), p);
+  } else if (dl.base64) {
+    writeFileSync(p, Buffer.from(dl.base64, 'base64'));
+  }
   console.log('downloaded', p, dl.width, dl.height, t.frameName);
 }
 

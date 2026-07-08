@@ -8,6 +8,7 @@ import {
   type AtlasFrameRect,
   type TextureExtractResult,
 } from './textureExtract';
+import { getTextureExtractLogs } from './textureExtractLog';
 import {
   bindSpriteDownloadButton,
   setSpriteInspectorData,
@@ -207,12 +208,16 @@ export async function enrichSpriteInspectData(
   }
 
   const debug = getTextureExtractDebugLog().join(' · ');
+  const lastLog = nodeId
+    ? getTextureExtractLogs({ nodeUUID: nodeId, limit: 1 }).pop()
+    : undefined;
+  const logHint = lastLog?.message ?? debug;
   return {
     ...data,
     pixels: null,
     extractMethod: '',
-    extractError: debug
-      ? `图集提取失败：${debug}`
+    extractError: logHint
+      ? `图集提取失败：${logHint}`
       : '图集提取失败（屏幕/GPU/URL/readPixels/引擎渲染均失败）',
   };
 }

@@ -1,0 +1,1442 @@
+[
+  {
+    "module": "chunks:///_virtual/Adapter.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Adapter.ts.js",
+    "bytes": 1647
+  },
+  {
+    "module": "chunks:///_virtual/AdapterEvent.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\AdapterEvent.ts.js",
+    "bytes": 427
+  },
+  {
+    "module": "chunks:///_virtual/AdapterRoot.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\AdapterRoot.ts.js",
+    "bytes": 1081
+  },
+  {
+    "module": "chunks:///_virtual/AdapterSafeArea.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\AdapterSafeArea.ts.js",
+    "bytes": 2276
+  },
+  {
+    "module": "chunks:///_virtual/AdapterSprite.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\AdapterSprite.ts.js",
+    "bytes": 3179
+  },
+  {
+    "module": "chunks:///_virtual/AdapterView.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\AdapterView.ts.js",
+    "bytes": 1670
+  },
+  {
+    "module": "chunks:///_virtual/Alert.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Alert.ts.js",
+    "bytes": 6159
+  },
+  {
+    "module": "chunks:///_virtual/AlignCenter.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\AlignCenter.ts.js",
+    "bytes": 4359
+  },
+  {
+    "module": "chunks:///_virtual/Application.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Application.ts.js",
+    "bytes": 4409
+  },
+  {
+    "module": "chunks:///_virtual/AssetManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\AssetManager.ts.js",
+    "bytes": 5608
+  },
+  {
+    "module": "chunks:///_virtual/AudioComponent.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\AudioComponent.ts.js",
+    "bytes": 8239
+  },
+  {
+    "module": "chunks:///_virtual/AutoPlayModel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\AutoPlayModel.ts.js",
+    "bytes": 929
+  },
+  {
+    "module": "chunks:///_virtual/AutoSpinView.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\AutoSpinView.ts.js",
+    "bytes": 2883
+  },
+  {
+    "module": "chunks:///_virtual/AvatarToggleItem.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\AvatarToggleItem.ts.js",
+    "bytes": 2328
+  },
+  {
+    "module": "chunks:///_virtual/AvatarViewBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\AvatarViewBase.ts.js",
+    "bytes": 2892
+  },
+  {
+    "module": "chunks:///_virtual/AvatarViewL.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\AvatarViewL.ts.js",
+    "bytes": 552
+  },
+  {
+    "module": "chunks:///_virtual/AvatarViewP.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\AvatarViewP.ts.js",
+    "bytes": 552
+  },
+  {
+    "module": "chunks:///_virtual/BaseEvent.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\BaseEvent.ts.js",
+    "bytes": 323
+  },
+  {
+    "module": "chunks:///_virtual/BaseModel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\BaseModel.ts.js",
+    "bytes": 536
+  },
+  {
+    "module": "chunks:///_virtual/BetToggleItem.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\BetToggleItem.ts.js",
+    "bytes": 2272
+  },
+  {
+    "module": "chunks:///_virtual/BetView.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\BetView.ts.js",
+    "bytes": 3069
+  },
+  {
+    "module": "chunks:///_virtual/BetViewLandScape.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\BetViewLandScape.ts.js",
+    "bytes": 3652
+  },
+  {
+    "module": "chunks:///_virtual/BinaryStreamMessage.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\BinaryStreamMessage.ts.js",
+    "bytes": 7433
+  },
+  {
+    "module": "chunks:///_virtual/BundleManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\BundleManager.ts.js",
+    "bytes": 3073
+  },
+  {
+    "module": "chunks:///_virtual/Bundles.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Bundles.ts.js",
+    "bytes": 895
+  },
+  {
+    "module": "chunks:///_virtual/BundleUpdateHandlerImpl.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\BundleUpdateHandlerImpl.ts.js",
+    "bytes": 1678
+  },
+  {
+    "module": "chunks:///_virtual/ButtonFactory.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ButtonFactory.ts.js",
+    "bytes": 970
+  },
+  {
+    "module": "chunks:///_virtual/ByteArray.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ByteArray.ts.js",
+    "bytes": 8453
+  },
+  {
+    "module": "chunks:///_virtual/CacheManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\CacheManager.ts.js",
+    "bytes": 7400
+  },
+  {
+    "module": "chunks:///_virtual/CanvasHelper.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\CanvasHelper.ts.js",
+    "bytes": 3840
+  },
+  {
+    "module": "chunks:///_virtual/ChatService.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ChatService.ts.js",
+    "bytes": 854
+  },
+  {
+    "module": "chunks:///_virtual/CmdDefines.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\CmdDefines.ts.js",
+    "bytes": 496
+  },
+  {
+    "module": "chunks:///_virtual/CmmEntry.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\CmmEntry.ts.js",
+    "bytes": 1398
+  },
+  {
+    "module": "chunks:///_virtual/CmmGameData.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\CmmGameData.ts.js",
+    "bytes": 712
+  },
+  {
+    "module": "chunks:///_virtual/CmmProto.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\CmmProto.ts.js",
+    "bytes": 546
+  },
+  {
+    "module": "chunks:///_virtual/CmmSlotUtils.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\CmmSlotUtils.ts.js",
+    "bytes": 2790
+  },
+  {
+    "module": "chunks:///_virtual/CmmUtils.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\CmmUtils.ts.js",
+    "bytes": 7455
+  },
+  {
+    "module": "chunks:///_virtual/CocosExtention.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\CocosExtention.ts.js",
+    "bytes": 3241
+  },
+  {
+    "module": "chunks:///_virtual/CocosUtils.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\CocosUtils.ts.js",
+    "bytes": 4958
+  },
+  {
+    "module": "chunks:///_virtual/ColorManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ColorManager.ts.js",
+    "bytes": 1930
+  },
+  {
+    "module": "chunks:///_virtual/ColorModel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ColorModel.ts.js",
+    "bytes": 1805
+  },
+  {
+    "module": "chunks:///_virtual/ColorProxy.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ColorProxy.ts.js",
+    "bytes": 643
+  },
+  {
+    "module": "chunks:///_virtual/CommandManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\CommandManager.ts.js",
+    "bytes": 897
+  },
+  {
+    "module": "chunks:///_virtual/CommonEvent.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\CommonEvent.ts.js",
+    "bytes": 669
+  },
+  {
+    "module": "chunks:///_virtual/CommonLanguage.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\CommonLanguage.ts.js",
+    "bytes": 1293
+  },
+  {
+    "module": "chunks:///_virtual/CommonService.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\CommonService.ts.js",
+    "bytes": 2574
+  },
+  {
+    "module": "chunks:///_virtual/CompanyWaveEffect.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\CompanyWaveEffect.ts.js",
+    "bytes": 2973
+  },
+  {
+    "module": "chunks:///_virtual/Config.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Config.ts.js",
+    "bytes": 1166
+  },
+  {
+    "module": "chunks:///_virtual/Config2.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Config2.ts.js",
+    "bytes": 725
+  },
+  {
+    "module": "chunks:///_virtual/CryptoTool.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\CryptoTool.ts.js",
+    "bytes": 2518
+  },
+  {
+    "module": "chunks:///_virtual/DataCenter.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\DataCenter.ts.js",
+    "bytes": 546
+  },
+  {
+    "module": "chunks:///_virtual/debug-view-runtime-control.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\debug-view-runtime-control.ts.js",
+    "bytes": 7585
+  },
+  {
+    "module": "chunks:///_virtual/DebugUtils.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\DebugUtils.ts.js",
+    "bytes": 514
+  },
+  {
+    "module": "chunks:///_virtual/DebugView.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\DebugView.ts.js",
+    "bytes": 5175
+  },
+  {
+    "module": "chunks:///_virtual/Decorators.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Decorators.ts.js",
+    "bytes": 1345
+  },
+  {
+    "module": "chunks:///_virtual/DefaultCodec.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\DefaultCodec.ts.js",
+    "bytes": 1365
+  },
+  {
+    "module": "chunks:///_virtual/DefinitionModel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\DefinitionModel.ts.js",
+    "bytes": 755
+  },
+  {
+    "module": "chunks:///_virtual/Dispatcher.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Dispatcher.ts.js",
+    "bytes": 1546
+  },
+  {
+    "module": "chunks:///_virtual/DragItem.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\DragItem.ts.js",
+    "bytes": 3283
+  },
+  {
+    "module": "chunks:///_virtual/Entry.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Entry.ts.js",
+    "bytes": 1715
+  },
+  {
+    "module": "chunks:///_virtual/EntryDelegate.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\EntryDelegate.ts.js",
+    "bytes": 844
+  },
+  {
+    "module": "chunks:///_virtual/EntryManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\EntryManager.ts.js",
+    "bytes": 2159
+  },
+  {
+    "module": "chunks:///_virtual/Enums.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Enums.ts.js",
+    "bytes": 718
+  },
+  {
+    "module": "chunks:///_virtual/env",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\env.js",
+    "bytes": 101
+  },
+  {
+    "module": "chunks:///_virtual/env.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\env.ts.js",
+    "bytes": 490
+  },
+  {
+    "module": "chunks:///_virtual/EventComponent.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\EventComponent.ts.js",
+    "bytes": 2098
+  },
+  {
+    "module": "chunks:///_virtual/EventProcessor.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\EventProcessor.ts.js",
+    "bytes": 5170
+  },
+  {
+    "module": "chunks:///_virtual/ExitUtils.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ExitUtils.ts.js",
+    "bytes": 2801
+  },
+  {
+    "module": "chunks:///_virtual/ExplodeReelController.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ExplodeReelController.ts.js",
+    "bytes": 2438
+  },
+  {
+    "module": "chunks:///_virtual/FlashSpine.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\FlashSpine.ts.js",
+    "bytes": 1109
+  },
+  {
+    "module": "chunks:///_virtual/Flow.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Flow.ts.js",
+    "bytes": 3138
+  },
+  {
+    "module": "chunks:///_virtual/FlowEvent.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\FlowEvent.ts.js",
+    "bytes": 525
+  },
+  {
+    "module": "chunks:///_virtual/FlowManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\FlowManager.ts.js",
+    "bytes": 1087
+  },
+  {
+    "module": "chunks:///_virtual/Framework.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Framework.ts.js",
+    "bytes": 3811
+  },
+  {
+    "module": "chunks:///_virtual/fsm.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\fsm.ts.js",
+    "bytes": 6982
+  },
+  {
+    "module": "chunks:///_virtual/GameAlert.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\GameAlert.ts.js",
+    "bytes": 8694
+  },
+  {
+    "module": "chunks:///_virtual/GameAlert2.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\GameAlert2.ts.js",
+    "bytes": 6174
+  },
+  {
+    "module": "chunks:///_virtual/GameDataBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\GameDataBase.ts.js",
+    "bytes": 822
+  },
+  {
+    "module": "chunks:///_virtual/GameHandlerBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\GameHandlerBase.ts.js",
+    "bytes": 556
+  },
+  {
+    "module": "chunks:///_virtual/GameLoading.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\GameLoading.ts.js",
+    "bytes": 9190
+  },
+  {
+    "module": "chunks:///_virtual/GameLoadingP.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\GameLoadingP.ts.js",
+    "bytes": 2588
+  },
+  {
+    "module": "chunks:///_virtual/GameNameMap.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\GameNameMap.ts.js",
+    "bytes": 596
+  },
+  {
+    "module": "chunks:///_virtual/GameRulesView.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\GameRulesView.ts.js",
+    "bytes": 3053
+  },
+  {
+    "module": "chunks:///_virtual/GameRulesViewP.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\GameRulesViewP.ts.js",
+    "bytes": 1496
+  },
+  {
+    "module": "chunks:///_virtual/GameSenderBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\GameSenderBase.ts.js",
+    "bytes": 1352
+  },
+  {
+    "module": "chunks:///_virtual/GameServiceBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\GameServiceBase.ts.js",
+    "bytes": 3964
+  },
+  {
+    "module": "chunks:///_virtual/GameStateModel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\GameStateModel.ts.js",
+    "bytes": 548
+  },
+  {
+    "module": "chunks:///_virtual/GameViewBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\GameViewBase.ts.js",
+    "bytes": 1499
+  },
+  {
+    "module": "chunks:///_virtual/GlobalAudio.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\GlobalAudio.ts.js",
+    "bytes": 2414
+  },
+  {
+    "module": "chunks:///_virtual/HallUpdateHandlerImpl.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\HallUpdateHandlerImpl.ts.js",
+    "bytes": 2033
+  },
+  {
+    "module": "chunks:///_virtual/Handler.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Handler.ts.js",
+    "bytes": 1093
+  },
+  {
+    "module": "chunks:///_virtual/HandlerManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\HandlerManager.ts.js",
+    "bytes": 564
+  },
+  {
+    "module": "chunks:///_virtual/HeartbetBinary.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\HeartbetBinary.ts.js",
+    "bytes": 758
+  },
+  {
+    "module": "chunks:///_virtual/HeartbetJson.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\HeartbetJson.ts.js",
+    "bytes": 757
+  },
+  {
+    "module": "chunks:///_virtual/HeartbetProto.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\HeartbetProto.ts.js",
+    "bytes": 841
+  },
+  {
+    "module": "chunks:///_virtual/HistoryItem.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\HistoryItem.ts.js",
+    "bytes": 2792
+  },
+  {
+    "module": "chunks:///_virtual/HistoryViewBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\HistoryViewBase.ts.js",
+    "bytes": 13020
+  },
+  {
+    "module": "chunks:///_virtual/HistoryViewL.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\HistoryViewL.ts.js",
+    "bytes": 1228
+  },
+  {
+    "module": "chunks:///_virtual/HistoryViewP.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\HistoryViewP.ts.js",
+    "bytes": 3896
+  },
+  {
+    "module": "chunks:///_virtual/Http.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Http.ts.js",
+    "bytes": 673
+  },
+  {
+    "module": "chunks:///_virtual/HttpClient.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\HttpClient.ts.js",
+    "bytes": 3214
+  },
+  {
+    "module": "chunks:///_virtual/ImageButton.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ImageButton.ts.js",
+    "bytes": 3877
+  },
+  {
+    "module": "chunks:///_virtual/ImageButton2.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ImageButton2.ts.js",
+    "bytes": 3748
+  },
+  {
+    "module": "chunks:///_virtual/index.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\index.ts.js",
+    "bytes": 429
+  },
+  {
+    "module": "chunks:///_virtual/InfoBarController.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\InfoBarController.ts.js",
+    "bytes": 9454
+  },
+  {
+    "module": "chunks:///_virtual/InfoBarPController.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\InfoBarPController.ts.js",
+    "bytes": 10090
+  },
+  {
+    "module": "chunks:///_virtual/InitialModel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\InitialModel.ts.js",
+    "bytes": 554
+  },
+  {
+    "module": "chunks:///_virtual/internal",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\internal.js",
+    "bytes": 90
+  },
+  {
+    "module": "chunks:///_virtual/JpBarControllerBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\JpBarControllerBase.ts.js",
+    "bytes": 5192
+  },
+  {
+    "module": "chunks:///_virtual/JpBarControllerL.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\JpBarControllerL.ts.js",
+    "bytes": 523
+  },
+  {
+    "module": "chunks:///_virtual/JpBarControllerP.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\JpBarControllerP.ts.js",
+    "bytes": 2988
+  },
+  {
+    "module": "chunks:///_virtual/JsonMessage.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\JsonMessage.ts.js",
+    "bytes": 6199
+  },
+  {
+    "module": "chunks:///_virtual/KLineGraphView.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\KLineGraphView.ts.js",
+    "bytes": 6074
+  },
+  {
+    "module": "chunks:///_virtual/Language.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Language.ts.js",
+    "bytes": 2448
+  },
+  {
+    "module": "chunks:///_virtual/LanguageCN.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\LanguageCN.ts.js",
+    "bytes": 1547
+  },
+  {
+    "module": "chunks:///_virtual/LanguageDelegate.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\LanguageDelegate.ts.js",
+    "bytes": 847
+  },
+  {
+    "module": "chunks:///_virtual/LanguageEN.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\LanguageEN.ts.js",
+    "bytes": 1662
+  },
+  {
+    "module": "chunks:///_virtual/LanguageTH.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\LanguageTH.ts.js",
+    "bytes": 1817
+  },
+  {
+    "module": "chunks:///_virtual/LanguageTR.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\LanguageTR.ts.js",
+    "bytes": 1662
+  },
+  {
+    "module": "chunks:///_virtual/LanguageVN.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\LanguageVN.ts.js",
+    "bytes": 1544
+  },
+  {
+    "module": "chunks:///_virtual/LanguageZH.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\LanguageZH.ts.js",
+    "bytes": 1547
+  },
+  {
+    "module": "chunks:///_virtual/LayoutDefines.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\LayoutDefines.ts.js",
+    "bytes": 2941
+  },
+  {
+    "module": "chunks:///_virtual/LayoutManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\LayoutManager.ts.js",
+    "bytes": 2588
+  },
+  {
+    "module": "chunks:///_virtual/LineChartView.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\LineChartView.ts.js",
+    "bytes": 4895
+  },
+  {
+    "module": "chunks:///_virtual/Loading.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Loading.ts.js",
+    "bytes": 2136
+  },
+  {
+    "module": "chunks:///_virtual/LoadUtils.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\LoadUtils.ts.js",
+    "bytes": 870
+  },
+  {
+    "module": "chunks:///_virtual/LobbyService.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\LobbyService.ts.js",
+    "bytes": 867
+  },
+  {
+    "module": "chunks:///_virtual/LocalStorage.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\LocalStorage.ts.js",
+    "bytes": 1117
+  },
+  {
+    "module": "chunks:///_virtual/Logger.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Logger.ts.js",
+    "bytes": 3006
+  },
+  {
+    "module": "chunks:///_virtual/Logic.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Logic.ts.js",
+    "bytes": 922
+  },
+  {
+    "module": "chunks:///_virtual/LogicManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\LogicManager.ts.js",
+    "bytes": 641
+  },
+  {
+    "module": "chunks:///_virtual/LogUtils.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\LogUtils.ts.js",
+    "bytes": 3218
+  },
+  {
+    "module": "chunks:///_virtual/Macros.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Macros.ts.js",
+    "bytes": 727
+  },
+  {
+    "module": "chunks:///_virtual/main",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\main.js",
+    "bytes": 4564
+  },
+  {
+    "module": "chunks:///_virtual/MainController.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\MainController.ts.js",
+    "bytes": 3267
+  },
+  {
+    "module": "chunks:///_virtual/MainUpdateHandlerImpl.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\MainUpdateHandlerImpl.ts.js",
+    "bytes": 1502
+  },
+  {
+    "module": "chunks:///_virtual/Marquee.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Marquee.ts.js",
+    "bytes": 5297
+  },
+  {
+    "module": "chunks:///_virtual/MarqueeItem.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\MarqueeItem.ts.js",
+    "bytes": 2808
+  },
+  {
+    "module": "chunks:///_virtual/MathUtil.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\MathUtil.ts.js",
+    "bytes": 2237
+  },
+  {
+    "module": "chunks:///_virtual/MenuController.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\MenuController.ts.js",
+    "bytes": 5873
+  },
+  {
+    "module": "chunks:///_virtual/Message.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Message.ts.js",
+    "bytes": 519
+  },
+  {
+    "module": "chunks:///_virtual/MisaButton.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\MisaButton.ts.js",
+    "bytes": 9551
+  },
+  {
+    "module": "chunks:///_virtual/Net.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Net.ts.js",
+    "bytes": 418
+  },
+  {
+    "module": "chunks:///_virtual/NickNameView.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\NickNameView.ts.js",
+    "bytes": 4507
+  },
+  {
+    "module": "chunks:///_virtual/NodePoolManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\NodePoolManager.ts.js",
+    "bytes": 1680
+  },
+  {
+    "module": "chunks:///_virtual/Notify.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Notify.ts.js",
+    "bytes": 2698
+  },
+  {
+    "module": "chunks:///_virtual/NoTouchingView.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\NoTouchingView.ts.js",
+    "bytes": 1085
+  },
+  {
+    "module": "chunks:///_virtual/ObjectUtils.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ObjectUtils.ts.js",
+    "bytes": 2423
+  },
+  {
+    "module": "chunks:///_virtual/OnlyEventComponent.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\OnlyEventComponent.ts.js",
+    "bytes": 701
+  },
+  {
+    "module": "chunks:///_virtual/OrientationCanvas.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\OrientationCanvas.ts.js",
+    "bytes": 3290
+  },
+  {
+    "module": "chunks:///_virtual/OrientationFitStage.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\OrientationFitStage.ts.js",
+    "bytes": 1224
+  },
+  {
+    "module": "chunks:///_virtual/OrientationScale.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\OrientationScale.ts.js",
+    "bytes": 225
+  },
+  {
+    "module": "chunks:///_virtual/OrientationTool.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\OrientationTool.ts.js",
+    "bytes": 13669
+  },
+  {
+    "module": "chunks:///_virtual/OrientationToolManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\OrientationToolManager.ts.js",
+    "bytes": 2855
+  },
+  {
+    "module": "chunks:///_virtual/OrientationToolModule.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\OrientationToolModule.ts.js",
+    "bytes": 7316
+  },
+  {
+    "module": "chunks:///_virtual/OrientationWidget.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\OrientationWidget.ts.js",
+    "bytes": 8605
+  },
+  {
+    "module": "chunks:///_virtual/ParticleWinLine.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ParticleWinLine.ts.js",
+    "bytes": 2706
+  },
+  {
+    "module": "chunks:///_virtual/Platform.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Platform.ts.js",
+    "bytes": 1050
+  },
+  {
+    "module": "chunks:///_virtual/PlatformModel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\PlatformModel.ts.js",
+    "bytes": 1943
+  },
+  {
+    "module": "chunks:///_virtual/PrizeNotify.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\PrizeNotify.ts.js",
+    "bytes": 5855
+  },
+  {
+    "module": "chunks:///_virtual/Process.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Process.ts.js",
+    "bytes": 3319
+  },
+  {
+    "module": "chunks:///_virtual/ProtoManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ProtoManager.ts.js",
+    "bytes": 1317
+  },
+  {
+    "module": "chunks:///_virtual/ProtoMessage.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ProtoMessage.ts.js",
+    "bytes": 955
+  },
+  {
+    "module": "chunks:///_virtual/Queue.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Queue.ts.js",
+    "bytes": 571
+  },
+  {
+    "module": "chunks:///_virtual/RankingItemBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\RankingItemBase.ts.js",
+    "bytes": 4182
+  },
+  {
+    "module": "chunks:///_virtual/RankingViewBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\RankingViewBase.ts.js",
+    "bytes": 7112
+  },
+  {
+    "module": "chunks:///_virtual/RankingViewL.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\RankingViewL.ts.js",
+    "bytes": 745
+  },
+  {
+    "module": "chunks:///_virtual/RankingViewP.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\RankingViewP.ts.js",
+    "bytes": 745
+  },
+  {
+    "module": "chunks:///_virtual/ReadyBundleModel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ReadyBundleModel.ts.js",
+    "bytes": 1250
+  },
+  {
+    "module": "chunks:///_virtual/ReconnectHandler.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ReconnectHandler.ts.js",
+    "bytes": 3557
+  },
+  {
+    "module": "chunks:///_virtual/RecordViewBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\RecordViewBase.ts.js",
+    "bytes": 12576
+  },
+  {
+    "module": "chunks:///_virtual/RecordViewItem.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\RecordViewItem.ts.js",
+    "bytes": 4333
+  },
+  {
+    "module": "chunks:///_virtual/RecordViewL.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\RecordViewL.ts.js",
+    "bytes": 1569
+  },
+  {
+    "module": "chunks:///_virtual/RecordViewP.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\RecordViewP.ts.js",
+    "bytes": 2410
+  },
+  {
+    "module": "chunks:///_virtual/ReelDataSetting.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ReelDataSetting.ts.js",
+    "bytes": 1168
+  },
+  {
+    "module": "chunks:///_virtual/ReelEnum.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ReelEnum.ts.js",
+    "bytes": 727
+  },
+  {
+    "module": "chunks:///_virtual/ReelEvent.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ReelEvent.ts.js",
+    "bytes": 494
+  },
+  {
+    "module": "chunks:///_virtual/ReelExpect.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ReelExpect.ts.js",
+    "bytes": 1436
+  },
+  {
+    "module": "chunks:///_virtual/ReelExpectItem.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ReelExpectItem.ts.js",
+    "bytes": 2106
+  },
+  {
+    "module": "chunks:///_virtual/ReelsController.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ReelsController.ts.js",
+    "bytes": 8549
+  },
+  {
+    "module": "chunks:///_virtual/ReelSetting.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ReelSetting.ts.js",
+    "bytes": 1509
+  },
+  {
+    "module": "chunks:///_virtual/ReleaseManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ReleaseManager.ts.js",
+    "bytes": 6220
+  },
+  {
+    "module": "chunks:///_virtual/ReplayModel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ReplayModel.ts.js",
+    "bytes": 762
+  },
+  {
+    "module": "chunks:///_virtual/ReplayUIViewBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ReplayUIViewBase.ts.js",
+    "bytes": 6329
+  },
+  {
+    "module": "chunks:///_virtual/ReplayUIViewLBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ReplayUIViewLBase.ts.js",
+    "bytes": 578
+  },
+  {
+    "module": "chunks:///_virtual/ReplayUIViewPBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ReplayUIViewPBase.ts.js",
+    "bytes": 578
+  },
+  {
+    "module": "chunks:///_virtual/res-type.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\res-type.ts.js",
+    "bytes": 1521
+  },
+  {
+    "module": "chunks:///_virtual/res-type2.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\res-type2.ts.js",
+    "bytes": 1052
+  },
+  {
+    "module": "chunks:///_virtual/Resource.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Resource.ts.js",
+    "bytes": 1324
+  },
+  {
+    "module": "chunks:///_virtual/ResourceFileSizeChecker.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ResourceFileSizeChecker.ts.js",
+    "bytes": 4252
+  },
+  {
+    "module": "chunks:///_virtual/ResourceLoader.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ResourceLoader.ts.js",
+    "bytes": 3630
+  },
+  {
+    "module": "chunks:///_virtual/resources",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\resources.js",
+    "bytes": 91
+  },
+  {
+    "module": "chunks:///_virtual/rollupPluginModLoBabelHelpers.js",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\rollupPluginModLoBabelHelpers.js.js",
+    "bytes": 11602
+  },
+  {
+    "module": "chunks:///_virtual/RotateScreenBtn.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\RotateScreenBtn.ts.js",
+    "bytes": 2230
+  },
+  {
+    "module": "chunks:///_virtual/RunScore.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\RunScore.ts.js",
+    "bytes": 1457
+  },
+  {
+    "module": "chunks:///_virtual/RunScoreComponent.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\RunScoreComponent.ts.js",
+    "bytes": 2506
+  },
+  {
+    "module": "chunks:///_virtual/ScratchTool.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ScratchTool.ts.js",
+    "bytes": 1903
+  },
+  {
+    "module": "chunks:///_virtual/Sender.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Sender.ts.js",
+    "bytes": 1035
+  },
+  {
+    "module": "chunks:///_virtual/SenderManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SenderManager.ts.js",
+    "bytes": 560
+  },
+  {
+    "module": "chunks:///_virtual/ServerConnector.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ServerConnector.ts.js",
+    "bytes": 2746
+  },
+  {
+    "module": "chunks:///_virtual/ServerModel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ServerModel.ts.js",
+    "bytes": 780
+  },
+  {
+    "module": "chunks:///_virtual/Service.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Service.ts.js",
+    "bytes": 3077
+  },
+  {
+    "module": "chunks:///_virtual/ServiceManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ServiceManager.ts.js",
+    "bytes": 5565
+  },
+  {
+    "module": "chunks:///_virtual/SettingsModel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SettingsModel.ts.js",
+    "bytes": 1845
+  },
+  {
+    "module": "chunks:///_virtual/SettingView.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SettingView.ts.js",
+    "bytes": 10846
+  },
+  {
+    "module": "chunks:///_virtual/ShakeWaveEffect.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\ShakeWaveEffect.ts.js",
+    "bytes": 1968
+  },
+  {
+    "module": "chunks:///_virtual/SingleReel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SingleReel.ts.js",
+    "bytes": 24164
+  },
+  {
+    "module": "chunks:///_virtual/SingleReelDampingSetting.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SingleReelDampingSetting.ts.js",
+    "bytes": 1990
+  },
+  {
+    "module": "chunks:///_virtual/SingleReelSetting.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SingleReelSetting.ts.js",
+    "bytes": 3609
+  },
+  {
+    "module": "chunks:///_virtual/Singleton.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Singleton.ts.js",
+    "bytes": 654
+  },
+  {
+    "module": "chunks:///_virtual/SingletonExtends.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SingletonExtends.ts.js",
+    "bytes": 414
+  },
+  {
+    "module": "chunks:///_virtual/SingletonT.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SingletonT.ts.js",
+    "bytes": 1696
+  },
+  {
+    "module": "chunks:///_virtual/slot.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\slot.ts.js",
+    "bytes": 2120
+  },
+  {
+    "module": "chunks:///_virtual/SlotApplication.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SlotApplication.ts.js",
+    "bytes": 856
+  },
+  {
+    "module": "chunks:///_virtual/slotFramework",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\slotFramework.js",
+    "bytes": 2692
+  },
+  {
+    "module": "chunks:///_virtual/SlotFrameworkData.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SlotFrameworkData.ts.js",
+    "bytes": 3927
+  },
+  {
+    "module": "chunks:///_virtual/SlotFrameworkEntry.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SlotFrameworkEntry.ts.js",
+    "bytes": 6026
+  },
+  {
+    "module": "chunks:///_virtual/SlotFrameworkEvent.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SlotFrameworkEvent.ts.js",
+    "bytes": 6384
+  },
+  {
+    "module": "chunks:///_virtual/SlotFrameworkLanguage.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SlotFrameworkLanguage.ts.js",
+    "bytes": 773
+  },
+  {
+    "module": "chunks:///_virtual/SlotFrameworkLanguages.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SlotFrameworkLanguages.ts.js",
+    "bytes": 17323
+  },
+  {
+    "module": "chunks:///_virtual/SlotFrameworkLogic.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SlotFrameworkLogic.ts.js",
+    "bytes": 1335
+  },
+  {
+    "module": "chunks:///_virtual/SlotFrameworkView.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SlotFrameworkView.ts.js",
+    "bytes": 1682
+  },
+  {
+    "module": "chunks:///_virtual/SlotPrefabLineAnimation.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SlotPrefabLineAnimation.ts.js",
+    "bytes": 1450
+  },
+  {
+    "module": "chunks:///_virtual/SlotTableItem2.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SlotTableItem2.ts.js",
+    "bytes": 5887
+  },
+  {
+    "module": "chunks:///_virtual/SlotTableModel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SlotTableModel.ts.js",
+    "bytes": 599
+  },
+  {
+    "module": "chunks:///_virtual/SlotTablePageTableItem.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SlotTablePageTableItem.ts.js",
+    "bytes": 2227
+  },
+  {
+    "module": "chunks:///_virtual/SlotTableViewBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SlotTableViewBase.ts.js",
+    "bytes": 22580
+  },
+  {
+    "module": "chunks:///_virtual/SlotTableViewL_v2.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SlotTableViewL_v2.ts.js",
+    "bytes": 1765
+  },
+  {
+    "module": "chunks:///_virtual/SlotTableViewL.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SlotTableViewL.ts.js",
+    "bytes": 1527
+  },
+  {
+    "module": "chunks:///_virtual/SlotTableViewP.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SlotTableViewP.ts.js",
+    "bytes": 4994
+  },
+  {
+    "module": "chunks:///_virtual/Snapshot.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Snapshot.ts.js",
+    "bytes": 4250
+  },
+  {
+    "module": "chunks:///_virtual/SocketIOClient.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SocketIOClient.ts.js",
+    "bytes": 3913
+  },
+  {
+    "module": "chunks:///_virtual/SocketModel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SocketModel.ts.js",
+    "bytes": 913
+  },
+  {
+    "module": "chunks:///_virtual/SpinBarControllerLandScape.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SpinBarControllerLandScape.ts.js",
+    "bytes": 20142
+  },
+  {
+    "module": "chunks:///_virtual/SpinBarPController.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SpinBarPController.ts.js",
+    "bytes": 16063
+  },
+  {
+    "module": "chunks:///_virtual/SpinButton.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SpinButton.ts.js",
+    "bytes": 6534
+  },
+  {
+    "module": "chunks:///_virtual/SpineButton.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SpineButton.ts.js",
+    "bytes": 5495
+  },
+  {
+    "module": "chunks:///_virtual/SpriteAnim.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SpriteAnim.ts.js",
+    "bytes": 2138
+  },
+  {
+    "module": "chunks:///_virtual/SpriteAtlasSymbolItem.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SpriteAtlasSymbolItem.ts.js",
+    "bytes": 1484
+  },
+  {
+    "module": "chunks:///_virtual/SpriteSymbolItem.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SpriteSymbolItem.ts.js",
+    "bytes": 1395
+  },
+  {
+    "module": "chunks:///_virtual/StageData.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\StageData.ts.js",
+    "bytes": 2046
+  },
+  {
+    "module": "chunks:///_virtual/StakeBarView.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\StakeBarView.ts.js",
+    "bytes": 13136
+  },
+  {
+    "module": "chunks:///_virtual/StakeModel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\StakeModel.ts.js",
+    "bytes": 4285
+  },
+  {
+    "module": "chunks:///_virtual/state.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\state.ts.js",
+    "bytes": 297
+  },
+  {
+    "module": "chunks:///_virtual/StaticCmd.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\StaticCmd.ts.js",
+    "bytes": 385
+  },
+  {
+    "module": "chunks:///_virtual/StaticConfig.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\StaticConfig.ts.js",
+    "bytes": 8179
+  },
+  {
+    "module": "chunks:///_virtual/SymbolBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SymbolBase.ts.js",
+    "bytes": 1358
+  },
+  {
+    "module": "chunks:///_virtual/SymbolSetting.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\SymbolSetting.ts.js",
+    "bytes": 1045
+  },
+  {
+    "module": "chunks:///_virtual/TableView.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\TableView.ts.js",
+    "bytes": 16008
+  },
+  {
+    "module": "chunks:///_virtual/TableViewCell.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\TableViewCell.ts.js",
+    "bytes": 1054
+  },
+  {
+    "module": "chunks:///_virtual/TaskQueue.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\TaskQueue.ts.js",
+    "bytes": 2498
+  },
+  {
+    "module": "chunks:///_virtual/TicketBase.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\TicketBase.ts.js",
+    "bytes": 8151
+  },
+  {
+    "module": "chunks:///_virtual/TimeManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\TimeManager.ts.js",
+    "bytes": 1092
+  },
+  {
+    "module": "chunks:///_virtual/Tips.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Tips.ts.js",
+    "bytes": 3531
+  },
+  {
+    "module": "chunks:///_virtual/TopBar.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\TopBar.ts.js",
+    "bytes": 2523
+  },
+  {
+    "module": "chunks:///_virtual/TweenMaxNode.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\TweenMaxNode.ts.js",
+    "bytes": 1872
+  },
+  {
+    "module": "chunks:///_virtual/type.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\type.ts.js",
+    "bytes": 1371
+  },
+  {
+    "module": "chunks:///_virtual/type2.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\type2.ts.js",
+    "bytes": 1372
+  },
+  {
+    "module": "chunks:///_virtual/UIColor.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\UIColor.ts.js",
+    "bytes": 5885
+  },
+  {
+    "module": "chunks:///_virtual/UIi18n.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\UIi18n.ts.js",
+    "bytes": 5559
+  },
+  {
+    "module": "chunks:///_virtual/UILabel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\UILabel.ts.js",
+    "bytes": 2950
+  },
+  {
+    "module": "chunks:///_virtual/UILoading.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\UILoading.ts.js",
+    "bytes": 2005
+  },
+  {
+    "module": "chunks:///_virtual/UIManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\UIManager.ts.js",
+    "bytes": 9727
+  },
+  {
+    "module": "chunks:///_virtual/UIReconnect.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\UIReconnect.ts.js",
+    "bytes": 643
+  },
+  {
+    "module": "chunks:///_virtual/UIRichText.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\UIRichText.ts.js",
+    "bytes": 2926
+  },
+  {
+    "module": "chunks:///_virtual/UISprite.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\UISprite.ts.js",
+    "bytes": 5594
+  },
+  {
+    "module": "chunks:///_virtual/UIView.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\UIView.ts.js",
+    "bytes": 3256
+  },
+  {
+    "module": "chunks:///_virtual/Update.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Update.ts.js",
+    "bytes": 2517
+  },
+  {
+    "module": "chunks:///_virtual/UpdateItem.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\UpdateItem.ts.js",
+    "bytes": 8132
+  },
+  {
+    "module": "chunks:///_virtual/UpdateLoading.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\UpdateLoading.ts.js",
+    "bytes": 951
+  },
+  {
+    "module": "chunks:///_virtual/UpdateManager.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\UpdateManager.ts.js",
+    "bytes": 6990
+  },
+  {
+    "module": "chunks:///_virtual/UrlModel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\UrlModel.ts.js",
+    "bytes": 2100
+  },
+  {
+    "module": "chunks:///_virtual/UrlUtils.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\UrlUtils.ts.js",
+    "bytes": 1527
+  },
+  {
+    "module": "chunks:///_virtual/UrlUtils2.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\UrlUtils2.ts.js",
+    "bytes": 1231
+  },
+  {
+    "module": "chunks:///_virtual/UserModel.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\UserModel.ts.js",
+    "bytes": 744
+  },
+  {
+    "module": "chunks:///_virtual/Utils.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\Utils.ts.js",
+    "bytes": 3098
+  },
+  {
+    "module": "chunks:///_virtual/validate.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\validate.ts.js",
+    "bytes": 1846
+  },
+  {
+    "module": "chunks:///_virtual/WaitLoading.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\WaitLoading.ts.js",
+    "bytes": 1146
+  },
+  {
+    "module": "chunks:///_virtual/WaveEffect.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\WaveEffect.ts.js",
+    "bytes": 2115
+  },
+  {
+    "module": "chunks:///_virtual/WaveSpineEffect.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\WaveSpineEffect.ts.js",
+    "bytes": 2136
+  },
+  {
+    "module": "chunks:///_virtual/WebSocketClient.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\WebSocketClient.ts.js",
+    "bytes": 3110
+  },
+  {
+    "module": "chunks:///_virtual/WebUiView.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\WebUiView.ts.js",
+    "bytes": 2245
+  },
+  {
+    "module": "chunks:///_virtual/WrapperData.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\WrapperData.ts.js",
+    "bytes": 1088
+  },
+  {
+    "module": "chunks:///_virtual/WrapperEntry.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\WrapperEntry.ts.js",
+    "bytes": 1562
+  },
+  {
+    "module": "chunks:///_virtual/WrapperLanguage.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\WrapperLanguage.ts.js",
+    "bytes": 743
+  },
+  {
+    "module": "chunks:///_virtual/WrapperLanguages.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\WrapperLanguages.ts.js",
+    "bytes": 11339
+  },
+  {
+    "module": "chunks:///_virtual/WrapperLogic.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\WrapperLogic.ts.js",
+    "bytes": 1114
+  },
+  {
+    "module": "chunks:///_virtual/WrapperView.ts",
+    "file": "tools\\har-extract-modules\\godeebxp\\src\\WrapperView.ts.js",
+    "bytes": 2628
+  }
+]
