@@ -14,8 +14,10 @@ export interface ComponentInspectInfo {
   isSprite: boolean;
   isCustom: boolean;
   isSpine: boolean;
+  isBmfont: boolean;
   recoverClassName: string;
   spineIndex: number;
+  bmfontIndex: number;
 }
 
 export interface NodeInspectorData {
@@ -102,6 +104,86 @@ const formatPrimitive = (value: unknown): string => {
   return String(value);
 };
 
+// 判定 Label 组件是否使用 BMFont（位图字体）
+const isBmfontLabelComp = (comp: unknown, typeName: string): boolean => {
+  if (!/Label/.test(typeName) || /RichText/.test(typeName)) return false;
+  const c = comp as CompRecord;
+  const font = (c.font ?? c._font) as CompRecord | null | undefined;
+  if (!font) return false;
+  const fontClass = String(
+    (font as { __classname__?: string }).__classname__ ??
+      (font as { constructor?: { name?: string } }).constructor?.name ??
+      ''
+  );
+  const fntConfig = font.fntConfig ?? font._fntConfig;
+  return !!(fntConfig || /BitmapFont/.test(fontClass));
+};
+
+// 识别 Label 字体类型：位图字体(BMFont) / TTF / 系统字体
+const labelFontRows = (c: CompRecord): InspectRow[] => {
+  const font = (c.font ?? c._font) as CompRecord | null | undefined;
+  const useSystem = c.useSystemFont ?? c._isSystemFontUsed;
+
+  const fontClass = font
+    ? String(
+        (font as { __classname__?: string }).__classname__ ??
+          (font as { constructor?: { name?: string } }).constructor?.name ??
+          ''
+      )
+    : '';
+
+  const fntConfig = (font?.fntConfig ?? font?._fntConfig) as
+    | {
+        fontSize?: number;
+        commonHeight?: number;
+        atlasName?: string;
+        fontDefDictionary?: Record<string, unknown>;
+      }
+    | null
+    | undefined;
+
+  const isBmfont = !!(fntConfig || /BitmapFont/.test(fontClass));
+
+  if (!isBmfont) {
+    const isTtf = !!font && /TTFFont|TTF/.test(fontClass);
+    const type = font
+      ? isTtf
+        ? 'TTF 字体'
+        : `字体(${shortTypeName(fontClass) || '未知'})`
+      : useSystem
+        ? '系统字体'
+        : '系统字体(无字体资源)';
+    return [{ label: '字体', value: type }];
+  }
+
+  const spriteFrame = (font?.spriteFrame ?? font?._spriteFrame) as
+    | CompRecord
+    | null
+    | undefined;
+  const texture = (spriteFrame?.texture ?? spriteFrame?._texture) as
+    | { width?: number; height?: number }
+    | null
+    | undefined;
+  const charCount = fntConfig?.fontDefDictionary
+    ? Object.keys(fntConfig.fontDefDictionary).length
+    : 0;
+  const fontName =
+    fntConfig?.atlasName ||
+    frameName(font) ||
+    (spriteFrame ? frameName(spriteFrame) : '-');
+
+  return [
+    { label: '字体', value: 'BMFont（位图字体）' },
+    { label: '字体名', value: String(fontName || '-') },
+    {
+      label: '图集',
+      value: texture ? `${texture.width ?? 0}×${texture.height ?? 0}` : '-',
+    },
+    { label: '字符数', value: charCount > 0 ? String(charCount) : '-' },
+    { label: '行高', value: String(fntConfig?.commonHeight ?? '-') },
+  ];
+};
+
 const extractGenericRows = (comp: unknown): InspectRow[] => {
   const c = comp as CompRecord;
   const skip = new Set([
@@ -160,6 +242,7 @@ const extractRows = (comp: unknown, typeName: string): InspectRow[] => {
       { label: '字号', value: String(c.fontSize ?? '-') },
       { label: '颜色', value: readColor(c.color) },
       { label: '溢出', value: String(c.overflow ?? '-') },
+      ...labelFontRows(c),
     ];
   }
 
@@ -281,6 +364,7 @@ export const collectNodeInspectorData = (
   const components: ComponentInspectInfo[] = [];
   const nameCount = new Map<string, number>();
   let spineCounter = 0;
+  let bmfontCounter = 0;
 
   getNodeComponents(node).forEach((comp, index) => {
     const typeName = getComponentName(comp);
@@ -295,6 +379,9 @@ export const collectNodeInspectorData = (
     const isSpine = isSpineSkeletonType(typeName);
     const spineIndex = isSpine ? spineCounter++ : -1;
 
+    const isBmfont = isBmfontLabelComp(comp, typeName);
+    const bmfontIndex = isBmfont ? bmfontCounter++ : -1;
+
     components.push({
       typeName,
       shortName: displayName,
@@ -304,8 +391,10 @@ export const collectNodeInspectorData = (
       isSprite: /Sprite/.test(typeName) && !/SpriteRenderer/.test(typeName),
       isCustom: isCustomComponentName(typeName),
       isSpine,
+      isBmfont,
       recoverClassName: baseRecoverName,
       spineIndex,
+      bmfontIndex,
     });
   });
 
@@ -352,9 +441,30 @@ export const renderNodeInspectorHtml = (
         .join('');
 
       const preview = comp.isSprite
-        ? `<div class="insp-sprite-preview">
-            <canvas class="insp-sprite-canvas" width="1" height="1"></canvas>
-            <span class="insp-sprite-loading">加载预览…</span>
+        ? `<div class="insp-texture-compare" data-sprite-preview>
+            <span class="insp-sprite-loading">加载纹理对比…</span>
+            <div class="insp-texture-compare-cols">
+              <div class="insp-texture-col">
+                <div class="insp-texture-col-head">
+                  <span class="insp-texture-col-title">当前路径</span>
+                  <span class="insp-texture-col-meta insp-texture-legacy-meta">—</span>
+                </div>
+                <div class="insp-texture-col-body">
+                  <canvas class="insp-sprite-canvas-legacy" width="1" height="1"></canvas>
+                  <span class="insp-texture-col-empty insp-texture-legacy-empty"></span>
+                </div>
+              </div>
+              <div class="insp-texture-col">
+                <div class="insp-texture-col-head">
+                  <span class="insp-texture-col-title">引擎对齐</span>
+                  <span class="insp-texture-col-meta insp-texture-engine-meta">—</span>
+                </div>
+                <div class="insp-texture-col-body">
+                  <canvas class="insp-sprite-canvas-engine" width="1" height="1"></canvas>
+                  <span class="insp-texture-col-empty insp-texture-engine-empty"></span>
+                </div>
+              </div>
+            </div>
           </div>`
         : '';
 
@@ -372,12 +482,16 @@ export const renderNodeInspectorHtml = (
         ? `<button type="button" class="insp-export-spine-btn" data-spine-idx="${comp.spineIndex}" title="从内存导出 Spine zip（纹理名与 atlas 页一致，支持多页）">导出 Spine</button>`
         : '';
 
+      const bmfontBtn = comp.isBmfont
+        ? `<button type="button" class="insp-export-bmfont-btn" data-bmfont-idx="${comp.bmfontIndex}" title="从内存导出 BMFont zip（重建 .fnt + 图集 png）">导出 BMFont</button>`
+        : '';
+
       return `<section class="insp-comp-block" data-comp="${escapeHtml(
         comp.shortName
       )}">
         <header class="insp-comp-header">
           <span class="insp-comp-name">${escapeHtml(comp.shortName)}</span>
-          <span class="insp-comp-actions">${spineBtn}${recoverBtn}${stateBadge}</span>
+          <span class="insp-comp-actions">${spineBtn}${bmfontBtn}${recoverBtn}${stateBadge}</span>
         </header>
         <div class="insp-comp-body">${rows}${preview}</div>
       </section>`;

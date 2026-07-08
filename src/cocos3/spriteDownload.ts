@@ -29,17 +29,62 @@ export function buildSpriteDownloadFilename(data: SpriteInspectData): string {
   return `${node}_${frame}.png`;
 }
 
-/** 将已提取像素导出为 PNG base64（供 MCP / API 使用） */
+export type SpriteExportPath = 'engine' | 'legacy' | 'auto';
+
+export interface SpriteExportResult {
+  ok: true;
+  base64: string;
+  width: number;
+  height: number;
+  filename: string;
+  /** 实际使用的提取路径 */
+  usedPath: 'engine' | 'legacy';
+  /** 实际使用路径的提取方法（如 engine-trim / webgl-fbo） */
+  method: string;
+}
+
+/**
+ * 将已提取像素导出为 PNG base64（供 MCP / API 使用）
+ *
+ * - engine 路径：像素已是 originalSize 画布 + trim 合成，直接原生尺寸输出，不二次拉伸
+ * - legacy 路径：图集裁切像素，按 displaySize 拉伸（保持旧行为）
+ * - auto：有 enginePixels 用 engine，否则回退 legacy
+ */
 export function exportSpritePngBase64(
-  data: SpriteInspectData
-): { ok: true; base64: string; width: number; height: number; filename: string } | { ok: false; error: string } {
-  const pixels = data.pixels?.imageData;
-  if (!pixels) {
-    return { ok: false, error: '纹理未提取，请先等待或重试' };
+  data: SpriteInspectData,
+  opts?: { path?: SpriteExportPath }
+): SpriteExportResult | { ok: false; error: string } {
+  const requested = opts?.path ?? 'auto';
+  const enginePixels = data.enginePixels?.imageData ?? null;
+  const legacyPixels = data.pixels?.imageData ?? null;
+
+  let usedPath: 'engine' | 'legacy';
+  if (requested === 'engine') {
+    if (!enginePixels) {
+      return { ok: false, error: '引擎对齐纹理未提取（engine 路径）' };
+    }
+    usedPath = 'engine';
+  } else if (requested === 'legacy') {
+    if (!legacyPixels) {
+      return { ok: false, error: '纹理未提取，请先等待或重试（legacy 路径）' };
+    }
+    usedPath = 'legacy';
+  } else {
+    // auto：engine 优先，回退 legacy
+    if (enginePixels) usedPath = 'engine';
+    else if (legacyPixels) usedPath = 'legacy';
+    else return { ok: false, error: '纹理未提取，请先等待或重试' };
   }
 
-  const w = data.displaySize.w || pixels.width;
-  const h = data.displaySize.h || pixels.height;
+  const useEngine = usedPath === 'engine';
+  const pixels = (useEngine ? enginePixels : legacyPixels)!;
+  const method = useEngine
+    ? data.engineExtractMethod || 'engine-trim'
+    : data.extractMethod || 'legacy';
+
+  // engine 已合成到 originalSize，输出原生尺寸；legacy 拉伸到 displaySize
+  const w = useEngine ? pixels.width : data.displaySize.w || pixels.width;
+  const h = useEngine ? pixels.height : data.displaySize.h || pixels.height;
 
   const exportCanvas = document.createElement('canvas');
   exportCanvas.width = w;
@@ -62,6 +107,8 @@ export function exportSpritePngBase64(
     width: w,
     height: h,
     filename: buildSpriteDownloadFilename(data),
+    usedPath,
+    method,
   };
 }
 

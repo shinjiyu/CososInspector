@@ -21,6 +21,7 @@ import {
   recoverComponentScript,
 } from './cocos3/scriptRecover';
 import { downloadSpineExport } from './cocos3/spineExport';
+import { downloadBmfontExport } from './cocos3/bmfontExport';
 import {
   collectSpriteInspectData,
   drawSpriteTexture,
@@ -472,6 +473,17 @@ class CocosInspector3 {
         return;
       }
 
+      const bmfontBtn = target.closest(
+        '.insp-export-bmfont-btn'
+      ) as HTMLButtonElement | null;
+      if (bmfontBtn) {
+        event.stopPropagation();
+        if (!this.selectedId) return;
+        const idx = Number(bmfontBtn.dataset.bmfontIdx ?? '0');
+        void this.exportBmfont(idx);
+        return;
+      }
+
       const btn = target.closest('.insp-recover-btn') as HTMLButtonElement | null;
       if (!btn) return;
 
@@ -514,6 +526,27 @@ class CocosInspector3 {
       texCount > 1 ? ` · ${texCount} 页纹理（见 IMPORT_README.txt）` : '';
     this.setStatus(`已下载 ${result.zipName} · ${result.files.length} 个文件${pageHint}`);
     console.log('[Spine导出]', result.log.join('\n'));
+  }
+
+  private async exportBmfont(bmfontIndex: number): Promise<void> {
+    if (!this.selectedId) return;
+    this.setStatus('BMFont 导出中（内存读图集，重建 .fnt）…');
+
+    const result = await downloadBmfontExport(this.selectedId, bmfontIndex);
+    if (!result.ok) {
+      this.setStatus(`BMFont 导出失败: ${result.error ?? '未知错误'}`);
+      console.warn('[BMFont导出]', result.log.join('\n'));
+      return;
+    }
+
+    const texCount = result.files.filter((f) =>
+      /\.(png|jpe?g|webp)$/i.test(f.path)
+    ).length;
+    const texHint = texCount > 0 ? ` · ${texCount} 张图集` : '';
+    this.setStatus(
+      `已下载 ${result.zipName} · ${result.files.length} 个文件${texHint}`
+    );
+    console.log('[BMFont导出]', result.log.join('\n'));
   }
 
   private refreshAll(force: boolean): void {
@@ -631,22 +664,61 @@ class CocosInspector3 {
         return;
       }
 
-      const canvas = this.nodeInspectorContainer?.querySelector(
-        '.insp-sprite-canvas'
-      ) as HTMLCanvasElement | null;
-      const loading = this.nodeInspectorContainer?.querySelector(
-        '.insp-sprite-loading'
+      const root = this.nodeInspectorContainer?.querySelector(
+        '[data-sprite-preview]'
       ) as HTMLElement | null;
-      if (!canvas) return;
+      if (!root) return;
 
-      const drawn = drawSpriteTexture(canvas, enriched);
-      if (drawn) {
-        canvas.style.display = 'block';
-        if (loading) loading.style.display = 'none';
-        return;
+      const loading = root.querySelector('.insp-sprite-loading') as HTMLElement | null;
+      const legacyCanvas = root.querySelector(
+        '.insp-sprite-canvas-legacy'
+      ) as HTMLCanvasElement | null;
+      const engineCanvas = root.querySelector(
+        '.insp-sprite-canvas-engine'
+      ) as HTMLCanvasElement | null;
+      const legacyMeta = root.querySelector(
+        '.insp-texture-legacy-meta'
+      ) as HTMLElement | null;
+      const engineMeta = root.querySelector(
+        '.insp-texture-engine-meta'
+      ) as HTMLElement | null;
+      const legacyEmpty = root.querySelector(
+        '.insp-texture-legacy-empty'
+      ) as HTMLElement | null;
+      const engineEmpty = root.querySelector(
+        '.insp-texture-engine-empty'
+      ) as HTMLElement | null;
+
+      if (!legacyCanvas || !engineCanvas) return;
+
+      const legacyDrawn = drawSpriteTexture(legacyCanvas, enriched, 'legacy');
+      const engineDrawn = drawSpriteTexture(engineCanvas, enriched, 'engine');
+
+      if (loading) loading.style.display = 'none';
+
+      legacyCanvas.style.display = legacyDrawn ? 'block' : 'none';
+      engineCanvas.style.display = engineDrawn ? 'block' : 'none';
+
+      if (legacyMeta) {
+        legacyMeta.textContent = legacyDrawn
+          ? `${enriched.extractMethod} · ${enriched.pixels?.imageData.width ?? 0}×${enriched.pixels?.imageData.height ?? 0}`
+          : enriched.extractError ?? '失败';
       }
-
-      if (loading) loading.textContent = '预览不可用';
+      if (engineMeta) {
+        engineMeta.textContent = engineDrawn
+          ? `${enriched.engineExtractMethod} · ${enriched.enginePixels?.imageData.width ?? 0}×${enriched.enginePixels?.imageData.height ?? 0}`
+          : enriched.engineExtractError ?? '失败';
+      }
+      if (legacyEmpty) {
+        legacyEmpty.textContent = legacyDrawn ? '' : (enriched.extractError ?? '无预览');
+        legacyEmpty.style.display = legacyDrawn ? 'none' : 'block';
+      }
+      if (engineEmpty) {
+        engineEmpty.textContent = engineDrawn
+          ? ''
+          : (enriched.engineExtractError ?? '无预览');
+        engineEmpty.style.display = engineDrawn ? 'none' : 'block';
+      }
     } catch (error) {
       const scene = getSceneRoot();
       const node = scene ? findNodeById(scene, nodeId) : null;

@@ -8,7 +8,13 @@ import {
   type AtlasFrameRect,
   type TextureExtractResult,
 } from './textureExtract';
+import { extractEngineAlignedFramePixels } from './textureExtractEngine';
 import { getTextureExtractLogs } from './textureExtractLog';
+import {
+  createPathTrace,
+  logExtractPathCompare,
+  snapshotFrameCalc,
+} from './textureExtractTrace';
 import {
   bindSpriteDownloadButton,
   setSpriteInspectorData,
@@ -37,6 +43,10 @@ export interface SpriteInspectData {
   pixels: TextureExtractResult | null;
   extractMethod: string;
   extractError: string | null;
+  /** 引擎对齐路径（UV/旋转/trim → originalSize） */
+  enginePixels: TextureExtractResult | null;
+  engineExtractMethod: string;
+  engineExtractError: string | null;
 }
 
 type SpriteComp = {
@@ -132,6 +142,9 @@ export function collectSpriteInspectData(
     pixels: null,
     extractMethod: '',
     extractError: null,
+    enginePixels: null,
+    engineExtractMethod: '',
+    engineExtractError: null,
   };
 }
 
@@ -153,14 +166,22 @@ function drawCheckerboard(
 
 export function drawSpriteTexture(
   canvas: HTMLCanvasElement,
-  data: SpriteInspectData
+  data: SpriteInspectData,
+  path: 'legacy' | 'engine' = 'legacy'
 ): boolean {
   const wrap = canvas.parentElement;
-  const maxW = Math.max((wrap?.clientWidth ?? 200) - 16, 40);
-  const maxH = Math.max((wrap?.clientHeight ?? 120) - 16, 40);
+  const maxW = Math.max((wrap?.clientWidth ?? 200) - 8, 40);
+  const maxH = Math.max((wrap?.clientHeight ?? 120) - 24, 40);
 
-  const dw = data.displaySize.w || data.originalSize.w || 1;
-  const dh = data.displaySize.h || data.originalSize.h || 1;
+  const result = path === 'engine' ? data.enginePixels : data.pixels;
+  const dw =
+    path === 'engine'
+      ? data.originalSize.w || result?.imageData.width || 1
+      : data.displaySize.w || data.originalSize.w || 1;
+  const dh =
+    path === 'engine'
+      ? data.originalSize.h || result?.imageData.height || 1
+      : data.displaySize.h || data.originalSize.h || 1;
   const scale = Math.min(maxW / dw, maxH / dh, 4);
   const cw = Math.max(1, Math.floor(dw * scale));
   const ch = Math.max(1, Math.floor(dh * scale));
@@ -173,13 +194,13 @@ export function drawSpriteTexture(
 
   drawCheckerboard(ctx, cw, ch);
 
-  if (data.pixels?.imageData) {
-    const pw = data.pixels.imageData.width;
-    const ph = data.pixels.imageData.height;
+  if (result?.imageData) {
+    const pw = result.imageData.width;
+    const ph = result.imageData.height;
     const tmp = document.createElement('canvas');
     tmp.width = pw;
     tmp.height = ph;
-    tmp.getContext('2d')!.putImageData(data.pixels.imageData, 0, 0);
+    tmp.getContext('2d')!.putImageData(result.imageData, 0, 0);
     ctx.drawImage(tmp, 0, 0, pw, ph, 0, 0, cw, ch);
     return true;
   }
@@ -187,39 +208,102 @@ export function drawSpriteTexture(
   return false;
 }
 
+/** 需要计算的提取路径；仅导出单路径时可跳过另一条，避免大图双回读卡顿 */
+export type EnrichPaths = 'both' | 'legacy' | 'engine';
+
 export async function enrichSpriteInspectData(
   data: SpriteInspectData,
-  nodeId: string | null
+  nodeId: string | null,
+  paths: EnrichPaths = 'both'
 ): Promise<SpriteInspectData> {
-  const result = await extractAtlasFramePixels(
+  const calcMeta = snapshotFrameCalc(
     data.spriteFrame,
-    data.textureSize,
-    data.originalSize,
-    nodeId
+    data.textureSize.w,
+    data.textureSize.h,
+    data.originalSize
   );
+  const legacyTrace = createPathTrace('legacy', calcMeta);
+  const engineTrace = createPathTrace('engine', calcMeta);
+  const logCtx = {
+    nodeName: data.nodeName,
+    nodeUUID: nodeId ?? 'unknown',
+    frameName: data.frameName,
+  };
 
-  if (result) {
-    return {
-      ...data,
-      pixels: result,
-      extractMethod: result.method,
+  const runLegacy = paths !== 'engine';
+  const runEngine = paths !== 'legacy';
+
+  const [legacyResult, engineResult] = await Promise.all([
+    runLegacy
+      ? extractAtlasFramePixels(
+          data.spriteFrame,
+          data.textureSize,
+          data.originalSize,
+          nodeId,
+          legacyTrace
+        )
+      : Promise.resolve(null),
+    runEngine
+      ? extractEngineAlignedFramePixels(
+          data.spriteFrame,
+          data.textureSize,
+          nodeId,
+          engineTrace
+        )
+      : Promise.resolve(null),
+  ]);
+
+  // 仅在两路都跑时做对比日志
+  if (runLegacy && runEngine) {
+    logExtractPathCompare(logCtx, legacyTrace, engineTrace);
+  }
+
+  let next: SpriteInspectData = { ...data };
+
+  if (!runLegacy) {
+    // 未计算 legacy：保持字段为空，不覆盖
+  } else if (legacyResult) {
+    next = {
+      ...next,
+      pixels: legacyResult,
+      extractMethod: legacyResult.method,
       extractError: null,
+    };
+  } else {
+    const debug = getTextureExtractDebugLog().join(' · ');
+    const lastLog = nodeId
+      ? getTextureExtractLogs({ nodeUUID: nodeId, limit: 1 }).pop()
+      : undefined;
+    const logHint = lastLog?.message ?? debug;
+    next = {
+      ...next,
+      pixels: null,
+      extractMethod: '',
+      extractError: logHint
+        ? `图集提取失败：${logHint}`
+        : '图集提取失败（GPU/URL/readPixels/引擎渲染均失败）',
     };
   }
 
-  const debug = getTextureExtractDebugLog().join(' · ');
-  const lastLog = nodeId
-    ? getTextureExtractLogs({ nodeUUID: nodeId, limit: 1 }).pop()
-    : undefined;
-  const logHint = lastLog?.message ?? debug;
-  return {
-    ...data,
-    pixels: null,
-    extractMethod: '',
-    extractError: logHint
-      ? `图集提取失败：${logHint}`
-      : '图集提取失败（屏幕/GPU/URL/readPixels/引擎渲染均失败）',
-  };
+  if (!runEngine) {
+    // 未计算 engine：保持字段为空，不覆盖
+  } else if (engineResult) {
+    next = {
+      ...next,
+      enginePixels: engineResult,
+      engineExtractMethod: engineResult.method,
+      engineExtractError: null,
+    };
+  } else {
+    next = {
+      ...next,
+      enginePixels: null,
+      engineExtractMethod: '',
+      engineExtractError: '引擎对齐提取失败（图集读取或 UV/trim 重建失败）',
+    };
+  }
+
+  return next;
 }
 
 export function renderSpriteInspectorPanel(
@@ -231,13 +315,20 @@ export function renderSpriteInspectorPanel(
   const preview = root.querySelector(
     '.sprite-inspector-preview'
   ) as HTMLElement | null;
-  const canvas = root.querySelector(
-    '.sprite-inspector-canvas'
+  const legacyCanvas = root.querySelector(
+    '.sprite-inspector-canvas-legacy'
+  ) as HTMLCanvasElement | null;
+  const engineCanvas = root.querySelector(
+    '.sprite-inspector-canvas-engine'
   ) as HTMLCanvasElement | null;
   const meta = root.querySelector('.sprite-inspector-meta') as HTMLElement | null;
   const empty = root.querySelector(
     '.sprite-inspector-empty'
   ) as HTMLElement | null;
+  const legacyMeta = root.querySelector('.sprite-legacy-meta') as HTMLElement | null;
+  const engineMeta = root.querySelector('.sprite-engine-meta') as HTMLElement | null;
+  const legacyEmpty = root.querySelector('.sprite-legacy-empty') as HTMLElement | null;
+  const engineEmpty = root.querySelector('.sprite-engine-empty') as HTMLElement | null;
 
   const downloadBtn = root.querySelector(
     '.sprite-download-btn'
@@ -246,7 +337,14 @@ export function renderSpriteInspectorPanel(
     '.sprite-revert-btn'
   ) as HTMLButtonElement | null;
 
-  if (!preview || !canvas || !meta || !empty) return;
+  if (!preview || !legacyCanvas || !engineCanvas || !meta || !empty) return;
+
+  const hideCanvases = (): void => {
+    legacyCanvas.style.display = 'none';
+    engineCanvas.style.display = 'none';
+    if (legacyEmpty) legacyEmpty.style.display = 'none';
+    if (engineEmpty) engineEmpty.style.display = 'none';
+  };
 
   if (!selectedId) {
     setSpriteInspectorData(root, null);
@@ -254,7 +352,7 @@ export function renderSpriteInspectorPanel(
     if (revertBtn) revertBtn.disabled = true;
     empty.style.display = 'flex';
     empty.textContent = '选中带 Sprite 的节点以预览纹理';
-    canvas.style.display = 'none';
+    hideCanvases();
     meta.innerHTML = '';
     return;
   }
@@ -265,7 +363,7 @@ export function renderSpriteInspectorPanel(
     if (revertBtn) revertBtn.disabled = true;
     empty.style.display = 'flex';
     empty.textContent = '当前节点无 Sprite 或无法读取贴图';
-    canvas.style.display = 'none';
+    hideCanvases();
     meta.innerHTML = '';
     return;
   }
@@ -275,15 +373,17 @@ export function renderSpriteInspectorPanel(
     if (downloadBtn) downloadBtn.disabled = true;
     if (revertBtn) revertBtn.disabled = true;
     empty.style.display = 'flex';
-    empty.textContent = '正在提取图集纹理（URL / GPU / 引擎渲染）…';
-    canvas.style.display = 'none';
+    empty.textContent = '正在提取纹理（双路径对比）…';
+    hideCanvases();
     meta.innerHTML = buildMetaHtml(data, false, true);
     return;
   }
 
-  const drawn = drawSpriteTexture(canvas, data);
+  empty.style.display = 'none';
+  const legacyDrawn = drawSpriteTexture(legacyCanvas, data, 'legacy');
+  const engineDrawn = drawSpriteTexture(engineCanvas, data, 'engine');
 
-  if (drawn) {
+  if (legacyDrawn) {
     setSpriteInspectorData(root, data);
     if (downloadBtn) {
       downloadBtn.disabled = false;
@@ -298,16 +398,29 @@ export function renderSpriteInspectorPanel(
     revertBtn.disabled = !hasOriginalSpriteFrame(selectedId);
   }
 
-  if (drawn) {
-    empty.style.display = 'none';
-    canvas.style.display = 'block';
-  } else {
-    empty.style.display = 'flex';
-    empty.textContent = data.extractError ?? '纹理提取中…';
-    canvas.style.display = 'none';
+  legacyCanvas.style.display = legacyDrawn ? 'block' : 'none';
+  engineCanvas.style.display = engineDrawn ? 'block' : 'none';
+
+  if (legacyMeta) {
+    legacyMeta.textContent = legacyDrawn
+      ? `· ${data.extractMethod} ${data.pixels?.imageData.width}×${data.pixels?.imageData.height}`
+      : '';
+  }
+  if (engineMeta) {
+    engineMeta.textContent = engineDrawn
+      ? `· ${data.engineExtractMethod} ${data.enginePixels?.imageData.width}×${data.enginePixels?.imageData.height}`
+      : '';
+  }
+  if (legacyEmpty) {
+    legacyEmpty.textContent = legacyDrawn ? '' : (data.extractError ?? '无预览');
+    legacyEmpty.style.display = legacyDrawn ? 'none' : 'block';
+  }
+  if (engineEmpty) {
+    engineEmpty.textContent = engineDrawn ? '' : (data.engineExtractError ?? '无预览');
+    engineEmpty.style.display = engineDrawn ? 'none' : 'block';
   }
 
-  meta.innerHTML = buildMetaHtml(data, drawn, false);
+  meta.innerHTML = buildMetaHtml(data, legacyDrawn || engineDrawn, false);
 }
 
 function buildMetaHtml(
@@ -324,7 +437,8 @@ function buildMetaHtml(
     <div class="meta-row"><span class="meta-label">原尺寸</span>${data.originalSize.w}×${data.originalSize.h}</div>
     <div class="meta-row"><span class="meta-label">偏移</span>${data.offset.x}, ${data.offset.y}</div>
     <div class="meta-row"><span class="meta-label">状态</span>${data.enabled ? '启用' : '禁用'} · type ${escapeHtml(data.type)}</div>
-    ${data.extractMethod ? `<div class="meta-row"><span class="meta-label">提取</span>${escapeHtml(data.extractMethod)}</div>` : ''}
+    ${data.extractMethod ? `<div class="meta-row"><span class="meta-label">当前路径</span>${escapeHtml(data.extractMethod)}</div>` : ''}
+    ${data.engineExtractMethod ? `<div class="meta-row"><span class="meta-label">引擎对齐</span>${escapeHtml(data.engineExtractMethod)}</div>` : ''}
     ${loading ? '<div class="meta-warn">正在提取图集帧…</div>' : ''}
     ${!loading && !drawn && data.extractError ? `<div class="meta-warn">${escapeHtml(data.extractError)}</div>` : ''}
   `;
@@ -351,9 +465,20 @@ export function createSpriteInspectorElement(
       <button type="button" class="sprite-revert-btn" disabled>还原</button>
       <input type="file" class="sprite-upload-input" accept="image/png,image/jpeg,image/webp" hidden />
     </div>
-    <div class="sprite-inspector-preview">
+    <div class="sprite-inspector-preview sprite-texture-compare-wrap">
+      <div class="sprite-texture-compare-cols">
+        <div class="sprite-texture-col">
+          <div class="sprite-texture-col-head">当前路径 <span class="sprite-legacy-meta"></span></div>
+          <canvas class="sprite-inspector-canvas-legacy"></canvas>
+          <div class="sprite-texture-col-empty sprite-legacy-empty"></div>
+        </div>
+        <div class="sprite-texture-col">
+          <div class="sprite-texture-col-head">引擎对齐 <span class="sprite-engine-meta"></span></div>
+          <canvas class="sprite-inspector-canvas-engine"></canvas>
+          <div class="sprite-texture-col-empty sprite-engine-empty"></div>
+        </div>
+      </div>
       <div class="sprite-inspector-empty">选中带 Sprite 的节点以预览纹理</div>
-      <canvas class="sprite-inspector-canvas"></canvas>
     </div>
     <div class="sprite-inspector-meta"></div>
   `;

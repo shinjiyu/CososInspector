@@ -62,7 +62,16 @@ MCP 调用示例：
 
 **Sprite.sizeMode**：优先读快照 `spriteFrame.sizeMode`，其次读组件行 `尺寸模式`（0=TRIMMED，1=RAW，2=CUSTOM）。`symbolSprite` 等图集符号通常为 CUSTOM，须配合 UITransform 显示尺寸。
 
-**Sprite 纹理读取（已回退 pre-trim 方案）**：Inspector 面板与 `downloadTexture` 使用 git 既有逻辑——`screen-fbo`（节点可见时）→ `webgl-fbo` / DOM / readPixels / engine-bake；导出 PNG 按 **displaySize 缩放**，不做 `originalCanvas` 合成。MCP 批量仍走 **share 文件通道**（与下载无关）。
+**Sprite 纹理读取**：Inspector 提供 **双路径对比**——左侧「当前路径」（legacy：webgl rect 裁切 + displaySize 缩放），右侧「引擎对齐」（engine：atlas 直裁 + originalSize+offset trim 合成）。
+
+- **下载/导出默认走 engine 对齐路径**（`exportSpritePngBase64({ path: 'auto' })`：有 `enginePixels` 用 engine，否则回退 legacy）。engine 输出已是 originalSize 全图，**不再二次拉伸**。
+- `downloadTexture(nodeId, { path })` 可显式指定 `'engine' | 'legacy' | 'auto'`；返回 `detail.usedPath` 标注实际路径，`detail.extractMethod` 反映该路径方法（engine 时为 `engine-trim` 等）。
+- MCP 批量走 **share 文件通道**；`scene-to-creator.mjs --with-textures` 默认吃到 engine originalSize PNG，正好契合 `resetSpriteMetaTrimOnDisk` 的全图 meta。
+
+**资源导出按钮（Inspector）**：选中节点后，组件头部按类型显示导出按钮：
+
+- **导出 Spine**（`sp.Skeleton`）：内存读骨架 json/skel + `.atlas` + 多页纹理，打包 zip，纹理名与 atlas 页一致。
+- **导出 BMFont**（使用 `BitmapFont` 的 `cc.Label`）：从运行时 `fntConfig` 重建 AngelCode `.fnt`（`base` 近似取 `lineHeight`，`kerning` 可解码时输出），图集 `spriteFrame.texture` 走 `extractFullTexturePixels` 转 PNG，附 `fntConfig.json` 兜底与 `IMPORT_README.txt`，打包 `<node>_<font>_bmfont.zip`。`.fnt` 与 png 同目录拖入 Creator 即识别为 BitmapFont。
 
 **`.meta`**：`resetSpriteMetaTrimOnDisk` 设 `trimType:'none'`；补丁后勿 `refresh-asset`（Creator 会 re-trim）。
 
@@ -131,6 +140,8 @@ npm run cocos-scene-to-creator -- tmp/godeebxp-scene-snapshot.json `
 
 - `src/cocos3/shareUpload.ts` — 试玩页 HTTP PUT 写入共享 out/
 - `src/cocos3/spriteDownload.ts` — trim 精灵 PNG 导出（`originalCanvas` / `frame` / `scale`）
+- `src/cocos3/spineExport.ts` — Spine 资源导出（骨架 + atlas + 多页纹理 zip）
+- `src/cocos3/bmfontExport.ts` — BMFont 资源导出（重建 `.fnt` + 图集 png + `fntConfig.json` 兜底 zip）
 - `src/cocos3/sceneSnapshot.ts` — 快照采集
 - `src/cocos3/mcpBridge.ts` — 页面 API
 - `tools/mcp-cocos-inspector/index.mjs` — MCP 工具

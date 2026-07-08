@@ -18,26 +18,35 @@ console.log('listSprites hits', hits.length, frameName);
 for (const h of hits.slice(0, 3)) {
   console.log(' ', h.nodeName, h.nodeId, h.path, 'active=', h.active);
 }
-for (const h of hits.slice(0, 5)) {
+const detailTargets = [
+  ...hits.filter((h) => h.active),
+  ...hits.filter((h) => !h.active),
+].slice(0, 3);
+
+for (const h of detailTargets) {
   const nodeId = h.nodeId;
-  console.log('\n--- detail', h.nodeName, nodeId, h.path);
-  const detail = await callBridgeAtPort(wsPort, 'getSpriteDetail', [nodeId], opts);
-  if (detail.ok) {
-    const d = detail.detail;
-    console.log(
-      'method:',
-      d.extractMethod,
-      'frameRect:',
-      JSON.stringify(d.frameRect),
-      'originalSize:',
-      JSON.stringify(d.originalSize),
-      'display:',
-      JSON.stringify(d.displaySize),
-      'rotated:',
-      d.isRotated
-    );
-  } else {
-    console.log('err:', detail.error);
+  console.log('\n--- detail', h.nodeName, nodeId, h.path, 'active=', h.active);
+  try {
+    const detail = await callBridgeAtPort(wsPort, 'getSpriteDetail', [nodeId], opts);
+    if (detail.ok) {
+      const d = detail.detail;
+      console.log(
+        'method:',
+        d.extractMethod,
+        'frameRect:',
+        JSON.stringify(d.frameRect),
+        'originalSize:',
+        JSON.stringify(d.originalSize),
+        'display:',
+        JSON.stringify(d.displaySize),
+        'rotated:',
+        d.isRotated
+      );
+    } else {
+      console.log('err:', detail.error);
+    }
+  } catch (err) {
+    console.log('skip:', err instanceof Error ? err.message : String(err));
   }
 }
 
@@ -67,5 +76,20 @@ for (const row of related) {
     ps,
     row.cacheHit ? 'CACHE' : '',
     detail
+  );
+}
+
+const traceRows = (logs.logs || []).filter(
+  (r) =>
+    r.message.includes('[compare]') ||
+    r.message.includes('[legacy:') ||
+    r.message.includes('[engine:')
+);
+console.log('\n=== TRACE (compare + legacy/engine steps)', traceRows.length, '===');
+for (const row of traceRows) {
+  console.log(
+    new Date(row.ts).toISOString(),
+    row.message,
+    row.detail ? JSON.stringify(row.detail, null, 0) : ''
   );
 }

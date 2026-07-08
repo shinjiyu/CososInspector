@@ -1,11 +1,18 @@
 import { bakeSpriteFrameViaEngine } from './textureBake';
 import { findNodeById, getSceneRoot } from './sceneTree';
 import { logTextureExtract } from './textureExtractLog';
+import type { ExtractPathTrace } from './textureExtractTrace';
+import {
+  createPathTrace,
+  measureOpaqueBBox,
+  snapshotFrameCalc,
+  traceFinish,
+  traceStep,
+} from './textureExtractTrace';
 import {
   clearTextureExtractDebugLog,
   extractAtlasViaWebGL,
   getTextureExtractDebugLog,
-  readVisibleSpriteFromScreen,
 } from './textureWebGL';
 
 /** 图集帧在纹理上的像素区域（左上原点，与 SpriteFrame.rect 一致） */
@@ -25,7 +32,7 @@ export type ExtractMethod =
   | 'engine-bake'
   | 'webgl-fbo'
   | 'device-copy'
-  | 'screen-fbo';
+  | 'engine-trim';
 
 export interface TextureExtractResult {
   imageData: ImageData;
@@ -525,7 +532,8 @@ export async function extractAtlasFramePixels(
   frame: SpriteFrameRuntime,
   texSize: { w: number; h: number },
   displaySize?: { w: number; h: number },
-  nodeId?: string | null
+  nodeId?: string | null,
+  traceOut?: ExtractPathTrace
 ): Promise<TextureExtractResult | null> {
   const texture = frame.texture ?? frame._texture;
   if (!texture) return null;
@@ -536,9 +544,25 @@ export async function extractAtlasFramePixels(
   if (rect.w <= 0 || rect.h <= 0) return null;
 
   const logCtx = resolveLogContext(nodeId, frame);
+  const calcMeta = snapshotFrameCalc(frame, texW, texH, {
+    w: displaySize?.w ?? rect.w,
+    h: displaySize?.h ?? rect.h,
+  });
+  const trace = traceOut ?? createPathTrace('legacy', calcMeta);
+  traceStep(logCtx, trace, 'meta', {
+    ...calcMeta,
+    legacyCropRect: rect,
+    note: 'legacy 仅裁 frameRect，不旋转展开、不合成 originalSize',
+  });
+
   const cacheKey = `${getAtlasCacheKey(texture, rect)}_${nodeId ?? ''}`;
   const cached = pixelCache.get(cacheKey);
   if (cached) {
+    traceStep(logCtx, trace, 'cache-hit', { cacheKey }, {
+      method: cached.method,
+      pixelSize: { w: cached.imageData.width, h: cached.imageData.height },
+    });
+    traceFinish(logCtx, trace, cached.method, cached.imageData);
     logTextureExtract(logCtx, '缓存命中', {
       method: cached.method,
       cacheHit: true,
@@ -566,30 +590,47 @@ export async function extractAtlasFramePixels(
     });
     await waitFrames(2);
 
-    if (nodeId) {
-      const scene = getSceneRoot();
-      const node = scene ? findNodeById(scene, nodeId) : null;
-      if (node) {
-        logTextureExtract(logCtx, '尝试 screen-fbo', { method: 'screen-fbo' });
-        const screen = readVisibleSpriteFromScreen(node, outW, outH);
-        if (screen) {
-          logTextureExtract(logCtx, 'screen-fbo 成功', {
-            method: 'screen-fbo',
-            pixelSize: { w: screen.width, h: screen.height },
-          });
-          return { imageData: screen, method: 'screen-fbo' };
+    const finishLegacy = (result: TextureExtractResult): TextureExtractResult => {
+      traceStep(
+        logCtx,
+        trace,
+        'crop',
+        { cropRect: rect },
+        {
+          pixelSize: {
+            w: result.imageData.width,
+            h: result.imageData.height,
+          },
+          opaque: measureOpaqueBBox(result.imageData),
         }
-        logTextureExtract(logCtx, 'screen-fbo 跳过', {
-          level: 'warn',
-          method: 'screen-fbo',
-          detail: { steps: getTextureExtractDebugLog() },
-        });
-      }
-    }
+      );
+      traceFinish(logCtx, trace, result.method, result.imageData);
+      return result;
+    };
 
     logTextureExtract(logCtx, '尝试 webgl-fbo/device-copy', { method: 'webgl-fbo' });
     const webgl = extractAtlasViaWebGL(texture, rect);
     if (webgl) {
+      const opaque = measureOpaqueBBox(webgl.imageData);
+      traceStep(
+        logCtx,
+        trace,
+        'crop',
+        { cropRect: rect, atlasRead: webgl.method },
+        {
+          pixelSize: {
+            w: webgl.imageData.width,
+            h: webgl.imageData.height,
+          },
+          opaque,
+        }
+      );
+      traceStep(logCtx, trace, 'preview-scale', {
+        from: { w: webgl.imageData.width, h: webgl.imageData.height },
+        to: calcMeta.displaySize,
+        note: 'Inspector 左栏按 displaySize 拉伸显示',
+      });
+      traceFinish(logCtx, trace, webgl.method, webgl.imageData);
       logTextureExtract(logCtx, `${webgl.method} 成功`, {
         method: webgl.method,
         pixelSize: {
@@ -612,7 +653,7 @@ export async function extractAtlasFramePixels(
             h: fromDom.imageData.height,
           },
         });
-        return fromDom;
+        return finishLegacy(fromDom);
       }
     }
 
@@ -626,7 +667,7 @@ export async function extractAtlasFramePixels(
           h: fromUrl.imageData.height,
         },
       });
-      return fromUrl;
+      return finishLegacy(fromUrl);
     }
 
     logTextureExtract(logCtx, '尝试 buffer-atlas', { method: 'buffer-atlas' });
@@ -639,7 +680,7 @@ export async function extractAtlasFramePixels(
           h: fromBuf.imageData.height,
         },
       });
-      return fromBuf;
+      return finishLegacy(fromBuf);
     }
 
     logTextureExtract(logCtx, '尝试 readPixels-region', {
@@ -651,7 +692,7 @@ export async function extractAtlasFramePixels(
         method: 'readPixels-region',
         pixelSize: { w: region.width, h: region.height },
       });
-      return { imageData: region, method: 'readPixels-region' };
+      return finishLegacy({ imageData: region, method: 'readPixels-region' });
     }
 
     logTextureExtract(logCtx, '尝试 readPixels-full', {
@@ -663,7 +704,7 @@ export async function extractAtlasFramePixels(
         method: 'readPixels-full',
         pixelSize: { w: full.width, h: full.height },
       });
-      return { imageData: full, method: 'readPixels-full' };
+      return finishLegacy({ imageData: full, method: 'readPixels-full' });
     }
 
     logTextureExtract(logCtx, '尝试 engine-bake', { method: 'engine-bake' });
@@ -673,13 +714,14 @@ export async function extractAtlasFramePixels(
         method: 'engine-bake',
         pixelSize: { w: baked.width, h: baked.height },
       });
-      return { imageData: baked, method: 'engine-bake' };
+      return finishLegacy({ imageData: baked, method: 'engine-bake' });
     }
 
     logTextureExtract(logCtx, '全部路径失败', {
       level: 'error',
       detail: { steps: getTextureExtractDebugLog() },
     });
+    traceFinish(logCtx, trace, 'failed', null);
     return null;
   })();
 

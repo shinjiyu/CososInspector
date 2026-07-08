@@ -1,6 +1,6 @@
 import type { AtlasFrameRect, TextureRuntime } from './textureExtract';
 
-export type WebGLExtractMethod = 'webgl-fbo' | 'device-copy' | 'screen-fbo';
+export type WebGLExtractMethod = 'webgl-fbo' | 'device-copy';
 
 let lastDebugLog: string[] = [];
 
@@ -284,4 +284,28 @@ export function extractAtlasViaWebGL(
   }
 
   return null;
+}
+
+/** 读取整张图集像素（供引擎对齐裁切使用） */
+export function readFullAtlasImageData(
+  texture: TextureRuntime,
+  texW: number,
+  texH: number
+): ImageData | null {
+  if (texW <= 0 || texH <= 0) return null;
+  const fullRect: AtlasFrameRect = { x: 0, y: 0, w: texW, h: texH };
+  const r = extractAtlasViaWebGL(texture, fullRect);
+  return r?.imageData ?? null;
+}
+
+/** 从整图集缓冲裁切区域（左上原点，失败时尝试 GL 底原点） */
+export function cropAtlasRegion(
+  pixels: Uint8ClampedArray,
+  texW: number,
+  texH: number,
+  rect: AtlasFrameRect
+): ImageData | null {
+  const top = cropAtlasFromFullRgba(pixels, texW, texH, rect, false);
+  if (top) return top;
+  return cropAtlasFromFullRgba(pixels, texW, texH, rect, true);
 }

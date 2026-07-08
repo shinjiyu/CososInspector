@@ -11,7 +11,10 @@ import {
   type SceneSnapshot,
 } from './sceneSnapshot';
 import { findNodeById, getSceneRoot, setNodeActive } from './sceneTree';
-import { exportSpritePngBase64 } from './spriteDownload';
+import {
+  exportSpritePngBase64,
+  type SpriteExportPath,
+} from './spriteDownload';
 import {
   collectSpriteInspectData,
   enrichSpriteInspectData,
@@ -52,9 +55,19 @@ export interface SerializableSpriteDetail {
   extractMethod: string;
   extractError: string | null;
   hasPixels: boolean;
+  /** 实际导出使用的路径（engine 对齐 / legacy 图集裁切） */
+  usedPath?: 'engine' | 'legacy';
+  /** 引擎对齐路径的方法与错误（便于脚本诊断两路差异） */
+  engineExtractMethod?: string;
+  engineExtractError?: string | null;
+  hasEnginePixels?: boolean;
 }
 
-function toDetail(nodeId: string, data: SpriteInspectData): SerializableSpriteDetail {
+function toDetail(
+  nodeId: string,
+  data: SpriteInspectData,
+  usedPath?: 'engine' | 'legacy'
+): SerializableSpriteDetail {
   return {
     nodeId,
     nodeName: data.nodeName,
@@ -68,9 +81,18 @@ function toDetail(nodeId: string, data: SpriteInspectData): SerializableSpriteDe
     offset: data.offset,
     originalSize: data.originalSize,
     isRotated: data.isRotated,
-    extractMethod: data.extractMethod,
-    extractError: data.extractError,
+    // 默认沿用 legacy 字段；导出时用 usedPath 覆写为实际方法
+    extractMethod:
+      usedPath === 'engine'
+        ? data.engineExtractMethod || 'engine-trim'
+        : data.extractMethod,
+    extractError:
+      usedPath === 'engine' ? data.engineExtractError : data.extractError,
     hasPixels: !!data.pixels,
+    usedPath,
+    engineExtractMethod: data.engineExtractMethod,
+    engineExtractError: data.engineExtractError,
+    hasEnginePixels: !!data.enginePixels,
   };
 }
 
@@ -128,16 +150,36 @@ async function buildTextureDownload(
   options?: {
     delivery?: TextureDownloadDelivery;
     wsPort?: number;
+    /** 导出路径：engine（引擎对齐，默认优先）/ legacy / auto */
+    path?: SpriteExportPath;
   }
 ): Promise<TextureDownloadResult> {
   const base = collectSpriteInspectData(nodeId);
   if (!base) return { ok: false, error: '节点无 Sprite' };
-  const enriched = await enrichSpriteInspectData(base, nodeId);
-  const png = exportSpritePngBase64(enriched);
+  const requested = options?.path ?? 'auto';
+
+  // 单路径只算所需，避免大图双回读卡顿/超时；auto 先只跑 engine，失败再补 legacy
+  let enriched: SpriteInspectData;
+  let png: ReturnType<typeof exportSpritePngBase64>;
+  if (requested === 'legacy') {
+    enriched = await enrichSpriteInspectData(base, nodeId, 'legacy');
+    png = exportSpritePngBase64(enriched, { path: 'legacy' });
+  } else if (requested === 'engine') {
+    enriched = await enrichSpriteInspectData(base, nodeId, 'engine');
+    png = exportSpritePngBase64(enriched, { path: 'engine' });
+  } else {
+    enriched = await enrichSpriteInspectData(base, nodeId, 'engine');
+    png = exportSpritePngBase64(enriched, { path: 'engine' });
+    if (!png.ok) {
+      // engine 失败，补跑 legacy 兜底
+      enriched = await enrichSpriteInspectData(base, nodeId, 'legacy');
+      png = exportSpritePngBase64(enriched, { path: 'legacy' });
+    }
+  }
   if (!png.ok) return { ok: false, error: png.error };
 
   const delivery = options?.delivery ?? 'share';
-  const detail = toDetail(nodeId, enriched);
+  const detail = toDetail(nodeId, enriched, png.usedPath);
 
   if (delivery === 'inline') {
     return {
@@ -276,6 +318,8 @@ export const cocosInspectorMcpApi = {
     options?: {
       delivery?: TextureDownloadDelivery;
       wsPort?: number;
+      /** 导出路径：engine（引擎对齐，默认优先）/ legacy / auto */
+      path?: SpriteExportPath;
       /** @deprecated 已回退 pre-trim 读纹理，忽略 mode/preferScreen */
       mode?: string;
       preferScreen?: boolean;
