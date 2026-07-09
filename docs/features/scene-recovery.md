@@ -1,5 +1,8 @@
 # Inspector → Creator 场景恢复
 
+> **Agent 入口**：`.cursor/skills/inspector-scene-recovery/SKILL.md`（P+S 编排）  
+> **Creator P 侧**：上游 Skill `cocos-meta-mcp-scene`（`~/.cursor/skills/`）
+
 ## 架构
 
 ```text
@@ -25,7 +28,7 @@ npm run cocos-bridge   # 保持运行
 
 ### Cursor MCP
 
-已在 `~/.cursor/mcp.json` 注册 `cocos-inspector`（`COCOS_PAGE_URL_MATCH=godeebxp`）。
+已在 `~/.cursor/mcp.json` 注册 `cocos-inspector`。多试玩域见 [inspector-mcp-multi-instance.md](inspector-mcp-multi-instance.md)。
 
 **重载 Cursor MCP** 后可用工具：
 
@@ -132,10 +135,10 @@ npm run cocos-scene-to-creator -- tmp/godeebxp-scene-snapshot.json `
 
 | 阶段 | 内容 | 状态 |
 |------|------|------|
-| A | 单 Spine 节点导出 + Creator 创建 | ✅ 已验证 |
-| B | MCP 场景快照 + 节点树重建 | 🔄 本次 |
-| C | 批量导出 Sprite/Spine 资源并绑定 | 待做 |
-| D | 自定义脚本组件占位 / TS 还原 | 待做 |
+| A | 单 Spine 节点导出 + Creator 创建 | ✅ |
+| B | MCP 场景快照 + 节点树重建 | ✅ |
+| C | 批量 Sprite 纹理导出、manifest、磁盘绑定 | 🔄 可用（path 匹配 live id） |
+| D | Spine/Label/脚本组件占位 / TS 还原 | 待做 |
 
 ## 实现文件
 

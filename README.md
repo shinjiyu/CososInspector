@@ -1,51 +1,36 @@
 # Cocos Inspector 3
 
-面向 **Cocos Creator 3.x** 的 Chrome 扩展，在浏览器中运行游戏时以只读方式查看场景节点树。
+面向 **Cocos Creator 3.x** 的 Chrome 扩展 + MCP：在浏览器试玩页查看场景、导出快照与纹理，并配合 **cocos-meta-mcp** 在 Creator 中复刻场景。
 
-> 仅支持 3.x，不兼容 Cocos 2.4。不提供属性编辑、钩子、动画图等能力。
+> 仅支持 Cocos 3.x。主流程为**场景读取与复刻**；换皮/替换纹理见 `feat/texture-replace` 与 `tools/repack-web/`。
 
 ## 功能
 
-- 检测 `window.cc`（`ENGINE_VERSION` 以 `3` 开头）
-- 展示 `cc.director.getScene()` 下的完整节点层级
-- 展开 / 折叠子节点
-- 按名称搜索并自动展开匹配分支
-- 选中节点高亮（仅面板内，不修改游戏对象）
-- 自动刷新（500ms）与手动刷新
-- Sprite 预览、下载 PNG、运行时上传替换
-- **替换包**：记录「原贴图线索 → 新图」，导出后在下载的试玩页源码中批量替换资源文件
+### 核心（main）
 
-### 试玩广告换皮流程（推荐：Web 重打包）
+- 场景节点树、Inspector 组件面板（含 **Node 位置**、扩展 **版本号**）
+- MCP：`cocos_export_scene_snapshot`、`cocos_download_texture`、`scene-to-creator` 等
+- Spine / BMFont 内存导出、DC 扫描、资源浮窗
+- 与 Creator **cocos-meta-mcp** 配合复刻试玩场景（见下方 Skill）
 
-1. Chrome 扩展：试玩页换皮 → **替换包** 导出 zip（或把导出的文件打成 zip，含 `manifest.json`）
-2. 启动 Web 服务并上传（**zip + 原版试玩 html 文件或 URL**，无默认模板）：
+### 分支（换皮）
 
-```bash
-cd tools/repack-web && npm install && npm start
-# 本地 http://127.0.0.1:8787
-# 线上 https://kuroneko.chat/cocos-repack/
-# 上传：替换包 zip + 试玩 .html（或试玩页 URL）
+- Sprite 预览、运行时替换、替换包导出、super-html 重打包（`tools/repack-web`）
+
+## 场景复刻（推荐入口）
+
+1. 读 Agent Skill：**`.cursor/skills/inspector-scene-recovery/SKILL.md`**
+2. 详参：**[docs/features/scene-recovery.md](docs/features/scene-recovery.md)**
+3. 上游 Creator 侧：Skill `cocos-meta-mcp-scene`（`~/.cursor/skills/`）
+
+```powershell
+npm run build
+npm run cocos-bridge -- --domain play.godeebxp.com --page-url-match godeebxp
+npm run cocos-scene-to-creator -- tmp/scene-snapshot.json `
+  --project D:/workspace/testAutoCopy `
+  --scene assets/scene/godeebxp_recovered.scene `
+  --clear --with-textures --page-url-match godeebxp
 ```
-
-3. 解压后 `npx serve .` 预览试玩 HTML
-
-详见 [tools/repack-web/README.md](tools/repack-web/README.md)。
-
-### 可选：本地桥接 / MCP
-
-`npm run cocos-bridge` + 扩展「导出并打包」适合 Cursor 自动化；日常手工换皮用 **repack-web** 更简单。
-
-手动命令（与自动等价）：
-
-```bash
-node tools/repack-super-html.mjs --html tools/_probe/applovin2103.html --pack tmp/mcp-share/out/cocos-replacements_<时间> --out tmp/mcp-share/out/cocos-replacements_<时间>/repacked_applovin2103.html
-```
-
-重打包默认会把 `cc` 的 import map 改成 `about:cocos-js/cc.js`，便于 `npx serve` 单目录预览；部署到含 `../cocos-js/` 的线上目录时加 `--keep-import-map`。
-
-**图集子帧**：manifest 里带有 `original.frameRect`（且区域小于整张 native 图集）时，会把替换图合成进对应 PNG 图集，而不是覆盖整张纹理；仍会自动处理 oasj 第 27 位占位与 data URL 长度上限。
-
-4. 备选：`node tools/apply-replacements.mjs`（已下载的整站目录 + 替换包）
 
 ## 构建与安装
 
@@ -62,15 +47,17 @@ npm run build
 
 ```
 src/
-  content.ts          # 注入 CSS / injected.js
-  injected.ts         # 主逻辑入口
-  cocos3/
-    detect.ts         # 3.x 环境检测
-    sceneTree.ts      # 场景树遍历与哈希
-    replacementStore.ts / replacementExport.ts / replacementPanel.ts
-  tools/apply-replacements.mjs
-  styles/inspector.css
+  content.ts / injected.ts / background.ts
+  cocos3/               # 场景树、快照、纹理、MCP 桥
+tools/
+  mcp-cocos-inspector/  # Inspector MCP + scene-to-creator
+  repack-web/           # 换皮 Web（分支能力）
+.cursor/skills/
+  inspector-scene-recovery/  # 场景复刻 P+S Skill
+docs/                   # 见 docs/README.md
 ```
+
+换皮流程详见 [tools/repack-web/README.md](tools/repack-web/README.md)。
 
 ## 开发
 

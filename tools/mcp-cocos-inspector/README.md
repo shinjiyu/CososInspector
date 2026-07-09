@@ -110,3 +110,5 @@ npm install
 | `cocos_repack_super_html` | 本机重打包 |
 
 风格替换流程：截屏 → 列 Sprite → 下载 → GenerateImage → `cocos_replace_texture` → 导出 → 重打包。
+
+**场景复刻**（试玩 → Creator）：读 `.cursor/skills/inspector-scene-recovery/SKILL.md`，详参 `docs/features/scene-recovery.md`。

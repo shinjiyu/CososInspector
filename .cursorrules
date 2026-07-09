@@ -42,3 +42,9 @@
 - 一次性调试/验证功能（如画框、单节点试验）**不要**加面板按钮
 - 优先走 MCP `evalPage` 或 `tools/mcp-cocos-inspector/*.mjs` 脚本
 - 面板 UI 只保留长期使用的核心能力
+
+## 场景复刻
+
+- 试玩页 → Creator 复刻：先读 `.cursor/skills/inspector-scene-recovery/SKILL.md`
+- Creator 建树 P 侧：上游 `~/.cursor/skills/cocos-meta-mcp-scene/`
+- 详参：`docs/features/scene-recovery.md`

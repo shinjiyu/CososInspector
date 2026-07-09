@@ -106,7 +106,8 @@ sequenceDiagram
 
 ## 关键集成（本仓库相关）
 
-- **H5 换皮 / 重打包**：CososInspector MCP + `cocos-style-replace` Skill（构建产物校验）
+- **H5 换皮 / 重打包**：`feat/texture-replace` + `tools/repack-web`（非 main 主流程）
+- **试玩 → Creator 复刻**：本仓库 Skill `inspector-scene-recovery` + `docs/features/scene-recovery.md`
 - **云真机**：`user-devicekeeper` MCP
 - **异常**：`plugin-sentry-sentry` MCP / Sentry SDK
 - **Agent 闭环**：Cursor Agent + Memory Logs 跨会话上下文
