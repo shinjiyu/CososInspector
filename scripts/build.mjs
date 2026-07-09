@@ -1,9 +1,12 @@
-import { copyFileSync, mkdirSync } from 'fs';
+import { copyFileSync, mkdirSync, readFileSync } from 'fs';
 import { dirname, join } from 'path';
 import { fileURLToPath } from 'url';
 import { spawnSync } from 'child_process';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
+const pkgVersion = JSON.parse(
+  readFileSync(join(root, 'package.json'), 'utf8')
+).version;
 const dist = join(root, 'dist');
 const minify = process.argv.includes('--minify');
 const watch = process.argv.includes('--watch');
@@ -27,6 +30,9 @@ async function build() {
     sourcemap: true,
     minify,
     logLevel: 'info',
+    define: {
+      __INSPECTOR_VERSION__: JSON.stringify(pkgVersion),
+    },
   };
 
   if (esbuildMod) {
@@ -66,6 +72,7 @@ async function build() {
           '--bundle',
           `--outfile=dist/${name}.js`,
           '--format=iife',
+          `--define:__INSPECTOR_VERSION__=${JSON.stringify(pkgVersion)}`,
           ...minifyFlag,
         ],
         { cwd: root, stdio: 'inherit', shell: true }

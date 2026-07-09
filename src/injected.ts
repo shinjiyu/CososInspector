@@ -1,5 +1,7 @@
 /// <reference path="./types/cocos.d.ts" />
 
+declare const __INSPECTOR_VERSION__: string;
+
 import { AssetFloatingPanel } from './cocos3/assetPanel';
 import { isCocos3, log, waitForCocos3 } from './cocos3/detect';
 import { installMcpBridge } from './cocos3/mcpBridge';
@@ -117,9 +119,19 @@ class CocosInspector3 {
     const titleBlock = document.createElement('div');
     titleBlock.className = 'inspector-header-title-block';
 
+    const titleRow = document.createElement('div');
+    titleRow.className = 'inspector-title-row';
+
     const title = document.createElement('h3');
     title.textContent = 'Cocos Inspector 3';
-    titleBlock.appendChild(title);
+    titleRow.appendChild(title);
+
+    const inspectorVersion = document.createElement('span');
+    inspectorVersion.className = 'inspector-version';
+    inspectorVersion.textContent = `v${__INSPECTOR_VERSION__}`;
+    titleRow.appendChild(inspectorVersion);
+
+    titleBlock.appendChild(titleRow);
 
     const version = document.createElement('span');
     version.className = 'engine-version';

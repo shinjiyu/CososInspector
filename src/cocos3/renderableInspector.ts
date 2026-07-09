@@ -23,6 +23,8 @@ export interface ComponentInspectInfo {
 export interface NodeInspectorData {
   nodeId: string;
   nodeName: string;
+  /** Node.position 格式化字符串 */
+  position: string;
   components: ComponentInspectInfo[];
 }
 
@@ -84,6 +86,17 @@ const readVec2 = (v: unknown): string => {
   if (!v || typeof v !== 'object') return '-';
   const p = v as { x?: number; y?: number };
   return `${(p.x ?? 0).toFixed(2)}, ${(p.y ?? 0).toFixed(2)}`;
+};
+
+const readVec3 = (v: unknown): string => {
+  if (!v || typeof v !== 'object') return '-';
+  const p = v as { x?: number; y?: number; z?: number };
+  return `${(p.x ?? 0).toFixed(2)}, ${(p.y ?? 0).toFixed(2)}, ${(p.z ?? 0).toFixed(2)}`;
+};
+
+const readNodePosition = (node: cc.Node): string => {
+  const n = node as cc.Node & { position?: unknown };
+  return readVec3(n.position);
 };
 
 const formatPrimitive = (value: unknown): string => {
@@ -211,7 +224,11 @@ const getCompId = (comp: unknown, index: number): string => {
   return rec.uuid ?? rec._id ?? `idx-${index}`;
 };
 
-const extractRows = (comp: unknown, typeName: string): InspectRow[] => {
+const extractRows = (
+  comp: unknown,
+  typeName: string,
+  nodePosition?: string
+): InspectRow[] => {
   const c = comp as CompRecord;
 
   if (/Sprite/.test(typeName)) {
@@ -299,6 +316,7 @@ const extractRows = (comp: unknown, typeName: string): InspectRow[] => {
 
   if (/UITransform/.test(typeName)) {
     return [
+      { label: '位置', value: nodePosition ?? '-' },
       { label: '内容尺寸', value: readSize(c.contentSize) },
       { label: '锚点', value: readVec2(c.anchorPoint) },
     ];
@@ -366,6 +384,8 @@ export const collectNodeInspectorData = (
   let spineCounter = 0;
   let bmfontCounter = 0;
 
+  const nodePosition = readNodePosition(node);
+
   getNodeComponents(node).forEach((comp, index) => {
     const typeName = getComponentName(comp);
     const shortName = shortTypeName(typeName);
@@ -387,7 +407,7 @@ export const collectNodeInspectorData = (
       shortName: displayName,
       compId: getCompId(comp, index),
       enabled,
-      rows: extractRows(comp, typeName),
+      rows: extractRows(comp, typeName, nodePosition),
       isSprite: /Sprite/.test(typeName) && !/SpriteRenderer/.test(typeName),
       isCustom: isCustomComponentName(typeName),
       isSpine,
@@ -401,6 +421,7 @@ export const collectNodeInspectorData = (
   return {
     nodeId,
     nodeName: node.name || '(unnamed)',
+    position: nodePosition,
     components,
   };
 };
@@ -415,7 +436,7 @@ export const hashNodeInspectorData = (
         .map((r) => `${r.label}=${r.value}`)
         .join('|')}`
   );
-  return `${data.nodeId};${parts.join(';')}`;
+  return `${data.nodeId};pos=${data.position};${parts.join(';')}`;
 };
 
 export const renderNodeInspectorHtml = (
@@ -425,8 +446,19 @@ export const renderNodeInspectorHtml = (
     return `<div class="node-inspector-empty">选中节点以查看 Inspector</div>`;
   }
 
+  const nodeBlock = `<section class="insp-comp-block" data-comp="Node">
+    <header class="insp-comp-header">
+      <span class="insp-comp-name">Node</span>
+    </header>
+    <div class="insp-comp-body">
+      <div class="insp-row"><span class="insp-label">位置</span><span class="insp-value">${escapeHtml(
+        data.position
+      )}</span></div>
+    </div>
+  </section>`;
+
   if (data.components.length === 0) {
-    return `<div class="node-inspector-empty">当前节点无组件</div>`;
+    return `<div class="node-inspector-scroll">${nodeBlock}<div class="node-inspector-empty">当前节点无组件</div></div>`;
   }
 
   const blocks = data.components
@@ -498,7 +530,7 @@ export const renderNodeInspectorHtml = (
     })
     .join('');
 
-  return `<div class="node-inspector-scroll">${blocks}</div>`;
+  return `<div class="node-inspector-scroll">${nodeBlock}${blocks}</div>`;
 };
 
 export const createNodeInspectorElement = (): HTMLElement => {

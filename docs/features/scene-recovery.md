@@ -115,6 +115,7 @@ npm run cocos-scene-to-creator -- tmp/godeebxp-scene-snapshot.json `
 | `--with-textures` | 批量 `downloadTexture(originalCanvas)` → 写入 `assets/recovered/godeebxp/sprites/` |
 | `--refresh-snapshot` | 先从试玩页重新导出快照 |
 | `--page-url-match` | 精确匹配 tab URL 片段 |
+| `--live-sprites` | 预缓存的 `listSprites` JSON；快照 nodeId 与试玩页不一致时按 **path** 匹配 live id 再 `downloadTexture` |
 
 ### Inspector MCP 纹理能力
 

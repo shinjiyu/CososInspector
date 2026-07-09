@@ -7,7 +7,7 @@ import {
 } from './bridge-registry.mjs';
 
 const DEFAULT_PORT = Number(process.env.COCOS_BRIDGE_PORT ?? 17373);
-const CALL_TIMEOUT_MS = 120_000;
+const DEFAULT_CALL_TIMEOUT_MS = 120_000;
 
 /** @type {'none' | 'server' | 'client'} */
 let mode = 'none';
@@ -24,6 +24,10 @@ const mcpClients = new Set();
 const pending = new Map();
 let seq = 0;
 let ephemeralSeq = 100000;
+/** 服务端转发 ID，避免多 MCP 客户端 id 碰撞 */
+let serverRelaySeq = 2_000_000;
+/** @type {Map<number, { clientWs: import('ws').WebSocket; clientId: number }>} */
+const relayByServerId = new Map();
 let lastTabs = [];
 
 /** @type {{ domain?: string; pageUrlMatch?: string; wsPort?: number; httpPort?: number; shareDir?: string } | null} */
@@ -59,6 +63,17 @@ function syncRegistryExtension(connected, domainOverride) {
 }
 
 function routeResponse(msg) {
+  const relay = relayByServerId.get(msg.id);
+  if (relay) {
+    relayByServerId.delete(msg.id);
+    if (relay.timer) clearTimeout(relay.timer);
+    const out = { ...msg, id: relay.clientId };
+    if (relay.clientWs.readyState === WebSocket.OPEN) {
+      relay.clientWs.send(JSON.stringify(out));
+    }
+    return;
+  }
+
   const p = pending.get(msg.id);
   if (!p) return;
   clearTimeout(p.timer);
@@ -86,8 +101,9 @@ function relayCallFromMcpClient(msg, mcpWs) {
     return;
   }
 
+  const serverId = ++serverRelaySeq;
   const timer = setTimeout(() => {
-    pending.delete(msg.id);
+    relayByServerId.delete(serverId);
     if (mcpWs.readyState === WebSocket.OPEN) {
       mcpWs.send(
         JSON.stringify({
@@ -97,18 +113,13 @@ function relayCallFromMcpClient(msg, mcpWs) {
         })
       );
     }
-  }, CALL_TIMEOUT_MS);
-  pending.set(msg.id, {
-    resolve: () => {},
-    reject: () => {},
-    timer,
-    relayTo: mcpWs,
-  });
+  }, msg.timeoutMs ?? DEFAULT_CALL_TIMEOUT_MS);
+  relayByServerId.set(serverId, { clientWs: mcpWs, clientId: msg.id, timer });
 
   extensionWs.send(
     JSON.stringify({
       type: 'call',
-      id: msg.id,
+      id: serverId,
       method: msg.method,
       args: msg.args ?? [],
       pageUrlMatch: msg.pageUrlMatch ?? daemonMeta?.pageUrlMatch ?? '',
@@ -402,13 +413,14 @@ export function bridgeApiCall(method, argList = [], opts = {}) {
     method,
     args: argList,
     pageUrlMatch: opts.pageUrlMatch ?? daemonMeta?.pageUrlMatch ?? process.env.COCOS_PAGE_URL_MATCH ?? '',
+    timeoutMs: opts.timeoutMs,
   };
 
   return new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       pending.delete(id);
       reject(new Error(`桥接调用超时 (${method})`));
-    }, CALL_TIMEOUT_MS);
+    }, opts.timeoutMs ?? DEFAULT_CALL_TIMEOUT_MS);
 
     if (mode === 'client') {
       if (!mcpClientWs || mcpClientWs.readyState !== WebSocket.OPEN) {
@@ -465,7 +477,7 @@ export function callBridgeAtPort(port, method, argList = [], opts = {}) {
         /* ignore */
       }
       reject(new Error(`桥接调用超时 (${method} @ :${port})`));
-    }, CALL_TIMEOUT_MS);
+    }, opts.timeoutMs ?? DEFAULT_CALL_TIMEOUT_MS);
 
     ws.on('open', () => {
       ws.send(JSON.stringify({ role: 'mcp' }));

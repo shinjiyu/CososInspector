@@ -1,6 +1,14 @@
 /// <reference path="./types/chrome.d.ts" />
 
-const API_CALL_TIMEOUT_MS = 120_000;
+const DEFAULT_API_CALL_TIMEOUT_MS = 120_000;
+const API_CALL_TIMEOUT_BY_METHOD: Record<string, number> = {
+  downloadTexture: 300_000,
+  listSprites: 180_000,
+  exportSceneSnapshot: 300_000,
+};
+
+const getApiCallTimeoutMs = (method: string): number =>
+  API_CALL_TIMEOUT_BY_METHOD[method] ?? DEFAULT_API_CALL_TIMEOUT_MS;
 let pageApiReady = false;
 
 function markPageApiReady(): void {
@@ -46,7 +54,7 @@ function callPageApi(method: string, args: unknown[]): Promise<unknown> {
         const timer = window.setTimeout(() => {
             window.removeEventListener('message', onResponse);
             reject(new Error(`页面 API 超时 (${method})`));
-        }, API_CALL_TIMEOUT_MS);
+        }, getApiCallTimeoutMs(method));
 
         const onResponse = (ev: MessageEvent) => {
             if (ev.source !== window || ev.data?.type !== 'cocos-api-response') return;

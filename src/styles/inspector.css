@@ -87,10 +87,24 @@
   min-width: 0;
 }
 
+.inspector-title-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
 .cocos-inspector-header h3 {
-  margin: 0 0 4px;
+  margin: 0;
   font-size: 15px;
   font-weight: 600;
+}
+
+.inspector-version {
+  font-size: 11px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.45);
+  letter-spacing: 0.02em;
 }
 
 .engine-version {

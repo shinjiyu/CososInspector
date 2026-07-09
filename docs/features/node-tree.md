@@ -69,6 +69,9 @@
 
 主面板**底部**显示 Inspector，选中节点后列出该节点上**全部 Component**（不做可渲染过滤）。
 
+- 顶部 **Node** 区块显示 **位置**（`node.position`，本地坐标 x/y/z）
+- **UITransform** 首行同样显示位置，便于对照 Creator
+- 面板标题旁显示扩展版本号（如 `v2.1.0`），下方为引擎版本
 - 常见组件（Sprite、Label、UITransform、Widget 等）展示专用字段
 - 其余组件展示公开属性（最多 16 项）
 - Sprite 组件额外异步加载贴图预览

@@ -13,7 +13,21 @@
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { callBridgeAtPort, connectBridgeClientOnly, waitForExtension } from './bridge-server.mjs';
+import {
+  bridgeApiCall,
+  callBridgeAtPort,
+  connectBridgeClientOnly,
+  waitForExtension,
+} from './bridge-server.mjs';
+
+/** 走持久 WS 客户端；downloadTexture 大图读取消耗较长 */
+const inspectorCall = (wsPort, method, argList, opts = {}) =>
+  bridgeApiCall(method, argList, {
+    ...opts,
+    timeoutMs:
+      opts.timeoutMs ??
+      (method === 'downloadTexture' ? 300_000 : undefined),
+  });
 import { resolveSharePath } from './shared-fs.mjs';
 import {
   buildBindingsFromManifest,
@@ -61,6 +75,7 @@ const parseArgs = () => {
     texturesOnly: has('--textures-only'),
     forceTextures: has('--force-textures'),
     manifestPath: get('--manifest', ''),
+    liveSpritesPath: get('--live-sprites', ''),
   };
 };
 
@@ -156,6 +171,29 @@ const collectSpriteNodes = (node, out = []) => {
   return out;
 };
 
+/** 快照与试玩页 listSprites 路径对齐（去 main 前缀、统一 › 空格） */
+const normalizeSpritePath = (p) =>
+  String(p ?? '')
+    .replace(/^main › /, '')
+    .replace(/\s*›\s*/g, ' › ')
+    .trim();
+
+const buildLiveSpritePathMap = (liveSprites = []) => {
+  const map = new Map();
+  for (const sp of liveSprites) {
+    const keys = [
+      normalizeSpritePath(sp.path),
+      sp.path?.replace(/^main › /, ''),
+      sp.path,
+      sp.name,
+    ].filter(Boolean);
+    for (const key of keys) {
+      if (!map.has(key)) map.set(key, sp);
+    }
+  }
+  return map;
+};
+
 const safeFileStem = (nodeId, name) => {
   const base = `${name || 'sprite'}_${nodeId}`.replace(/[^a-zA-Z0-9._-]+/g, '_');
   return base.slice(0, 120);
@@ -244,6 +282,28 @@ const exportSpriteTextures = async (snapshot, args) => {
   );
   fs.mkdirSync(assetsDir, { recursive: true });
 
+  const liveSprites = (() => {
+    if (args.liveSpritesPath && fs.existsSync(args.liveSpritesPath)) {
+      const raw = JSON.parse(fs.readFileSync(args.liveSpritesPath, 'utf8'));
+      const list = Array.isArray(raw) ? raw : raw?.sprites ?? [];
+      console.error(`[scene-to-creator] 已加载 live sprites 缓存 ${list.length} 条`);
+      return list;
+    }
+    return null;
+  })();
+  const liveList =
+    liveSprites ??
+    (await inspectorCall(args.wsPort, 'listSprites', [], {
+      pageUrlMatch: args.pageUrlMatch,
+      timeoutMs: 300_000,
+    }));
+  const liveByPath = buildLiveSpritePathMap(
+    Array.isArray(liveList) ? liveList : []
+  );
+  console.error(
+    `[scene-to-creator] 试玩页 Sprite ${liveByPath.size} 条，快照待导 ${limited.length} 条`
+  );
+
   const manifest = {};
   const frameCache = new Map();
   if (args.resumeTextures && args.manifestPath && fs.existsSync(args.manifestPath)) {
@@ -287,15 +347,31 @@ const writeDownloadedTexture = (dl, abs) => {
   for (let i = 0; i < limited.length; i += 1) {
     const sp = limited[i];
     if (!args.forceTextures && manifest[sp.id]?.rel) continue;
+    const liveSp =
+      liveByPath.get(normalizeSpritePath(sp.path)) ??
+      liveByPath.get(sp.path) ??
+      liveByPath.get(sp.name);
+    if (!liveSp?.id) {
+      fail += 1;
+      console.error(
+        `[scene-to-creator] 纹理跳过 ${sp.name}(${sp.id}) path=${sp.path}: 试玩页无对应 Sprite`
+      );
+      continue;
+    }
     try {
-      const dl = await callBridgeAtPort(
+      const dl = await inspectorCall(
         args.wsPort,
         'downloadTexture',
-        [sp.id, { delivery: 'share', wsPort: args.wsPort }],
+        [liveSp.id, { delivery: 'share', wsPort: args.wsPort }],
         { pageUrlMatch: args.pageUrlMatch }
       );
       if (!dl?.ok) {
         fail += 1;
+        console.error(
+          `[scene-to-creator] 纹理失败 ${sp.name}(${sp.id}) live=${liveSp.id}: ${
+            dl?.error ?? 'unknown'
+          }`
+        );
         continue;
       }
       const spriteFrame = normalizeSpriteFrameMeta(snapById[sp.id], dl.detail);
@@ -752,7 +828,7 @@ const collectMaskTargets = (snapshotRoot, pathMap) => {
 };
 
 const refreshSnapshotFromPage = async (args, outPath) => {
-  const snap = await callBridgeAtPort(
+  const snap = await inspectorCall(
     args.wsPort,
     'exportSceneSnapshot',
     [{ maxNodes: args.maxNodes, includeComponents: true }],

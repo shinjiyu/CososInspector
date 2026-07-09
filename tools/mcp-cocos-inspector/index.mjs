@@ -89,11 +89,18 @@ async function cdpApiCall(method, argList, opts) {
   );
 }
 
+const BRIDGE_TIMEOUT_BY_METHOD = {
+  downloadTexture: 300_000,
+  listSprites: 180_000,
+  exportSceneSnapshot: 300_000,
+};
+
 async function apiCall(method, argList, opts) {
   if (useCdp) return cdpApiCall(method, argList, opts);
   const target = await resolveBridgeTarget(connOpts(opts ?? {}));
   const callOpts = {
     pageUrlMatch: opts?.pageUrlMatch ?? target.pageUrlMatch ?? '',
+    timeoutMs: BRIDGE_TIMEOUT_BY_METHOD[method] ?? opts?.timeoutMs,
   };
   if (isBridgeRunning() && getDaemonMeta()?.wsPort === target.wsPort) {
     return bridgeApiCall(method, argList, callOpts);
